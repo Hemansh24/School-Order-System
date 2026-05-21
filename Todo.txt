@@ -1,0 +1,2 @@
+Set the system such as when the billing and the shipping address are the same, it generates a sub order no. instead of order no.
+

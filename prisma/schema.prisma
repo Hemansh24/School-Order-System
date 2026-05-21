@@ -1,0 +1,223 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum BillingToType {
+  school
+  vendor
+}
+
+enum OrderType {
+  descriptive
+  ambiguous
+}
+
+enum OrderStatus {
+  draft
+  revision_requested
+  pending_confirmation
+  locked
+  finalized
+  cancelled
+}
+
+enum SourceType {
+  TWO_A  @map("2A")
+  TWO_B2 @map("2B2")
+}
+
+enum CancelOrOnHoldStatus {
+  active
+  cancelled
+  on_hold
+}
+
+model School {
+  schoolId      Int      @id @default(autoincrement()) @map("school_id")
+  schoolCode    String   @unique @map("school_code")
+  schoolName    String   @map("school_name")
+  address       String?
+  contactPerson String?  @map("contact_person")
+  phone         String?
+  email         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  vendorSchools VendorSchool[]
+
+  @@map("schools")
+}
+
+model Vendor {
+  vendorId      Int      @id @default(autoincrement()) @map("vendor_id")
+  vendorCode    String   @unique @map("vendor_code")
+  vendorName    String   @map("vendor_name")
+  vendorType    String?  @map("vendor_type")
+  vendorRating  String?  @map("vendor_rating")
+  address       String?
+  contactPerson String?  @map("contact_person")
+  phone         String?
+  email         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  vendorSchools VendorSchool[]
+
+  @@map("vendors")
+}
+
+model VendorSchool {
+  vendorSchoolId Int      @id @default(autoincrement()) @map("vendor_school_id")
+  vendorId       Int      @map("vendor_id")
+  schoolId       Int      @map("school_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  vendor Vendor @relation(fields: [vendorId], references: [vendorId], onDelete: Cascade)
+  school School @relation(fields: [schoolId], references: [schoolId], onDelete: Cascade)
+
+  @@unique([vendorId, schoolId])
+  @@map("vendor_schools")
+}
+
+model Item {
+  itemId     Int      @id @default(autoincrement()) @map("item_id")
+  itemCode   String   @unique @map("item_code")
+  itemName   String   @map("item_name")
+  itemType   String?  @map("item_type")
+  subject    String?
+  classLevel String?  @map("class_level")
+  publisher  String?
+  price      Decimal? @db.Decimal(10, 2)
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("items")
+}
+
+model OrderSheet1 {
+  orderSheet1Id        Int           @id @default(autoincrement()) @map("order_sheet_1_id")
+  orderNo              Int           @map("order_no")
+  subOrderNo           Int           @default(0) @map("sub_order_no")
+  sessionYear          String        @map("session_year")
+  orderReceivedDate    DateTime      @map("order_received_date") @db.Date
+  expectedDeliveryDate DateTime      @map("expected_delivery_date") @db.Date
+  billingToType        BillingToType @map("billing_to_type")
+  billingToCode        String        @map("billing_to_code")
+  billingToName        String        @map("billing_to_name")
+  shippingToSummary    String        @map("shipping_to_summary")
+  orderType            OrderType     @map("order_type")
+  orderStatus          OrderStatus   @default(draft) @map("order_status")
+  booksellerType       String?       @map("bookseller_type")
+  booksellerRating     String?       @map("bookseller_rating")
+  pendingPayment       Boolean       @default(false) @map("pending_payment")
+  notes                String?
+  createdAt            DateTime      @default(now()) @map("created_at")
+  updatedAt            DateTime      @updatedAt @map("updated_at")
+
+  descriptiveRows OrderSheet2A[]
+  ambiguousSchools OrderSheet2B1[]
+  ambiguousItems OrderSheet2B2[]
+  finalRows OrderSheet3[]
+
+  @@unique([orderNo, subOrderNo])
+  @@index([orderType, orderStatus])
+  @@map("order_sheet_1")
+}
+
+model OrderSheet2A {
+  orderSheet2AId      Int      @id @default(autoincrement()) @map("order_sheet_2a_id")
+  orderSheet1Id       Int      @map("order_sheet_1_id")
+  orderNo             Int      @map("order_no")
+  subOrderNo          Int      @map("sub_order_no")
+  orderModificationNo Int?     @map("order_modification_no")
+  schoolCode          String   @map("school_code")
+  schoolName          String   @map("school_name")
+  itemCode            String   @map("item_code")
+  itemName            String   @map("item_name")
+  quantity            Int
+  notes               String?
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  order OrderSheet1 @relation(fields: [orderSheet1Id], references: [orderSheet1Id], onDelete: Cascade)
+
+  @@index([orderNo, subOrderNo])
+  @@map("order_sheet_2a")
+}
+
+model OrderSheet2B1 {
+  orderSheet2B1Id Int      @id @default(autoincrement()) @map("order_sheet_2b1_id")
+  orderSheet1Id   Int      @map("order_sheet_1_id")
+  orderNo         Int      @map("order_no")
+  subOrderNo      Int      @map("sub_order_no")
+  schoolCode      String   @map("school_code")
+  schoolName      String   @map("school_name")
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  order OrderSheet1 @relation(fields: [orderSheet1Id], references: [orderSheet1Id], onDelete: Cascade)
+
+  @@index([orderNo, subOrderNo])
+  @@map("order_sheet_2b1")
+}
+
+model OrderSheet2B2 {
+  orderSheet2B2Id     Int      @id @default(autoincrement()) @map("order_sheet_2b2_id")
+  orderSheet1Id       Int      @map("order_sheet_1_id")
+  orderNo             Int      @map("order_no")
+  subOrderNo          Int      @map("sub_order_no")
+  orderModificationNo Int?     @map("order_modification_no")
+  itemCode            String   @map("item_code")
+  itemName            String   @map("item_name")
+  groupedQuantity     Int      @map("grouped_quantity")
+  notes               String?
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  order OrderSheet1 @relation(fields: [orderSheet1Id], references: [orderSheet1Id], onDelete: Cascade)
+
+  @@index([orderNo, subOrderNo])
+  @@map("order_sheet_2b2")
+}
+
+model OrderSheet3 {
+  orderSheet3Id          Int                  @id @default(autoincrement()) @map("order_sheet_3_id")
+  orderSheet1Id          Int                  @map("order_sheet_1_id")
+  orderNo                Int                  @map("order_no")
+  subOrderNo             Int                  @map("sub_order_no")
+  sourceType             SourceType           @map("source_type")
+  sourceId               Int                  @map("source_id")
+  itemCode               String               @map("item_code")
+  itemName               String               @map("item_name")
+  quantity               Int
+  parts                  String?
+  transitId              String?              @map("transit_id")
+  materialTransitTime    String?              @map("material_transit_time")
+  dispatchDate           DateTime?            @map("dispatch_date") @db.Date
+  feasibleDeliveryDate   DateTime?            @map("feasible_delivery_date") @db.Date
+  possibleDeliveryDate   DateTime?            @map("possible_delivery_date") @db.Date
+  acceptedByClient       Boolean              @default(false) @map("accepted_by_client")
+  discountPercentage     Decimal?             @map("discount_percentage") @db.Decimal(5, 2)
+  paymentReceived        Boolean              @default(false) @map("payment_received")
+  cancelOrOnHoldStatus   CancelOrOnHoldStatus @default(active) @map("cancel_or_on_hold_status")
+  plNumber               String?              @map("pl_number")
+  plDate                 DateTime?            @map("pl_date") @db.Date
+  bin                    String?
+  notes                  String?
+  createdAt              DateTime             @default(now()) @map("created_at")
+  updatedAt              DateTime             @updatedAt @map("updated_at")
+
+  order OrderSheet1 @relation(fields: [orderSheet1Id], references: [orderSheet1Id], onDelete: Cascade)
+
+  @@unique([sourceType, sourceId])
+  @@index([orderNo, subOrderNo])
+  @@map("order_sheet_3")
+}
