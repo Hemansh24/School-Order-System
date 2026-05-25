@@ -45,6 +45,7 @@ export function CreateOrderForm({
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [selectedVendorSchoolCode, setSelectedVendorSchoolCode] = useState("");
   const [isPending, startTransition] = useTransition();
 
   const today = new Date().toISOString().slice(0, 10);
@@ -54,6 +55,7 @@ export function CreateOrderForm({
 
   const form = useForm<CreateOrderInput>({
     resolver: zodResolver(createOrderSchema),
+    mode: "onChange",
     defaultValues: initialValues ?? {
       sheet1: {
         sessionYear: "2026-2027",
@@ -86,6 +88,8 @@ export function CreateOrderForm({
 
   const orderType = form.watch("sheet1.orderType");
   const billingToType = form.watch("sheet1.billingToType");
+  const billingToCode = form.watch("sheet1.billingToCode");
+  const watchedDescriptiveRows = form.watch("descriptiveRows");
 
   const descriptiveRows = useFieldArray({ control: form.control, name: "descriptiveRows" });
   const ambiguousSchools = useFieldArray({ control: form.control, name: "ambiguousSchools" });
@@ -109,12 +113,30 @@ export function CreateOrderForm({
     [billingToType, schools, vendors]
   );
 
+  const selectedVendorSchools = useMemo(() => {
+    if (billingToType !== "vendor") {
+      return [];
+    }
+
+    return vendors.find((vendor) => vendor.vendorCode === billingToCode)?.schools ?? [];
+  }, [billingToCode, billingToType, vendors]);
+
+  const activeVendorSchoolCode =
+    selectedVendorSchoolCode || selectedVendorSchools[0]?.schoolCode || "";
+  const activeVendorSchool = selectedVendorSchools.find(
+    (school) => school.schoolCode === activeVendorSchoolCode
+  );
+
   function setBilling(code: string) {
     const selected = billingOptions.find((option) => option.code === code);
     form.setValue("sheet1.billingToCode", code);
     form.setValue("sheet1.billingToName", selected?.name ?? "");
     form.setValue("sheet1.booksellerType", selected?.type ?? "");
     form.setValue("sheet1.booksellerRating", selected?.rating ?? "");
+    if (billingToType === "vendor" && orderType === "descriptive") {
+      form.setValue("descriptiveRows", []);
+      setSelectedVendorSchoolCode("");
+    }
   }
 
   function setDescriptiveSchool(index: number, code: string) {
@@ -135,12 +157,62 @@ export function CreateOrderForm({
     form.setValue(`${path}.${index}.itemName`, selected?.itemName ?? "");
   }
 
+  function setVendorItemQuantity(item: ItemRef, rawQuantity: string) {
+    if (!activeVendorSchool) {
+      return;
+    }
+
+    const rows = form.getValues("descriptiveRows");
+    const rowIndex = rows.findIndex(
+      (row) => row.schoolCode === activeVendorSchool.schoolCode && row.itemCode === item.itemCode
+    );
+    const quantity = Number(rawQuantity);
+
+    if (!rawQuantity || Number.isNaN(quantity) || quantity <= 0) {
+      if (rowIndex >= 0) {
+        descriptiveRows.remove(rowIndex);
+      }
+      return;
+    }
+
+    const nextRow = {
+      schoolCode: activeVendorSchool.schoolCode,
+      schoolName: activeVendorSchool.schoolName,
+      itemCode: item.itemCode,
+      itemName: item.itemName,
+      quantity,
+      notes: ""
+    };
+
+    if (rowIndex >= 0) {
+      form.setValue(`descriptiveRows.${rowIndex}`, nextRow);
+    } else {
+      descriptiveRows.append(nextRow);
+    }
+  }
+
+  function moveVendorSchool(direction: -1 | 1) {
+    if (selectedVendorSchools.length === 0) {
+      return;
+    }
+
+    const currentIndex = Math.max(
+      0,
+      selectedVendorSchools.findIndex((school) => school.schoolCode === activeVendorSchoolCode)
+    );
+    const nextIndex = Math.min(
+      selectedVendorSchools.length - 1,
+      Math.max(0, currentIndex + direction)
+    );
+    setSelectedVendorSchoolCode(selectedVendorSchools[nextIndex].schoolCode);
+  }
+
   function switchOrderType(type: "descriptive" | "ambiguous") {
     form.setValue("sheet1.orderType", type);
     if (type === "descriptive") {
       form.setValue("ambiguousSchools", []);
       form.setValue("ambiguousItems", []);
-      if (form.getValues("descriptiveRows").length === 0) {
+      if (billingToType !== "vendor" && form.getValues("descriptiveRows").length === 0) {
         descriptiveRows.append({
           schoolCode: schools[0]?.schoolCode ?? "",
           schoolName: schools[0]?.schoolName ?? "",
@@ -186,7 +258,19 @@ export function CreateOrderForm({
     });
   }
 
+  async function goNext() {
+    if (step === 3) {
+      const isValid = await form.trigger();
+      if (!isValid) {
+        return;
+      }
+    }
+
+    setStep((current) => Math.min(4, current + 1));
+  }
+
   const errors = form.formState.errors;
+  const canSubmit = step === 4 && form.formState.isValid && !isPending;
 
   return (
     <form onSubmit={form.handleSubmit(submit)} className="space-y-6">
@@ -245,6 +329,10 @@ export function CreateOrderForm({
                           : undefined;
                     form.setValue("sheet1.billingToCode", first?.schoolCode ?? "");
                     form.setValue("sheet1.billingToName", first?.schoolName ?? "");
+                    if (orderType === "descriptive") {
+                      form.setValue("descriptiveRows", []);
+                      setSelectedVendorSchoolCode("");
+                    }
                   }
                 })}
               >
@@ -304,57 +392,148 @@ export function CreateOrderForm({
               <h2 className="text-lg font-semibold text-ink">Order Sheet 2A</h2>
               <p className="text-sm text-muted">School-wise item quantities for descriptive orders.</p>
             </div>
-            <SubmitButton
-              type="button"
-              variant="secondary"
-              onClick={() =>
-                descriptiveRows.append({
-                  schoolCode: schools[0]?.schoolCode ?? "",
-                  schoolName: schools[0]?.schoolName ?? "",
-                  itemCode: items[0]?.itemCode ?? "",
-                  itemName: items[0]?.itemName ?? "",
-                  quantity: 1,
-                  notes: ""
-                })
-              }
-            >
-              <Plus className="mr-2 h-4 w-4" /> Add row
-            </SubmitButton>
+            {billingToType !== "vendor" ? (
+              <SubmitButton
+                type="button"
+                variant="secondary"
+                onClick={() =>
+                  descriptiveRows.append({
+                    schoolCode: schools[0]?.schoolCode ?? "",
+                    schoolName: schools[0]?.schoolName ?? "",
+                    itemCode: items[0]?.itemCode ?? "",
+                    itemName: items[0]?.itemName ?? "",
+                    quantity: 1,
+                    notes: ""
+                  })
+                }
+              >
+                <Plus className="mr-2 h-4 w-4" /> Add row
+              </SubmitButton>
+            ) : null}
           </div>
-          <div className="space-y-3">
-            {descriptiveRows.fields.map((field, index) => (
-              <LineRow key={field.id} onRemove={() => descriptiveRows.remove(index)}>
-                <select
-                  className={inputClass}
-                  value={form.watch(`descriptiveRows.${index}.schoolCode`)}
-                  onChange={(event) => setDescriptiveSchool(index, event.target.value)}
-                >
-                  {schools.map((school) => (
-                    <option key={school.schoolCode} value={school.schoolCode}>
-                      {school.schoolCode} - {school.schoolName}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  className={inputClass}
-                  value={form.watch(`descriptiveRows.${index}.itemCode`)}
-                  onChange={(event) => setItem("descriptiveRows", index, event.target.value)}
-                >
-                  {items.map((item) => (
-                    <option key={item.itemCode} value={item.itemCode}>
-                      {item.itemCode} - {item.itemName}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="number"
-                  min={1}
-                  className={inputClass}
-                  {...form.register(`descriptiveRows.${index}.quantity`)}
-                />
-              </LineRow>
-            ))}
-          </div>
+          {billingToType === "vendor" ? (
+            <div className="space-y-4">
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+                <Field label="School">
+                  <select
+                    className={inputClass}
+                    value={activeVendorSchoolCode}
+                    onChange={(event) => setSelectedVendorSchoolCode(event.target.value)}
+                  >
+                    {selectedVendorSchools.map((school) => (
+                      <option key={school.schoolCode} value={school.schoolCode}>
+                        {school.schoolCode} - {school.schoolName}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <div className="flex flex-wrap gap-2">
+                  <SubmitButton
+                    type="button"
+                    variant="secondary"
+                    onClick={() => moveVendorSchool(-1)}
+                    disabled={
+                      selectedVendorSchools.findIndex(
+                        (school) => school.schoolCode === activeVendorSchoolCode
+                      ) <= 0
+                    }
+                  >
+                    Previous School
+                  </SubmitButton>
+                  <SubmitButton
+                    type="button"
+                    variant="secondary"
+                    onClick={() => moveVendorSchool(1)}
+                    disabled={
+                      selectedVendorSchools.findIndex(
+                        (school) => school.schoolCode === activeVendorSchoolCode
+                      ) >= selectedVendorSchools.length - 1
+                    }
+                  >
+                    Next School
+                  </SubmitButton>
+                </div>
+              </div>
+              {selectedVendorSchools.length === 0 ? (
+                <div className="rounded-md border border-danger bg-red-50 p-3 text-sm text-red-900">
+                  This vendor is not linked to any schools yet.
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-md border border-line">
+                  <table className="w-full min-w-[620px] text-left text-sm">
+                    <thead className="bg-canvas text-xs uppercase text-muted">
+                      <tr>
+                        <th className="px-4 py-3">Item</th>
+                        <th className="w-40 px-4 py-3">Quantity</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-line">
+                      {items.map((item) => {
+                        const row = watchedDescriptiveRows.find(
+                          (entry) =>
+                            entry.schoolCode === activeVendorSchoolCode &&
+                            entry.itemCode === item.itemCode
+                        );
+
+                        return (
+                          <tr key={item.itemCode}>
+                            <td className="px-4 py-3">
+                              <span className="font-medium text-ink">{item.itemCode}</span>
+                              <span className="ml-2 text-muted">{item.itemName}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <input
+                                type="number"
+                                min={0}
+                                className={inputClass}
+                                value={row?.quantity ?? ""}
+                                onChange={(event) => setVendorItemQuantity(item, event.target.value)}
+                              />
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {descriptiveRows.fields.map((field, index) => (
+                <LineRow key={field.id} onRemove={() => descriptiveRows.remove(index)}>
+                  <select
+                    className={inputClass}
+                    value={form.watch(`descriptiveRows.${index}.schoolCode`)}
+                    onChange={(event) => setDescriptiveSchool(index, event.target.value)}
+                  >
+                    {schools.map((school) => (
+                      <option key={school.schoolCode} value={school.schoolCode}>
+                        {school.schoolCode} - {school.schoolName}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    className={inputClass}
+                    value={form.watch(`descriptiveRows.${index}.itemCode`)}
+                    onChange={(event) => setItem("descriptiveRows", index, event.target.value)}
+                  >
+                    {items.map((item) => (
+                      <option key={item.itemCode} value={item.itemCode}>
+                        {item.itemCode} - {item.itemName}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    min={1}
+                    className={inputClass}
+                    {...form.register(`descriptiveRows.${index}.quantity`)}
+                  />
+                </LineRow>
+              ))}
+            </div>
+          )}
         </Card>
       ) : null}
 
@@ -461,6 +640,11 @@ export function CreateOrderForm({
             details page to lock it, then finalize it into Order Sheet 3. Finalized orders are
             handled through the sub-order/revision workflow.
           </p>
+          {!form.formState.isValid ? (
+            <div className="mt-4 rounded-md border border-danger bg-red-50 p-3 text-sm text-red-900">
+              Complete the required Sheet 1 and detail row fields before saving this order.
+            </div>
+          ) : null}
         </Card>
       ) : null}
 
@@ -480,14 +664,16 @@ export function CreateOrderForm({
           <SubmitButton
             type="button"
             variant="secondary"
-            onClick={() => setStep((current) => Math.min(4, current + 1))}
+            onClick={goNext}
             disabled={step === 4}
           >
             Next
           </SubmitButton>
-          <SubmitButton type="submit" disabled={isPending}>
-            {isPending ? "Saving..." : submitLabel}
-          </SubmitButton>
+          {step === 4 ? (
+            <SubmitButton type="submit" disabled={!canSubmit}>
+              {isPending ? "Saving..." : submitLabel}
+            </SubmitButton>
+          ) : null}
         </div>
       </div>
     </form>

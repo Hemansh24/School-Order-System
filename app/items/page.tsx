@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Card, PageHeader, StatusPill } from "@/components/ui";
 import { AddItemForm } from "@/components/reference/reference-forms";
 import { prisma } from "@/lib/prisma";
@@ -24,6 +25,7 @@ export default async function ItemsPage() {
                 <th className="px-4 py-3">Publisher</th>
                 <th className="px-4 py-3">Price</th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -38,6 +40,14 @@ export default async function ItemsPage() {
                   <td className="px-4 py-3 text-muted">{item.price?.toString()}</td>
                   <td className="px-4 py-3">
                     <StatusPill value={item.active ? "active" : "inactive"} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/items/${item.itemId}/edit`}
+                      className="font-semibold text-brand-dark"
+                    >
+                      Edit
+                    </Link>
                   </td>
                 </tr>
               ))}

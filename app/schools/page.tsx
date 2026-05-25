@@ -1,16 +1,21 @@
+import Link from "next/link";
 import { Card, PageHeader } from "@/components/ui";
 import { AddSchoolForm } from "@/components/reference/reference-forms";
 import { prisma } from "@/lib/prisma";
+import { nextSchoolCode } from "@/lib/reference-codes";
 
 export const dynamic = "force-dynamic";
 
 export default async function SchoolsPage() {
-  const schools = await prisma.school.findMany({ orderBy: { schoolName: "asc" } });
+  const [schools, schoolCode] = await Promise.all([
+    prisma.school.findMany({ orderBy: { schoolName: "asc" } }),
+    nextSchoolCode()
+  ]);
 
   return (
     <>
       <PageHeader title="Schools" description="Destination schools for shipping and vendor links." />
-      <AddSchoolForm />
+      <AddSchoolForm nextCode={schoolCode} />
       <Card>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
@@ -21,6 +26,7 @@ export default async function SchoolsPage() {
                 <th className="px-4 py-3">Contact</th>
                 <th className="px-4 py-3">Phone</th>
                 <th className="px-4 py-3">Email</th>
+                <th className="px-4 py-3">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -31,6 +37,14 @@ export default async function SchoolsPage() {
                   <td className="px-4 py-3 text-muted">{school.contactPerson}</td>
                   <td className="px-4 py-3 text-muted">{school.phone}</td>
                   <td className="px-4 py-3 text-muted">{school.email}</td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/schools/${school.schoolId}/edit`}
+                      className="font-semibold text-brand-dark"
+                    >
+                      Edit
+                    </Link>
+                  </td>
                 </tr>
               ))}
             </tbody>

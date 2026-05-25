@@ -3,6 +3,7 @@
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { nextVendorCode } from "@/lib/reference-codes";
 import { createVendorSchema } from "@/lib/validation/reference";
 
 export type ReferenceActionState = {
@@ -23,8 +24,9 @@ export async function createVendorAction(
   formData: FormData
 ): Promise<ReferenceActionState> {
   try {
+    const vendorCode = await nextVendorCode();
     const parsed = createVendorSchema.parse({
-      vendorCode: formData.get("vendorCode"),
+      vendorCode,
       vendorName: formData.get("vendorName"),
       vendorType: formData.get("vendorType"),
       vendorRating: formData.get("vendorRating"),
@@ -59,3 +61,53 @@ export async function createVendorAction(
   }
 }
 
+export async function updateVendorAction(
+  vendorId: number,
+  _previousState: ReferenceActionState,
+  formData: FormData
+): Promise<ReferenceActionState> {
+  try {
+    const existing = await prisma.vendor.findUnique({
+      where: { vendorId },
+      select: { vendorCode: true }
+    });
+    if (!existing) {
+      throw new Error("Vendor not found.");
+    }
+
+    const parsed = createVendorSchema.parse({
+      vendorCode: existing.vendorCode,
+      vendorName: formData.get("vendorName"),
+      vendorType: formData.get("vendorType"),
+      vendorRating: formData.get("vendorRating"),
+      address: formData.get("address"),
+      contactPerson: formData.get("contactPerson"),
+      phone: formData.get("phone"),
+      email: formData.get("email"),
+      schoolIds: formData.getAll("schoolIds")
+    });
+
+    const { schoolIds, ...vendorData } = parsed;
+
+    await prisma.$transaction([
+      prisma.vendor.update({
+        where: { vendorId },
+        data: vendorData
+      }),
+      prisma.vendorSchool.deleteMany({ where: { vendorId } }),
+      prisma.vendorSchool.createMany({
+        data: schoolIds.map((schoolId) => ({ vendorId, schoolId }))
+      })
+    ]);
+
+    revalidatePath("/vendors");
+    revalidatePath(`/vendors/${vendorId}/edit`);
+    revalidatePath("/orders/new");
+    return { ok: true, message: "Vendor saved." };
+  } catch (error) {
+    return {
+      ok: false,
+      message: duplicateMessage(error, "A vendor with this code already exists.")
+    };
+  }
+}

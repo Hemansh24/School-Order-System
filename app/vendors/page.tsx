@@ -1,22 +1,25 @@
+import Link from "next/link";
 import { Card, PageHeader } from "@/components/ui";
 import { AddVendorForm } from "@/components/reference/reference-forms";
 import { prisma } from "@/lib/prisma";
+import { nextVendorCode } from "@/lib/reference-codes";
 
 export const dynamic = "force-dynamic";
 
 export default async function VendorsPage() {
-  const [vendors, schools] = await Promise.all([
+  const [vendors, schools, vendorCode] = await Promise.all([
     prisma.vendor.findMany({
       orderBy: { vendorName: "asc" },
       include: { vendorSchools: { include: { school: true } } }
     }),
-    prisma.school.findMany({ orderBy: { schoolName: "asc" } })
+    prisma.school.findMany({ orderBy: { schoolName: "asc" } }),
+    nextVendorCode()
   ]);
 
   return (
     <>
       <PageHeader title="Vendors" description="Booksellers must remain linked to at least one school." />
-      <AddVendorForm schools={schools} />
+      <AddVendorForm schools={schools} nextCode={vendorCode} />
       <Card>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[860px] text-left text-sm">
@@ -28,6 +31,7 @@ export default async function VendorsPage() {
                 <th className="px-4 py-3">Rating</th>
                 <th className="px-4 py-3">Linked Schools</th>
                 <th className="px-4 py-3">Contact</th>
+                <th className="px-4 py-3">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -41,6 +45,14 @@ export default async function VendorsPage() {
                     {vendor.vendorSchools.map((row) => row.school.schoolName).join(", ")}
                   </td>
                   <td className="px-4 py-3 text-muted">{vendor.contactPerson}</td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/vendors/${vendor.vendorId}/edit`}
+                      className="font-semibold text-brand-dark"
+                    >
+                      Edit
+                    </Link>
+                  </td>
                 </tr>
               ))}
             </tbody>
