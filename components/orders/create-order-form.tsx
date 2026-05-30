@@ -3,13 +3,19 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { createOrderAction, updateOrderAction } from "@/app/orders/actions";
 import { Card, SubmitButton } from "@/components/ui";
+import { compareEditionCodes, DEFAULT_LANGUAGE_CODE } from "@/lib/item-code";
 import { createOrderSchema, type CreateOrderInput } from "@/lib/validation/orders";
 
-type SchoolRef = { schoolCode: string; schoolName: string };
+type SchoolRef = {
+  optionKey: string;
+  schoolCode: string;
+  schoolName: string;
+  branchName: string | null;
+};
 type VendorRef = {
   vendorCode: string;
   vendorName: string;
@@ -17,7 +23,18 @@ type VendorRef = {
   vendorRating: string | null;
   schools: SchoolRef[];
 };
-type ItemRef = { itemCode: string; itemName: string };
+type ItemRef = {
+  itemCode: string;
+  itemName: string;
+  categoryCode: string;
+  categoryType: string | null;
+  subCategoryCode: string;
+  languageCode: string;
+  customisationCode: string;
+  customisationName: string | null;
+  editionCode: string;
+  mrp: string | null;
+};
 
 type Props = {
   schools: SchoolRef[];
@@ -45,13 +62,34 @@ export function CreateOrderForm({
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [serverError, setServerError] = useState<string | null>(null);
-  const [selectedVendorSchoolCode, setSelectedVendorSchoolCode] = useState("");
+  const [selectedVendorSchoolKey, setSelectedVendorSchoolKey] = useState("");
+  const [selectedDescriptiveSchoolKey, setSelectedDescriptiveSchoolKey] = useState("");
+  const [selectedCategoryCode, setSelectedCategoryCode] = useState(items[0]?.categoryCode ?? "");
+  const [selectedCustomisationCode, setSelectedCustomisationCode] = useState(
+    items[0]?.customisationCode ?? ""
+  );
   const [isPending, startTransition] = useTransition();
 
   const today = new Date().toISOString().slice(0, 10);
   const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     .toISOString()
     .slice(0, 10);
+
+  function findSchoolOptionByStoredValue(
+    options: SchoolRef[],
+    schoolCode?: string,
+    schoolName?: string
+  ) {
+    if (!schoolCode && !schoolName) {
+      return undefined;
+    }
+
+    return (
+      options.find(
+        (option) => option.schoolCode === schoolCode && option.schoolName === schoolName
+      ) ?? options.find((option) => option.schoolCode === schoolCode)
+    );
+  }
 
   const form = useForm<CreateOrderInput>({
     resolver: zodResolver(createOrderSchema),
@@ -71,16 +109,7 @@ export function CreateOrderForm({
         pendingPayment: false,
         notes: ""
       },
-      descriptiveRows: [
-        {
-          schoolCode: schools[0]?.schoolCode ?? "",
-          schoolName: schools[0]?.schoolName ?? "",
-          itemCode: items[0]?.itemCode ?? "",
-          itemName: items[0]?.itemName ?? "",
-          quantity: 1,
-          notes: ""
-        }
-      ],
+      descriptiveRows: [],
       ambiguousSchools: [],
       ambiguousItems: []
     }
@@ -90,6 +119,7 @@ export function CreateOrderForm({
   const billingToType = form.watch("sheet1.billingToType");
   const billingToCode = form.watch("sheet1.billingToCode");
   const watchedDescriptiveRows = form.watch("descriptiveRows");
+  const watchedAmbiguousItems = form.watch("ambiguousItems");
 
   const descriptiveRows = useFieldArray({ control: form.control, name: "descriptiveRows" });
   const ambiguousSchools = useFieldArray({ control: form.control, name: "ambiguousSchools" });
@@ -99,12 +129,14 @@ export function CreateOrderForm({
     () =>
       billingToType === "school"
         ? schools.map((school) => ({
+            value: school.optionKey,
             code: school.schoolCode,
             name: school.schoolName,
             type: "",
             rating: ""
           }))
         : vendors.map((vendor) => ({
+            value: vendor.vendorCode,
             code: vendor.vendorCode,
             name: vendor.vendorName,
             type: vendor.vendorType ?? "",
@@ -121,50 +153,155 @@ export function CreateOrderForm({
     return vendors.find((vendor) => vendor.vendorCode === billingToCode)?.schools ?? [];
   }, [billingToCode, billingToType, vendors]);
 
-  const activeVendorSchoolCode =
-    selectedVendorSchoolCode || selectedVendorSchools[0]?.schoolCode || "";
+  const activeVendorSchoolKey = selectedVendorSchoolKey || selectedVendorSchools[0]?.optionKey || "";
   const activeVendorSchool = selectedVendorSchools.find(
-    (school) => school.schoolCode === activeVendorSchoolCode
+    (school) => school.optionKey === activeVendorSchoolKey
+  );
+  const selectedBillingSchool =
+    billingToType === "school"
+      ? findSchoolOptionByStoredValue(schools, billingToCode, form.watch("sheet1.billingToName"))
+      : undefined;
+  const activeDescriptiveSchoolKey =
+    billingToType === "vendor"
+      ? activeVendorSchoolKey
+      : selectedDescriptiveSchoolKey || selectedBillingSchool?.optionKey || schools[0]?.optionKey || "";
+  const activeDescriptiveSchool =
+    billingToType === "vendor"
+      ? activeVendorSchool
+      : schools.find((school) => school.optionKey === activeDescriptiveSchoolKey);
+
+  useEffect(() => {
+    if (billingToType === "school" && !selectedDescriptiveSchoolKey) {
+      const current = findSchoolOptionByStoredValue(
+        schools,
+        form.getValues("sheet1.billingToCode"),
+        form.getValues("sheet1.billingToName")
+      );
+      if (current) {
+        setSelectedDescriptiveSchoolKey(current.optionKey);
+      }
+    }
+  }, [billingToType, schools, selectedDescriptiveSchoolKey, form]);
+
+  useEffect(() => {
+    if (billingToType === "vendor" && !selectedVendorSchoolKey && selectedVendorSchools.length > 0) {
+      const descriptiveRow = form.getValues("descriptiveRows")[0];
+      const ambiguousSchool = form.getValues("ambiguousSchools")[0];
+      const current = findSchoolOptionByStoredValue(
+        selectedVendorSchools,
+        descriptiveRow?.schoolCode ?? ambiguousSchool?.schoolCode,
+        descriptiveRow?.schoolName ?? ambiguousSchool?.schoolName
+      );
+      setSelectedVendorSchoolKey(current?.optionKey ?? selectedVendorSchools[0].optionKey);
+    }
+  }, [billingToType, selectedVendorSchoolKey, selectedVendorSchools, form]);
+
+  const categoryOptions = useMemo(
+    () =>
+      Array.from(
+        new Map(
+          items.map((item) => [
+            item.categoryCode,
+            { categoryCode: item.categoryCode, categoryType: item.categoryType }
+          ])
+        ).values()
+      ),
+    [items]
   );
 
-  function setBilling(code: string) {
-    const selected = billingOptions.find((option) => option.code === code);
-    form.setValue("sheet1.billingToCode", code);
+  const customisationOptions = useMemo(
+    () =>
+      Array.from(
+        new Map(
+          items
+            .filter((item) => item.categoryCode === selectedCategoryCode)
+            .map((item) => [
+              item.customisationCode,
+              {
+                customisationCode: item.customisationCode,
+                customisationName: item.customisationName
+              }
+            ])
+        ).values()
+      ),
+    [items, selectedCategoryCode]
+  );
+
+  const latestSelectionItems = useMemo(() => {
+    const matchingItems = items.filter(
+      (item) =>
+        item.categoryCode === selectedCategoryCode &&
+        item.customisationCode === selectedCustomisationCode &&
+        item.languageCode === DEFAULT_LANGUAGE_CODE
+    );
+    const latestEditionCode = matchingItems
+      .map((item) => item.editionCode)
+      .sort(compareEditionCodes)
+      .at(-1);
+
+    return matchingItems
+      .filter((item) => item.editionCode === latestEditionCode)
+      .sort((left, right) =>
+        left.subCategoryCode.localeCompare(right.subCategoryCode, undefined, { numeric: true }) ||
+        left.itemName.localeCompare(right.itemName)
+      );
+  }, [items, selectedCategoryCode, selectedCustomisationCode]);
+
+  useEffect(() => {
+    if (
+      categoryOptions.length > 0 &&
+      !categoryOptions.some((option) => option.categoryCode === selectedCategoryCode)
+    ) {
+      setSelectedCategoryCode(categoryOptions[0].categoryCode);
+    }
+  }, [categoryOptions, selectedCategoryCode]);
+
+  useEffect(() => {
+    if (customisationOptions.length === 0) {
+      if (selectedCustomisationCode) {
+        setSelectedCustomisationCode("");
+      }
+      return;
+    }
+
+    if (!customisationOptions.some((option) => option.customisationCode === selectedCustomisationCode)) {
+      setSelectedCustomisationCode(customisationOptions[0].customisationCode);
+    }
+  }, [customisationOptions, selectedCustomisationCode]);
+
+  function setBilling(value: string) {
+    const selected = billingOptions.find((option) => option.value === value);
+    form.setValue("sheet1.billingToCode", selected?.code ?? "");
     form.setValue("sheet1.billingToName", selected?.name ?? "");
     form.setValue("sheet1.booksellerType", selected?.type ?? "");
     form.setValue("sheet1.booksellerRating", selected?.rating ?? "");
     if (billingToType === "vendor" && orderType === "descriptive") {
       form.setValue("descriptiveRows", []);
-      setSelectedVendorSchoolCode("");
+      setSelectedVendorSchoolKey("");
+    }
+    if (billingToType === "school") {
+      setSelectedDescriptiveSchoolKey(value);
+      form.setValue("sheet1.shippingToSummary", selected?.name ?? "");
     }
   }
 
-  function setDescriptiveSchool(index: number, code: string) {
-    const selected = schools.find((school) => school.schoolCode === code);
-    form.setValue(`descriptiveRows.${index}.schoolCode`, code);
-    form.setValue(`descriptiveRows.${index}.schoolName`, selected?.schoolName ?? "");
-  }
-
-  function setAmbiguousSchool(index: number, code: string) {
-    const selected = schools.find((school) => school.schoolCode === code);
-    form.setValue(`ambiguousSchools.${index}.schoolCode`, code);
+  function setAmbiguousSchool(index: number, optionKey: string) {
+    const selected = schools.find((school) => school.optionKey === optionKey);
+    form.setValue(`ambiguousSchools.${index}.schoolCode`, selected?.schoolCode ?? "");
     form.setValue(`ambiguousSchools.${index}.schoolName`, selected?.schoolName ?? "");
   }
 
-  function setItem(path: "descriptiveRows" | "ambiguousItems", index: number, code: string) {
-    const selected = items.find((item) => item.itemCode === code);
-    form.setValue(`${path}.${index}.itemCode`, code);
-    form.setValue(`${path}.${index}.itemName`, selected?.itemName ?? "");
-  }
-
-  function setVendorItemQuantity(item: ItemRef, rawQuantity: string) {
-    if (!activeVendorSchool) {
+  function setDescriptiveItemQuantity(item: ItemRef, rawQuantity: string) {
+    if (!activeDescriptiveSchool) {
       return;
     }
 
     const rows = form.getValues("descriptiveRows");
     const rowIndex = rows.findIndex(
-      (row) => row.schoolCode === activeVendorSchool.schoolCode && row.itemCode === item.itemCode
+      (row) =>
+        row.schoolCode === activeDescriptiveSchool.schoolCode &&
+        row.schoolName === activeDescriptiveSchool.schoolName &&
+        row.itemCode === item.itemCode
     );
     const quantity = Number(rawQuantity);
 
@@ -176,8 +313,8 @@ export function CreateOrderForm({
     }
 
     const nextRow = {
-      schoolCode: activeVendorSchool.schoolCode,
-      schoolName: activeVendorSchool.schoolName,
+      schoolCode: activeDescriptiveSchool.schoolCode,
+      schoolName: activeDescriptiveSchool.schoolName,
       itemCode: item.itemCode,
       itemName: item.itemName,
       quantity,
@@ -191,6 +328,32 @@ export function CreateOrderForm({
     }
   }
 
+  function setAmbiguousItemQuantity(item: ItemRef, rawQuantity: string) {
+    const rows = form.getValues("ambiguousItems");
+    const rowIndex = rows.findIndex((row) => row.itemCode === item.itemCode);
+    const quantity = Number(rawQuantity);
+
+    if (!rawQuantity || Number.isNaN(quantity) || quantity <= 0) {
+      if (rowIndex >= 0) {
+        ambiguousItems.remove(rowIndex);
+      }
+      return;
+    }
+
+    const nextRow = {
+      itemCode: item.itemCode,
+      itemName: item.itemName,
+      groupedQuantity: quantity,
+      notes: ""
+    };
+
+    if (rowIndex >= 0) {
+      form.setValue(`ambiguousItems.${rowIndex}`, nextRow);
+    } else {
+      ambiguousItems.append(nextRow);
+    }
+  }
+
   function moveVendorSchool(direction: -1 | 1) {
     if (selectedVendorSchools.length === 0) {
       return;
@@ -198,13 +361,13 @@ export function CreateOrderForm({
 
     const currentIndex = Math.max(
       0,
-      selectedVendorSchools.findIndex((school) => school.schoolCode === activeVendorSchoolCode)
+      selectedVendorSchools.findIndex((school) => school.optionKey === activeVendorSchoolKey)
     );
     const nextIndex = Math.min(
       selectedVendorSchools.length - 1,
       Math.max(0, currentIndex + direction)
     );
-    setSelectedVendorSchoolCode(selectedVendorSchools[nextIndex].schoolCode);
+    setSelectedVendorSchoolKey(selectedVendorSchools[nextIndex].optionKey);
   }
 
   function switchOrderType(type: "descriptive" | "ambiguous") {
@@ -213,14 +376,13 @@ export function CreateOrderForm({
       form.setValue("ambiguousSchools", []);
       form.setValue("ambiguousItems", []);
       if (billingToType !== "vendor" && form.getValues("descriptiveRows").length === 0) {
-        descriptiveRows.append({
-          schoolCode: schools[0]?.schoolCode ?? "",
-          schoolName: schools[0]?.schoolName ?? "",
-          itemCode: items[0]?.itemCode ?? "",
-          itemName: items[0]?.itemName ?? "",
-          quantity: 1,
-          notes: ""
-        });
+        setSelectedDescriptiveSchoolKey(
+          findSchoolOptionByStoredValue(
+            schools,
+            form.getValues("sheet1.billingToCode"),
+            form.getValues("sheet1.billingToName")
+          )?.optionKey ?? schools[0]?.optionKey ?? ""
+        );
       }
     } else {
       form.setValue("descriptiveRows", []);
@@ -228,14 +390,6 @@ export function CreateOrderForm({
         ambiguousSchools.append({
           schoolCode: schools[0]?.schoolCode ?? "",
           schoolName: schools[0]?.schoolName ?? "",
-          notes: ""
-        });
-      }
-      if (form.getValues("ambiguousItems").length === 0) {
-        ambiguousItems.append({
-          itemCode: items[0]?.itemCode ?? "",
-          itemName: items[0]?.itemName ?? "",
-          groupedQuantity: 1,
           notes: ""
         });
       }
@@ -329,9 +483,11 @@ export function CreateOrderForm({
                           : undefined;
                     form.setValue("sheet1.billingToCode", first?.schoolCode ?? "");
                     form.setValue("sheet1.billingToName", first?.schoolName ?? "");
+                    form.setValue("sheet1.shippingToSummary", first?.schoolName ?? "");
                     if (orderType === "descriptive") {
                       form.setValue("descriptiveRows", []);
-                      setSelectedVendorSchoolCode("");
+                      setSelectedVendorSchoolKey("");
+                      setSelectedDescriptiveSchoolKey(nextType === "school" ? schools[0]?.optionKey ?? "" : "");
                     }
                   }
                 })}
@@ -343,11 +499,15 @@ export function CreateOrderForm({
             <Field label="Billing To Code/Name" error={errors.sheet1?.billingToCode?.message}>
               <select
                 className={inputClass}
-                value={form.watch("sheet1.billingToCode")}
+                value={
+                  billingToType === "school"
+                    ? selectedBillingSchool?.optionKey ?? schools[0]?.optionKey ?? ""
+                    : form.watch("sheet1.billingToCode")
+                }
                 onChange={(event) => setBilling(event.target.value)}
               >
                 {billingOptions.map((option) => (
-                  <option key={option.code} value={option.code}>
+                  <option key={option.value} value={option.value}>
                     {option.code} - {option.name}
                   </option>
                 ))}
@@ -387,41 +547,23 @@ export function CreateOrderForm({
 
       {step === 2 && orderType === "descriptive" ? (
         <Card className="p-5">
-          <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="mb-4">
             <div>
               <h2 className="text-lg font-semibold text-ink">Order Sheet 2A</h2>
               <p className="text-sm text-muted">School-wise item quantities for descriptive orders.</p>
             </div>
-            {billingToType !== "vendor" ? (
-              <SubmitButton
-                type="button"
-                variant="secondary"
-                onClick={() =>
-                  descriptiveRows.append({
-                    schoolCode: schools[0]?.schoolCode ?? "",
-                    schoolName: schools[0]?.schoolName ?? "",
-                    itemCode: items[0]?.itemCode ?? "",
-                    itemName: items[0]?.itemName ?? "",
-                    quantity: 1,
-                    notes: ""
-                  })
-                }
-              >
-                <Plus className="mr-2 h-4 w-4" /> Add row
-              </SubmitButton>
-            ) : null}
           </div>
-          {billingToType === "vendor" ? (
-            <div className="space-y-4">
+          <div className="space-y-4">
+            {billingToType === "vendor" ? (
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
                 <Field label="School">
                   <select
                     className={inputClass}
-                    value={activeVendorSchoolCode}
-                    onChange={(event) => setSelectedVendorSchoolCode(event.target.value)}
+                    value={activeVendorSchoolKey}
+                    onChange={(event) => setSelectedVendorSchoolKey(event.target.value)}
                   >
                     {selectedVendorSchools.map((school) => (
-                      <option key={school.schoolCode} value={school.schoolCode}>
+                      <option key={school.optionKey} value={school.optionKey}>
                         {school.schoolCode} - {school.schoolName}
                       </option>
                     ))}
@@ -434,7 +576,7 @@ export function CreateOrderForm({
                     onClick={() => moveVendorSchool(-1)}
                     disabled={
                       selectedVendorSchools.findIndex(
-                        (school) => school.schoolCode === activeVendorSchoolCode
+                        (school) => school.optionKey === activeVendorSchoolKey
                       ) <= 0
                     }
                   >
@@ -446,7 +588,7 @@ export function CreateOrderForm({
                     onClick={() => moveVendorSchool(1)}
                     disabled={
                       selectedVendorSchools.findIndex(
-                        (school) => school.schoolCode === activeVendorSchoolCode
+                        (school) => school.optionKey === activeVendorSchoolKey
                       ) >= selectedVendorSchools.length - 1
                     }
                   >
@@ -454,86 +596,50 @@ export function CreateOrderForm({
                   </SubmitButton>
                 </div>
               </div>
-              {selectedVendorSchools.length === 0 ? (
-                <div className="rounded-md border border-danger bg-red-50 p-3 text-sm text-red-900">
-                  This vendor is not linked to any schools yet.
-                </div>
-              ) : (
-                <div className="overflow-x-auto rounded-md border border-line">
-                  <table className="w-full min-w-[620px] text-left text-sm">
-                    <thead className="bg-canvas text-xs uppercase text-muted">
-                      <tr>
-                        <th className="px-4 py-3">Item</th>
-                        <th className="w-40 px-4 py-3">Quantity</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-line">
-                      {items.map((item) => {
-                        const row = watchedDescriptiveRows.find(
-                          (entry) =>
-                            entry.schoolCode === activeVendorSchoolCode &&
-                            entry.itemCode === item.itemCode
-                        );
-
-                        return (
-                          <tr key={item.itemCode}>
-                            <td className="px-4 py-3">
-                              <span className="font-medium text-ink">{item.itemCode}</span>
-                              <span className="ml-2 text-muted">{item.itemName}</span>
-                            </td>
-                            <td className="px-4 py-3">
-                              <input
-                                type="number"
-                                min={0}
-                                className={inputClass}
-                                value={row?.quantity ?? ""}
-                                onChange={(event) => setVendorItemQuantity(item, event.target.value)}
-                              />
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {descriptiveRows.fields.map((field, index) => (
-                <LineRow key={field.id} onRemove={() => descriptiveRows.remove(index)}>
-                  <select
-                    className={inputClass}
-                    value={form.watch(`descriptiveRows.${index}.schoolCode`)}
-                    onChange={(event) => setDescriptiveSchool(index, event.target.value)}
-                  >
-                    {schools.map((school) => (
-                      <option key={school.schoolCode} value={school.schoolCode}>
-                        {school.schoolCode} - {school.schoolName}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    className={inputClass}
-                    value={form.watch(`descriptiveRows.${index}.itemCode`)}
-                    onChange={(event) => setItem("descriptiveRows", index, event.target.value)}
-                  >
-                    {items.map((item) => (
-                      <option key={item.itemCode} value={item.itemCode}>
-                        {item.itemCode} - {item.itemName}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type="number"
-                    min={1}
-                    className={inputClass}
-                    {...form.register(`descriptiveRows.${index}.quantity`)}
-                  />
-                </LineRow>
-              ))}
-            </div>
-          )}
+            ) : (
+              <Field label="School">
+                <select
+                  className={inputClass}
+                  value={activeDescriptiveSchoolKey}
+                  onChange={(event) => setSelectedDescriptiveSchoolKey(event.target.value)}
+                >
+                  {schools.map((school) => (
+                    <option key={school.optionKey} value={school.optionKey}>
+                      {school.schoolCode} - {school.schoolName}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
+            {billingToType === "vendor" && selectedVendorSchools.length === 0 ? (
+              <div className="rounded-md border border-danger bg-red-50 p-3 text-sm text-red-900">
+                This vendor is not linked to any schools yet.
+              </div>
+            ) : (
+              <>
+                <ItemSelectionFilters
+                  categories={categoryOptions}
+                  customisations={customisationOptions}
+                  categoryCode={selectedCategoryCode}
+                  customisationCode={selectedCustomisationCode}
+                  onCategoryChange={setSelectedCategoryCode}
+                  onCustomisationChange={setSelectedCustomisationCode}
+                />
+                <ItemQuantityTable
+                  items={latestSelectionItems}
+                  quantityForItem={(item) =>
+                    watchedDescriptiveRows.find(
+                      (entry) =>
+                        entry.schoolCode === activeDescriptiveSchool?.schoolCode &&
+                        entry.schoolName === activeDescriptiveSchool?.schoolName &&
+                        entry.itemCode === item.itemCode
+                    )?.quantity
+                  }
+                  onQuantityChange={setDescriptiveItemQuantity}
+                />
+              </>
+            )}
+          </div>
         </Card>
       ) : null}
 
@@ -566,11 +672,17 @@ export function CreateOrderForm({
                   <LineRow key={field.id} onRemove={() => ambiguousSchools.remove(index)}>
                     <select
                       className={inputClass}
-                      value={form.watch(`ambiguousSchools.${index}.schoolCode`)}
+                      value={
+                        findSchoolOptionByStoredValue(
+                          schools,
+                          form.watch(`ambiguousSchools.${index}.schoolCode`),
+                          form.watch(`ambiguousSchools.${index}.schoolName`)
+                        )?.optionKey ?? schools[0]?.optionKey ?? ""
+                      }
                       onChange={(event) => setAmbiguousSchool(index, event.target.value)}
                     >
                       {schools.map((school) => (
-                        <option key={school.schoolCode} value={school.schoolCode}>
+                        <option key={school.optionKey} value={school.optionKey}>
                           {school.schoolCode} - {school.schoolName}
                         </option>
                       ))}
@@ -580,45 +692,26 @@ export function CreateOrderForm({
               </div>
             </div>
             <div>
-              <div className="mb-3 flex items-center justify-between">
+              <div className="mb-3">
                 <h3 className="font-semibold text-ink">Order Sheet 2B2 Grouped Items</h3>
-                <SubmitButton
-                  type="button"
-                  variant="secondary"
-                  onClick={() =>
-                    ambiguousItems.append({
-                      itemCode: items[0]?.itemCode ?? "",
-                      itemName: items[0]?.itemName ?? "",
-                      groupedQuantity: 1,
-                      notes: ""
-                    })
-                  }
-                >
-                  <Plus className="mr-2 h-4 w-4" /> Add item
-                </SubmitButton>
               </div>
-              <div className="space-y-3">
-                {ambiguousItems.fields.map((field, index) => (
-                  <LineRow key={field.id} onRemove={() => ambiguousItems.remove(index)}>
-                    <select
-                      className={inputClass}
-                      value={form.watch(`ambiguousItems.${index}.itemCode`)}
-                      onChange={(event) => setItem("ambiguousItems", index, event.target.value)}
-                    >
-                      {items.map((item) => (
-                        <option key={item.itemCode} value={item.itemCode}>
-                          {item.itemCode} - {item.itemName}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      type="number"
-                      min={1}
-                      className={inputClass}
-                      {...form.register(`ambiguousItems.${index}.groupedQuantity`)}
-                    />
-                  </LineRow>
-                ))}
+              <ItemSelectionFilters
+                categories={categoryOptions}
+                customisations={customisationOptions}
+                categoryCode={selectedCategoryCode}
+                customisationCode={selectedCustomisationCode}
+                onCategoryChange={setSelectedCategoryCode}
+                onCustomisationChange={setSelectedCustomisationCode}
+              />
+              <div className="mt-4">
+                <ItemQuantityTable
+                  items={latestSelectionItems}
+                  quantityForItem={(item) =>
+                    watchedAmbiguousItems.find((entry) => entry.itemCode === item.itemCode)
+                      ?.groupedQuantity
+                  }
+                  onQuantityChange={setAmbiguousItemQuantity}
+                />
               </div>
             </div>
           </div>
@@ -677,6 +770,130 @@ export function CreateOrderForm({
         </div>
       </div>
     </form>
+  );
+}
+
+function ItemSelectionFilters({
+  categories,
+  customisations,
+  categoryCode,
+  customisationCode,
+  onCategoryChange,
+  onCustomisationChange
+}: {
+  categories: { categoryCode: string; categoryType: string | null }[];
+  customisations: { customisationCode: string; customisationName: string | null }[];
+  categoryCode: string;
+  customisationCode: string;
+  onCategoryChange: (value: string) => void;
+  onCustomisationChange: (value: string) => void;
+}) {
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      <Field label="Category">
+        <select
+          className={inputClass}
+          value={categoryCode}
+          disabled={categories.length === 0}
+          onChange={(event) => onCategoryChange(event.target.value)}
+        >
+          {categories.length === 0 ? <option value="">No categories available</option> : null}
+          {categories.map((category) => (
+            <option key={category.categoryCode} value={category.categoryCode}>
+              {category.categoryCode}
+              {category.categoryType ? ` - ${category.categoryType}` : ""}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Field label="Customization">
+        <select
+          className={inputClass}
+          value={customisationCode}
+          disabled={customisations.length === 0}
+          onChange={(event) => onCustomisationChange(event.target.value)}
+        >
+          {customisations.length === 0 ? (
+            <option value="">No customizations available</option>
+          ) : null}
+          {customisations.map((customisation) => (
+            <option key={customisation.customisationCode} value={customisation.customisationCode}>
+              {customisation.customisationName ?? customisation.customisationCode}
+            </option>
+          ))}
+        </select>
+      </Field>
+    </div>
+  );
+}
+
+function ItemQuantityTable({
+  items,
+  quantityForItem,
+  onQuantityChange
+}: {
+  items: ItemRef[];
+  quantityForItem: (item: ItemRef) => number | undefined;
+  onQuantityChange: (item: ItemRef, rawQuantity: string) => void;
+}) {
+  if (items.length === 0) {
+    return (
+      <div className="rounded-md border border-line bg-canvas p-3 text-sm text-muted">
+        No active English items were found for this category and customization.
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto rounded-md border border-line">
+      <table className="w-full min-w-[920px] text-left text-sm">
+        <thead className="bg-canvas text-xs uppercase text-muted">
+          <tr>
+            <th className="px-4 py-3">Item</th>
+            <th className="px-4 py-3">Class / Grade</th>
+            <th className="px-4 py-3">Category</th>
+            <th className="px-4 py-3">Customization</th>
+            <th className="px-4 py-3">Language</th>
+            <th className="px-4 py-3">Edition</th>
+            <th className="px-4 py-3">MRP</th>
+            <th className="w-36 px-4 py-3">Quantity</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-line">
+          {items.map((item) => (
+            <tr key={item.itemCode}>
+              <td className="px-4 py-3">
+                <span className="font-medium text-ink">{item.itemName}</span>
+                <span className="block text-xs text-muted">{item.itemCode}</span>
+              </td>
+              <td className="px-4 py-3 text-muted">
+                <span className="font-medium text-ink">{item.subCategoryCode}</span>
+                <span className="block text-xs">{item.subCategoryCode}</span>
+              </td>
+              <td className="px-4 py-3 text-muted">{item.categoryCode}</td>
+              <td className="px-4 py-3 text-muted">
+                <span className="font-medium text-ink">
+                  {item.customisationName ?? item.customisationCode}
+                </span>
+                <span className="block text-xs">{item.customisationCode}</span>
+              </td>
+              <td className="px-4 py-3 text-muted">{item.languageCode}</td>
+              <td className="px-4 py-3 text-muted">{item.editionCode}</td>
+              <td className="px-4 py-3 text-muted">{item.mrp ?? ""}</td>
+              <td className="px-4 py-3">
+                <input
+                  type="number"
+                  min={0}
+                  className={inputClass}
+                  value={quantityForItem(item) ?? ""}
+                  onChange={(event) => onQuantityChange(item, event.target.value)}
+                />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

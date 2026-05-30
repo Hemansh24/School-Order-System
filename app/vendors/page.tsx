@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Card, PageHeader } from "@/components/ui";
+import { deleteVendorAction } from "@/app/vendors/actions";
 import { AddVendorForm } from "@/components/reference/reference-forms";
 import { prisma } from "@/lib/prisma";
 import { nextVendorCode } from "@/lib/reference-codes";
@@ -46,12 +47,19 @@ export default async function VendorsPage() {
                   </td>
                   <td className="px-4 py-3 text-muted">{vendor.contactPerson}</td>
                   <td className="px-4 py-3">
-                    <Link
-                      href={`/vendors/${vendor.vendorId}/edit`}
-                      className="font-semibold text-brand-dark"
-                    >
-                      Edit
-                    </Link>
+                    <div className="flex flex-wrap gap-3">
+                      <Link
+                        href={`/vendors/${vendor.vendorId}/edit`}
+                        className="font-semibold text-brand-dark"
+                      >
+                        Edit
+                      </Link>
+                      <form action={deleteVendorAction.bind(null, vendor.vendorId)}>
+                        <button type="submit" className="font-semibold text-red-700">
+                          Delete
+                        </button>
+                      </form>
+                    </div>
                   </td>
                 </tr>
               ))}

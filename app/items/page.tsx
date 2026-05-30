@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Card, PageHeader, StatusPill } from "@/components/ui";
+import { deleteItemAction } from "@/app/items/actions";
 import { AddItemForm } from "@/components/reference/reference-forms";
 import { prisma } from "@/lib/prisma";
 
@@ -14,16 +15,17 @@ export default async function ItemsPage() {
       <AddItemForm />
       <Card>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[860px] text-left text-sm">
+          <table className="w-full min-w-[1080px] text-left text-sm">
             <thead className="bg-canvas text-xs uppercase text-muted">
               <tr>
                 <th className="px-4 py-3">Code</th>
                 <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3">Subject</th>
-                <th className="px-4 py-3">Class</th>
-                <th className="px-4 py-3">Publisher</th>
-                <th className="px-4 py-3">Price</th>
+                <th className="px-4 py-3">Category</th>
+                <th className="px-4 py-3">Sub-category</th>
+                <th className="px-4 py-3">Customisation</th>
+                <th className="px-4 py-3">Language</th>
+                <th className="px-4 py-3">Edition</th>
+                <th className="px-4 py-3">MRP</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Action</th>
               </tr>
@@ -33,21 +35,37 @@ export default async function ItemsPage() {
                 <tr key={item.itemId}>
                   <td className="px-4 py-3 font-semibold text-ink">{item.itemCode}</td>
                   <td className="px-4 py-3">{item.itemName}</td>
-                  <td className="px-4 py-3 text-muted">{item.itemType}</td>
-                  <td className="px-4 py-3 text-muted">{item.subject}</td>
-                  <td className="px-4 py-3 text-muted">{item.classLevel}</td>
-                  <td className="px-4 py-3 text-muted">{item.publisher}</td>
-                  <td className="px-4 py-3 text-muted">{item.price?.toString()}</td>
+                  <td className="px-4 py-3 text-muted">
+                    <span className="font-medium text-ink">{item.categoryCode}</span>
+                    {item.categoryType ? <span className="block">{item.categoryType}</span> : null}
+                  </td>
+                  <td className="px-4 py-3 text-muted">
+                    <span className="font-medium text-ink">{item.subCategoryCode}</span>
+                  </td>
+                  <td className="px-4 py-3 text-muted">
+                    <span className="font-medium text-ink">{item.customisationName ?? item.customisationCode}</span>
+                    <span className="block">{item.customisationCode}</span>
+                  </td>
+                  <td className="px-4 py-3 text-muted">{item.languageCode}</td>
+                  <td className="px-4 py-3 text-muted">{item.editionCode}</td>
+                  <td className="px-4 py-3 text-muted">{item.mrp?.toString()}</td>
                   <td className="px-4 py-3">
-                    <StatusPill value={item.active ? "active" : "inactive"} />
+                    <StatusPill value={item.obsolete ? "obsolete" : item.active ? "active" : "inactive"} />
                   </td>
                   <td className="px-4 py-3">
-                    <Link
-                      href={`/items/${item.itemId}/edit`}
-                      className="font-semibold text-brand-dark"
-                    >
-                      Edit
-                    </Link>
+                    <div className="flex flex-wrap gap-3">
+                      <Link
+                        href={`/items/${item.itemId}/edit`}
+                        className="font-semibold text-brand-dark"
+                      >
+                        Edit
+                      </Link>
+                      <form action={deleteItemAction.bind(null, item.itemId)}>
+                        <button type="submit" className="font-semibold text-red-700">
+                          Delete
+                        </button>
+                      </form>
+                    </div>
                   </td>
                 </tr>
               ))}

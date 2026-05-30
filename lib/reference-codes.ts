@@ -2,16 +2,19 @@ import { prisma } from "@/lib/prisma";
 
 function nextCode(prefix: string, existingCodes: string[]) {
   const pattern = new RegExp(`^${prefix}-(\\d+)$`);
-  const maxNumber = existingCodes.reduce((currentMax, code) => {
-    const match = code.match(pattern);
-    if (!match) {
-      return currentMax;
-    }
+  const usedNumbers = new Set(
+    existingCodes.flatMap((code) => {
+      const match = code.match(pattern);
+      return match ? [Number(match[1])] : [];
+    })
+  );
 
-    return Math.max(currentMax, Number(match[1]));
-  }, 0);
+  let nextNumber = 1;
+  while (usedNumbers.has(nextNumber)) {
+    nextNumber += 1;
+  }
 
-  return `${prefix}-${String(maxNumber + 1).padStart(3, "0")}`;
+  return `${prefix}-${String(nextNumber).padStart(3, "0")}`;
 }
 
 export async function nextSchoolCode() {
@@ -29,4 +32,3 @@ export async function nextVendorCode() {
     vendors.map((vendor) => vendor.vendorCode)
   );
 }
-

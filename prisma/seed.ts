@@ -14,6 +14,7 @@ async function main() {
   await prisma.orderSheet1.deleteMany();
   await prisma.vendorSchool.deleteMany();
   await prisma.vendor.deleteMany();
+  await prisma.schoolBranch.deleteMany();
   await prisma.school.deleteMany();
   await prisma.item.deleteMany();
 
@@ -22,30 +23,45 @@ async function main() {
       data: {
         schoolCode: "SCH-001",
         schoolName: "Greenwood Public School",
-        address: "Sector 14",
-        contactPerson: "Anita Rao",
-        phone: "9876500011",
-        email: "admin@greenwood.example"
+        schoolBranches: {
+          create: {
+            branchName: "Main",
+            address: "Sector 14",
+            contactPerson: "Anita Rao",
+            phone: "9876500011",
+            email: "admin@greenwood.example"
+          }
+        }
       }
     }),
     prisma.school.create({
       data: {
         schoolCode: "SCH-002",
         schoolName: "Riverside International School",
-        address: "Lake Road",
-        contactPerson: "Kabir Sen",
-        phone: "9876500022",
-        email: "orders@riverside.example"
+        schoolBranches: {
+          create: {
+            branchName: "Main",
+            address: "Lake Road",
+            contactPerson: "Kabir Sen",
+            phone: "9876500022",
+            email: "orders@riverside.example"
+          }
+        }
       }
     }),
     prisma.school.create({
       data: {
         schoolCode: "SCH-003",
         schoolName: "Sunrise Model School",
-        address: "MG Avenue",
-        contactPerson: "Meera Das",
-        phone: "9876500033",
-        email: "office@sunrise.example"
+        schoolBranches: {
+          create: {
+            branchName: "Main",
+            address: "MG Avenue",
+            contactPerson: "Meera Das",
+            phone: "9876500033",
+            email: "office@sunrise.example"
+          }
+        }
       }
     })
   ]);
@@ -86,31 +102,130 @@ async function main() {
   await prisma.item.createMany({
     data: [
       {
-        itemCode: "BK-MATH-06",
-        itemName: "Mathematics Coursebook 6",
-        itemType: "book",
-        subject: "Mathematics",
-        classLevel: "6",
-        publisher: "Scholastic House",
-        price: "320.00"
+        itemCode: "SW-01-ENG-01-10",
+        itemName: "Safety Workbook Class 1",
+        categoryCode: "SW",
+        categoryType: "Safety Workbook",
+        subCategoryCode: "01",
+        languageCode: "ENG",
+        customisationCode: "01",
+        customisationName: "CMS",
+        editionCode: "10",
+        mrp: "210.00",
+        obsolete: false,
+        active: true
       },
       {
-        itemCode: "BK-SCI-07",
-        itemName: "Science Explorer 7",
-        itemType: "book",
-        subject: "Science",
-        classLevel: "7",
-        publisher: "Learning Press",
-        price: "345.00"
+        itemCode: "SW-02-ENG-01-10",
+        itemName: "Safety Workbook Class 2",
+        categoryCode: "SW",
+        categoryType: "Safety Workbook",
+        subCategoryCode: "02",
+        languageCode: "ENG",
+        customisationCode: "01",
+        customisationName: "CMS",
+        editionCode: "10",
+        mrp: "225.00",
+        obsolete: false,
+        active: true
       },
       {
-        itemCode: "NB-STD",
-        itemName: "Standard Notebook Pack",
-        itemType: "stationery",
-        subject: "General",
-        classLevel: "All",
-        publisher: "Campus Supplies",
-        price: "90.00"
+        itemCode: "SW-03-ENG-01-10",
+        itemName: "Safety Workbook Class 3",
+        categoryCode: "SW",
+        categoryType: "Safety Workbook",
+        subCategoryCode: "03",
+        languageCode: "ENG",
+        customisationCode: "01",
+        customisationName: "CMS",
+        editionCode: "10",
+        mrp: "240.00",
+        obsolete: false,
+        active: true
+      },
+      {
+        itemCode: "SW-01-ENG-02-10",
+        itemName: "Safety Workbook Class 1",
+        categoryCode: "SW",
+        categoryType: "Safety Workbook",
+        subCategoryCode: "01",
+        languageCode: "ENG",
+        customisationCode: "02",
+        customisationName: "AFS",
+        editionCode: "10",
+        mrp: "215.00",
+        obsolete: false,
+        active: true
+      },
+      {
+        itemCode: "SW-02-ENG-02-10",
+        itemName: "Safety Workbook Class 2",
+        categoryCode: "SW",
+        categoryType: "Safety Workbook",
+        subCategoryCode: "02",
+        languageCode: "ENG",
+        customisationCode: "02",
+        customisationName: "AFS",
+        editionCode: "10",
+        mrp: "230.00",
+        obsolete: false,
+        active: true
+      },
+      {
+        itemCode: "SW-01-ENG-03-09",
+        itemName: "Safety Workbook Class 1",
+        categoryCode: "SW",
+        categoryType: "Safety Workbook",
+        subCategoryCode: "01",
+        languageCode: "ENG",
+        customisationCode: "03",
+        customisationName: "Pink",
+        editionCode: "09",
+        mrp: "205.00",
+        obsolete: false,
+        active: true
+      },
+      {
+        itemCode: "PB-01-ENG-00-01",
+        itemName: "Picture Booklet Level 1",
+        categoryCode: "PB",
+        categoryType: "Picture Booklet",
+        subCategoryCode: "01",
+        languageCode: "ENG",
+        customisationCode: "00",
+        customisationName: "Standard",
+        editionCode: "01",
+        mrp: "120.00",
+        obsolete: false,
+        active: true
+      },
+      {
+        itemCode: "PB-02-ENG-00-01",
+        itemName: "Picture Booklet Level 2",
+        categoryCode: "PB",
+        categoryType: "Picture Booklet",
+        subCategoryCode: "02",
+        languageCode: "ENG",
+        customisationCode: "00",
+        customisationName: "Standard",
+        editionCode: "01",
+        mrp: "125.00",
+        obsolete: false,
+        active: true
+      },
+      {
+        itemCode: "PP-00-ENG-00-01",
+        itemName: "Parenting Practices Booklet",
+        categoryCode: "PP",
+        categoryType: "Parenting Practices",
+        subCategoryCode: "00",
+        languageCode: "ENG",
+        customisationCode: "00",
+        customisationName: "Standard",
+        editionCode: "01",
+        mrp: "80.00",
+        obsolete: false,
+        active: true
       }
     ]
   });
@@ -141,8 +256,8 @@ async function main() {
         subOrderNo: 0,
         schoolCode: greenwood.schoolCode,
         schoolName: greenwood.schoolName,
-        itemCode: "BK-MATH-06",
-        itemName: "Mathematics Coursebook 6",
+        itemCode: "SW-01-ENG-01-10",
+        itemName: "Safety Workbook Class 1",
         quantity: 50
       }
     }),
@@ -153,8 +268,8 @@ async function main() {
         subOrderNo: 0,
         schoolCode: greenwood.schoolCode,
         schoolName: greenwood.schoolName,
-        itemCode: "BK-SCI-07",
-        itemName: "Science Explorer 7",
+        itemCode: "SW-02-ENG-01-10",
+        itemName: "Safety Workbook Class 2",
         quantity: 40
       }
     })
@@ -225,16 +340,16 @@ async function main() {
         orderSheet1Id: ambiguous.orderSheet1Id,
         orderNo: 2,
         subOrderNo: 0,
-        itemCode: "BK-MATH-06",
-        itemName: "Mathematics Coursebook 6",
+        itemCode: "SW-01-ENG-01-10",
+        itemName: "Safety Workbook Class 1",
         groupedQuantity: 120
       },
       {
         orderSheet1Id: ambiguous.orderSheet1Id,
         orderNo: 2,
         subOrderNo: 0,
-        itemCode: "NB-STD",
-        itemName: "Standard Notebook Pack",
+        itemCode: "PB-01-ENG-00-01",
+        itemName: "Picture Booklet Level 1",
         groupedQuantity: 300
       }
     ]

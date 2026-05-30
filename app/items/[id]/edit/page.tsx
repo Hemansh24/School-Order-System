@@ -31,15 +31,19 @@ export default async function EditItemPage({
           itemId: item.itemId,
           itemCode: item.itemCode,
           itemName: item.itemName,
-          itemType: item.itemType,
-          subject: item.subject,
-          classLevel: item.classLevel,
-          publisher: item.publisher,
-          price: item.price?.toString() ?? null,
+          categoryCode: item.categoryCode,
+          categoryType: item.categoryType,
+          subCategoryCode: item.subCategoryCode,
+          languageCode: item.languageCode,
+          customisationCode: item.customisationCode,
+          customisationName: item.customisationName,
+          editionCode: item.editionCode,
+          isbnNumber: item.isbnNumber,
+          mrp: item.mrp?.toString() ?? null,
+          obsolete: item.obsolete,
           active: item.active
         }}
       />
     </>
   );
 }
-

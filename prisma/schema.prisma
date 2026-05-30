@@ -48,9 +48,28 @@ model School {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
+  schoolBranches SchoolBranch[]
   vendorSchools VendorSchool[]
 
   @@map("schools")
+}
+
+model SchoolBranch {
+  schoolBranchId Int      @id @default(autoincrement()) @map("school_branch_id")
+  schoolId       Int      @map("school_id")
+  branchName     String   @map("branch_name")
+  address        String?
+  contactPerson  String?  @map("contact_person")
+  phone          String?
+  email          String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  school School @relation(fields: [schoolId], references: [schoolId], onDelete: Cascade)
+
+  @@unique([schoolId, branchName])
+  @@index([schoolId])
+  @@map("school_branches")
 }
 
 model Vendor {
@@ -86,18 +105,27 @@ model VendorSchool {
 }
 
 model Item {
-  itemId     Int      @id @default(autoincrement()) @map("item_id")
-  itemCode   String   @unique @map("item_code")
-  itemName   String   @map("item_name")
-  itemType   String?  @map("item_type")
-  subject    String?
-  classLevel String?  @map("class_level")
-  publisher  String?
-  price      Decimal? @db.Decimal(10, 2)
-  active     Boolean  @default(true)
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  itemId            Int      @id @default(autoincrement()) @map("item_id")
+  itemCode          String   @unique @map("item_code")
+  itemName          String   @map("item_name")
+  categoryCode      String   @default("LEGACY") @map("category_code")
+  categoryType      String?  @map("category_type")
+  subCategoryCode   String   @default("00") @map("sub_category_code")
+  languageCode      String   @default("ENG") @map("language_code")
+  customisationCode String   @default("00") @map("customisation_code")
+  customisationName String?  @map("customisation_name")
+  editionCode       String   @default("01") @map("edition_code")
+  isbnNumber        String?  @map("isbn_number")
+  mrp               Decimal? @db.Decimal(10, 2)
+  obsolete          Boolean  @default(false)
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
+  @@index([categoryCode])
+  @@index([customisationCode])
+  @@index([languageCode])
+  @@index([editionCode])
   @@map("items")
 }
 

@@ -111,3 +111,13 @@ export async function updateVendorAction(
     };
   }
 }
+
+export async function deleteVendorAction(vendorId: number): Promise<void> {
+  await prisma.vendor.delete({
+    where: { vendorId }
+  });
+
+  revalidatePath("/vendors");
+  revalidatePath(`/vendors/${vendorId}/edit`);
+  revalidatePath("/orders/new");
+}

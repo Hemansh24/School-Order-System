@@ -15,6 +15,10 @@ const isoDate = z
   .string()
   .min(1, "Date is required")
   .refine((value) => !Number.isNaN(Date.parse(value)), "Invalid date");
+const itemCodeSchema = z
+  .string()
+  .trim()
+  .min(1, "Item code is required");
 
 export const sheet1Schema = z
   .object({
@@ -42,7 +46,7 @@ export const sheet1Schema = z
 export const sheet2ARowSchema = z.object({
   schoolCode: z.string().min(1, "School code is required"),
   schoolName: z.string().min(1, "School name is required"),
-  itemCode: z.string().min(1, "Item code is required"),
+  itemCode: itemCodeSchema,
   itemName: z.string().min(1, "Item name is required"),
   quantity: z.coerce.number().int().positive("Quantity must be greater than 0"),
   notes: z.string().optional()
@@ -55,7 +59,7 @@ export const sheet2B1RowSchema = z.object({
 });
 
 export const sheet2B2RowSchema = z.object({
-  itemCode: z.string().min(1, "Item code is required"),
+  itemCode: itemCodeSchema,
   itemName: z.string().min(1, "Item name is required"),
   groupedQuantity: z.coerce
     .number()

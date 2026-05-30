@@ -11,6 +11,47 @@ function toInputDate(value: Date) {
   return value.toISOString().slice(0, 10);
 }
 
+function toSchoolOptions(
+  schools: Array<{
+    schoolCode: string;
+    schoolName: string;
+    schoolBranches: Array<{ schoolBranchId: number; branchName: string }>;
+  }>
+): Array<{
+  optionKey: string;
+  schoolCode: string;
+  schoolName: string;
+  branchName: string | null;
+}> {
+  return schools.reduce<Array<{
+    optionKey: string;
+    schoolCode: string;
+    schoolName: string;
+    branchName: string | null;
+  }>>((options, school) => {
+    if (school.schoolBranches.length === 0) {
+      options.push({
+        optionKey: school.schoolCode,
+        schoolCode: school.schoolCode,
+        schoolName: school.schoolName,
+        branchName: null
+      });
+      return options;
+    }
+
+    for (const branch of school.schoolBranches) {
+      options.push({
+        optionKey: `${school.schoolCode}::${branch.schoolBranchId}`,
+        schoolCode: school.schoolCode,
+        schoolName: `${school.schoolName} - ${branch.branchName}`,
+        branchName: branch.branchName
+      });
+    }
+
+    return options;
+  }, []);
+}
+
 export default async function EditOrderPage({
   params
 }: {
@@ -83,23 +124,25 @@ export default async function EditOrderPage({
         description="Update the draft or revision before locking it."
       />
       <CreateOrderForm
-        schools={reference.schools.map((school) => ({
-          schoolCode: school.schoolCode,
-          schoolName: school.schoolName
-        }))}
+        schools={toSchoolOptions(reference.schools)}
         vendors={reference.vendors.map((vendor) => ({
           vendorCode: vendor.vendorCode,
           vendorName: vendor.vendorName,
           vendorType: vendor.vendorType,
           vendorRating: vendor.vendorRating,
-          schools: vendor.vendorSchools.map((row) => ({
-            schoolCode: row.school.schoolCode,
-            schoolName: row.school.schoolName
-          }))
+          schools: toSchoolOptions(vendor.vendorSchools.map((row) => row.school))
         }))}
         items={reference.items.map((item) => ({
           itemCode: item.itemCode,
-          itemName: item.itemName
+          itemName: item.itemName,
+          categoryCode: item.categoryCode,
+          categoryType: item.categoryType,
+          subCategoryCode: item.subCategoryCode,
+          languageCode: item.languageCode,
+          customisationCode: item.customisationCode,
+          customisationName: item.customisationName,
+          editionCode: item.editionCode,
+          mrp: item.mrp?.toString() ?? null
         }))}
         initialValues={initialValues}
         orderSheet1Id={order.orderSheet1Id}
@@ -108,4 +151,3 @@ export default async function EditOrderPage({
     </>
   );
 }
-
