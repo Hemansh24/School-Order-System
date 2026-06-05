@@ -4,11 +4,7 @@ import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { createItemAction, updateItemAction } from "@/app/items/actions";
 import type { ReferenceActionState as ItemActionState } from "@/app/items/actions";
-import {
-  addSchoolBranchAction,
-  createSchoolAction,
-  updateSchoolAction
-} from "@/app/schools/actions";
+import { createSchoolAction, updateSchoolAction } from "@/app/schools/actions";
 import type { ReferenceActionState as SchoolActionState } from "@/app/schools/actions";
 import { createVendorAction, updateVendorAction } from "@/app/vendors/actions";
 import type { ReferenceActionState as VendorActionState } from "@/app/vendors/actions";
@@ -25,14 +21,13 @@ type SchoolFormValues = {
   schoolId: number;
   schoolCode: string;
   schoolName: string;
-  schoolBranches: {
-    schoolBranchId: number;
-    branchName: string;
-    address: string | null;
-    contactPerson: string | null;
-    phone: string | null;
-    email: string | null;
-  }[];
+  address: string | null;
+  district: string | null;
+  state: string | null;
+  pincode: string | null;
+  contactPerson: string | null;
+  phone: string | null;
+  email: string | null;
 };
 
 type VendorFormValues = {
@@ -71,68 +66,32 @@ const labelClass = "mb-1 block text-xs font-semibold uppercase text-muted";
 const initialState = { ok: false } satisfies SchoolActionState;
 
 export function AddSchoolForm({
-  nextCode,
-  schools
+  nextCode
 }: {
   nextCode: string;
-  schools: SchoolOption[];
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [state, action] = useActionState<SchoolActionState, FormData>(
     createSchoolAction,
     initialState
   );
-  const [schoolName, setSchoolName] = useState("");
-  const [intent, setIntent] = useState<"create" | "branch">("create");
-
-  const matchingSchool = useMemo(() => {
-    const normalized = schoolName.trim().toLowerCase();
-    if (!normalized) {
-      return undefined;
-    }
-
-    const localMatch = schools.find((school) => school.schoolName.trim().toLowerCase() === normalized);
-    if (localMatch) {
-      return localMatch;
-    }
-
-    if (state.existingSchool?.schoolName.trim().toLowerCase() === normalized) {
-      return state.existingSchool;
-    }
-
-    return undefined;
-  }, [schoolName, schools, state.existingSchool]);
 
   useEffect(() => {
     if (state.ok) {
       formRef.current?.reset();
-      setSchoolName("");
-      setIntent("create");
     }
   }, [state.ok]);
 
-  useEffect(() => {
-    if (!matchingSchool && intent === "branch") {
-      setIntent("create");
-    }
-  }, [intent, matchingSchool]);
-
   return (
     <ReferenceForm ref={formRef} action={action} title="Add School" state={state}>
-      <input type="hidden" name="intent" value={intent} />
-      <input type="hidden" name="existingSchoolId" value={intent === "branch" ? matchingSchool?.schoolId ?? "" : ""} />
       <TextField
-        key={intent === "branch" ? `existing-${matchingSchool?.schoolId ?? "new"}` : "new-school-code"}
+        key="new-school-code"
         name="schoolCode"
         label="Code"
         required
-        defaultValue={intent === "branch" && matchingSchool ? matchingSchool.schoolCode : nextCode}
+        defaultValue={nextCode}
         placeholder="SCH-001"
-        helpText={
-          intent === "branch"
-            ? "Branches reuse the parent school code."
-            : "Auto-generated from the latest school code."
-        }
+        helpText="Auto-generated from the latest school code."
         readOnly
       />
       <TextField
@@ -140,47 +99,16 @@ export function AddSchoolForm({
         label="Name"
         required
         placeholder="Greenwood Public School"
-        onChange={setSchoolName}
       />
-      {matchingSchool ? (
-        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 md:col-span-2 xl:col-span-3">
-          <div className="font-medium">
-            {matchingSchool.schoolCode} - {matchingSchool.schoolName} is already present.
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setIntent("branch")}
-              className={`rounded-md border px-3 py-2 text-sm font-medium ${
-                intent === "branch" ? "border-brand bg-brand-soft text-ink" : "border-line bg-white text-ink"
-              }`}
-            >
-              Add Branch
-            </button>
-            <button
-              type="button"
-              onClick={() => setIntent("create")}
-              className={`rounded-md border px-3 py-2 text-sm font-medium ${
-                intent === "create" ? "border-brand bg-brand-soft text-ink" : "border-line bg-white text-ink"
-              }`}
-            >
-              Keep As New School
-            </button>
-          </div>
-        </div>
-      ) : null}
-      <TextField
-        name="branchName"
-        label={intent === "branch" ? "Branch Name" : "Primary Branch Name"}
-        required={intent === "branch"}
-        placeholder={intent === "branch" ? "Noida Campus" : "Main"}
-        helpText={intent === "branch" ? "Use a branch or campus label under the existing school." : "Optional. Leave blank if you do not want to add a branch now."}
-      />
-      <TextField name="contactPerson" label="Branch Contact" placeholder="Anita Rao" />
-      <TextField name="phone" label="Branch Phone" placeholder="9876500011" />
-      <TextField name="email" label="Branch Email" placeholder="admin@school.example" />
-      <TextField name="address" label="Branch Address" placeholder="Sector 14" />
-      <FormSubmit>{intent === "branch" ? "Add Branch" : "Add School"}</FormSubmit>
+      <TextField name="address" label="Address" placeholder="Sector 14, Block A" />
+      <TextField name="district" label="District" placeholder="Gautam Buddh Nagar" />
+      <TextField name="state" label="State" placeholder="Uttar Pradesh" />
+      <TextField name="pincode" label="Pincode" placeholder="201301" />
+      <TextField name="contactPerson" label="Contact" placeholder="Anita Rao" />
+      <TextField name="phone" label="Phone" placeholder="9876500011" />
+      <TextField name="email" label="Email" placeholder="admin@school.example" />
+      <SchoolCodeResult state={state} />
+      <FormSubmit>Add School</FormSubmit>
     </ReferenceForm>
   );
 }
@@ -190,76 +118,34 @@ export function EditSchoolForm({ school }: { school: SchoolFormValues }) {
     updateSchoolAction.bind(null, school.schoolId),
     initialState
   );
-  const [branchState, branchAction] = useActionState<SchoolActionState, FormData>(
-    addSchoolBranchAction.bind(null, school.schoolId),
-    initialState
-  );
-  const branchFormRef = useRef<HTMLFormElement>(null);
-
-  useEffect(() => {
-    if (branchState.ok) {
-      branchFormRef.current?.reset();
-    }
-  }, [branchState.ok]);
 
   return (
-    <div className="space-y-6">
-      <ReferenceForm action={action} title="Edit School" state={state}>
-        <TextField
-          name="schoolCode"
-          label="Code"
-          required
-          defaultValue={school.schoolCode}
-          placeholder="SCH-001"
-          helpText="Code is locked after creation."
-          readOnly
-        />
-        <TextField
-          name="schoolName"
-          label="Name"
-          required
-          defaultValue={school.schoolName}
-          placeholder="Greenwood Public School"
-        />
-        <FormSubmit>Save School</FormSubmit>
-      </ReferenceForm>
-
-      <Card className="space-y-4 p-5">
-        <div>
-          <h2 className="font-semibold text-ink">Branches</h2>
-          <p className="mt-1 text-sm text-muted">
-            Keep one school code and manage each campus or address as a branch.
-          </p>
-        </div>
-        <div className="space-y-3">
-          {school.schoolBranches.map((branch) => (
-            <div key={branch.schoolBranchId} className="rounded-md border border-line bg-white p-4">
-              <div className="font-medium text-ink">{branch.branchName}</div>
-              <div className="mt-1 text-sm text-muted">{branch.address || "No address saved"}</div>
-              <div className="mt-2 grid gap-2 text-sm text-muted md:grid-cols-3">
-                <span>{branch.contactPerson || "No contact"}</span>
-                <span>{branch.phone || "No phone"}</span>
-                <span>{branch.email || "No email"}</span>
-              </div>
-            </div>
-          ))}
-          {school.schoolBranches.length === 0 ? (
-            <div className="rounded-md border border-line bg-canvas p-3 text-sm text-muted">
-              No branches added yet.
-            </div>
-          ) : null}
-        </div>
-      </Card>
-
-      <ReferenceForm ref={branchFormRef} action={branchAction} title="Add Branch" state={branchState}>
-        <TextField name="branchName" label="Branch Name" required placeholder="Noida Campus" />
-        <TextField name="contactPerson" label="Branch Contact" placeholder="Anita Rao" />
-        <TextField name="phone" label="Branch Phone" placeholder="9876500011" />
-        <TextField name="email" label="Branch Email" placeholder="admin@school.example" />
-        <TextField name="address" label="Branch Address" placeholder="Sector 14" />
-        <FormSubmit>Add Branch</FormSubmit>
-      </ReferenceForm>
-    </div>
+    <ReferenceForm action={action} title="Edit School" state={state}>
+      <TextField
+        name="schoolCode"
+        label="Code"
+        required
+        defaultValue={school.schoolCode}
+        placeholder="SCH-001"
+        helpText="Code is locked after creation."
+        readOnly
+      />
+      <TextField
+        name="schoolName"
+        label="Name"
+        required
+        defaultValue={school.schoolName}
+        placeholder="Greenwood Public School"
+      />
+      <TextField name="address" label="Address" defaultValue={school.address} placeholder="Sector 14, Block A" />
+      <TextField name="district" label="District" defaultValue={school.district} placeholder="Gautam Buddh Nagar" />
+      <TextField name="state" label="State" defaultValue={school.state} placeholder="Uttar Pradesh" />
+      <TextField name="pincode" label="Pincode" defaultValue={school.pincode} placeholder="201301" />
+      <TextField name="contactPerson" label="Contact" defaultValue={school.contactPerson} placeholder="Anita Rao" />
+      <TextField name="phone" label="Phone" defaultValue={school.phone} placeholder="9876500011" />
+      <TextField name="email" label="Email" defaultValue={school.email} placeholder="admin@school.example" />
+      <FormSubmit>Save School</FormSubmit>
+    </ReferenceForm>
   );
 }
 
@@ -271,6 +157,7 @@ export function AddVendorForm({
   nextCode: string;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
+  const [selectedSchoolIds, setSelectedSchoolIds] = useState<number[]>([]);
   const [state, action] = useActionState<VendorActionState, FormData>(
     createVendorAction,
     initialState
@@ -279,6 +166,7 @@ export function AddVendorForm({
   useEffect(() => {
     if (state.ok) {
       formRef.current?.reset();
+      setSelectedSchoolIds([]);
     }
   }, [state.ok]);
 
@@ -300,8 +188,14 @@ export function AddVendorForm({
       <TextField name="phone" label="Phone" placeholder="9000011111" />
       <TextField name="email" label="Email" placeholder="ops@vendor.example" />
       <TextField name="address" label="Address" placeholder="Market Road" />
-      <SchoolCheckboxes schools={schools} selectedSchoolIds={[]} />
-      <FormSubmit disabled={schools.length === 0}>Add Vendor</FormSubmit>
+      <SchoolCheckboxes
+        schools={schools}
+        selectedSchoolIds={selectedSchoolIds}
+        onSelectionChange={setSelectedSchoolIds}
+      />
+      <FormSubmit disabled={schools.length === 0 || selectedSchoolIds.length === 0}>
+        Add Vendor
+      </FormSubmit>
     </ReferenceForm>
   );
 }
@@ -313,10 +207,15 @@ export function EditVendorForm({
   vendor: VendorFormValues;
   schools: SchoolOption[];
 }) {
+  const [selectedSchoolIds, setSelectedSchoolIds] = useState<number[]>(vendor.schoolIds);
   const [state, action] = useActionState<VendorActionState, FormData>(
     updateVendorAction.bind(null, vendor.vendorId),
     initialState
   );
+
+  useEffect(() => {
+    setSelectedSchoolIds(vendor.schoolIds);
+  }, [vendor.schoolIds]);
 
   return (
     <ReferenceForm action={action} title="Edit Vendor" state={state}>
@@ -336,8 +235,14 @@ export function EditVendorForm({
       <TextField name="phone" label="Phone" defaultValue={vendor.phone} placeholder="9000011111" />
       <TextField name="email" label="Email" defaultValue={vendor.email} placeholder="ops@vendor.example" />
       <TextField name="address" label="Address" defaultValue={vendor.address} placeholder="Market Road" />
-      <SchoolCheckboxes schools={schools} selectedSchoolIds={vendor.schoolIds} />
-      <FormSubmit disabled={schools.length === 0}>Save Vendor</FormSubmit>
+      <SchoolCheckboxes
+        schools={schools}
+        selectedSchoolIds={selectedSchoolIds}
+        onSelectionChange={setSelectedSchoolIds}
+      />
+      <FormSubmit disabled={schools.length === 0 || selectedSchoolIds.length === 0}>
+        Save Vendor
+      </FormSubmit>
     </ReferenceForm>
   );
 }
@@ -538,11 +443,25 @@ function TextField({
 
 function SchoolCheckboxes({
   schools,
-  selectedSchoolIds
+  selectedSchoolIds,
+  onSelectionChange
 }: {
   schools: SchoolOption[];
   selectedSchoolIds: number[];
+  onSelectionChange?: (schoolIds: number[]) => void;
 }) {
+  function toggleSchool(schoolId: number, checked: boolean) {
+    if (!onSelectionChange) {
+      return;
+    }
+
+    onSelectionChange(
+      checked
+        ? [...selectedSchoolIds, schoolId]
+        : selectedSchoolIds.filter((selectedId) => selectedId !== schoolId)
+    );
+  }
+
   return (
     <label className="block md:col-span-2 xl:col-span-3">
       <span className={labelClass}>Linked Schools</span>
@@ -554,7 +473,8 @@ function SchoolCheckboxes({
               type="checkbox"
               value={school.schoolId}
               className="h-4 w-4"
-              defaultChecked={selectedSchoolIds.includes(school.schoolId)}
+              checked={selectedSchoolIds.includes(school.schoolId)}
+              onChange={(event) => toggleSchool(school.schoolId, event.target.checked)}
             />
             <span>
               {school.schoolCode} - {school.schoolName}
@@ -564,8 +484,44 @@ function SchoolCheckboxes({
       </div>
       {schools.length === 0 ? (
         <span className="mt-1 block text-xs text-red-700">Add a school before creating vendors.</span>
+      ) : selectedSchoolIds.length === 0 ? (
+        <span className="mt-1 block text-xs text-red-700">Choose at least one school.</span>
       ) : null}
     </label>
+  );
+}
+
+function SchoolCodeResult({ state }: { state: SchoolActionState }) {
+  if (!state.ok || !state.school) {
+    return null;
+  }
+
+  return (
+    <div className="rounded-md border border-line bg-canvas p-3 md:col-span-2 xl:col-span-3">
+      <span className={labelClass}>{state.created ? "Created School Code" : "Reused School Code"}</span>
+      <div className="mt-2 flex flex-wrap items-center gap-3">
+        <code className="rounded bg-white px-3 py-2 text-sm font-semibold text-ink">
+          {state.school.schoolCode}
+        </code>
+        <CopyCodeButton code={state.school.schoolCode} />
+      </div>
+    </div>
+  );
+}
+
+function CopyCodeButton({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function copyCode() {
+    await navigator.clipboard.writeText(code);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
+  }
+
+  return (
+    <SubmitButton type="button" variant="secondary" onClick={copyCode}>
+      {copied ? "Copied" : "Copy Code"}
+    </SubmitButton>
   );
 }
 

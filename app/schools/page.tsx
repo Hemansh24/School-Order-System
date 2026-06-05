@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card, PageHeader } from "@/components/ui";
 import { deleteSchoolAction } from "@/app/schools/actions";
+import { InlineActionForm } from "@/components/inline-action-form";
 import { AddSchoolForm } from "@/components/reference/reference-forms";
 import { prisma } from "@/lib/prisma";
 import { nextSchoolCode } from "@/lib/reference-codes";
@@ -10,8 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function SchoolsPage() {
   const [schools, schoolCode] = await Promise.all([
     prisma.school.findMany({
-      orderBy: { schoolName: "asc" },
-      include: { schoolBranches: { orderBy: { branchName: "asc" } } }
+      orderBy: { schoolName: "asc" }
     }),
     nextSchoolCode()
   ]);
@@ -19,14 +19,7 @@ export default async function SchoolsPage() {
   return (
     <>
       <PageHeader title="Schools" description="Destination schools for shipping and vendor links." />
-      <AddSchoolForm
-        nextCode={schoolCode}
-        schools={schools.map((school) => ({
-          schoolId: school.schoolId,
-          schoolCode: school.schoolCode,
-          schoolName: school.schoolName
-        }))}
-      />
+      <AddSchoolForm nextCode={schoolCode} />
       <Card>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[920px] text-left text-sm">
@@ -34,8 +27,10 @@ export default async function SchoolsPage() {
               <tr>
                 <th className="px-4 py-3">Code</th>
                 <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Branches</th>
-                <th className="px-4 py-3">Addresses</th>
+                <th className="px-4 py-3">Address</th>
+                <th className="px-4 py-3">District</th>
+                <th className="px-4 py-3">State</th>
+                <th className="px-4 py-3">Pincode</th>
                 <th className="px-4 py-3">Action</th>
               </tr>
             </thead>
@@ -44,14 +39,10 @@ export default async function SchoolsPage() {
                 <tr key={school.schoolId}>
                   <td className="px-4 py-3 font-semibold text-ink">{school.schoolCode}</td>
                   <td className="px-4 py-3">{school.schoolName}</td>
-                  <td className="px-4 py-3 text-muted">{school.schoolBranches.length}</td>
-                  <td className="px-4 py-3 text-muted">
-                    {school.schoolBranches.length > 0
-                      ? school.schoolBranches
-                          .map((branch) => `${branch.branchName}${branch.address ? ` - ${branch.address}` : ""}`)
-                          .join(", ")
-                      : "No branches yet"}
-                  </td>
+                  <td className="px-4 py-3 text-muted">{school.address || "Not set"}</td>
+                  <td className="px-4 py-3 text-muted">{school.district || "Not set"}</td>
+                  <td className="px-4 py-3 text-muted">{school.state || "Not set"}</td>
+                  <td className="px-4 py-3 text-muted">{school.pincode || "Not set"}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-3">
                       <Link
@@ -60,11 +51,12 @@ export default async function SchoolsPage() {
                       >
                         Edit
                       </Link>
-                      <form action={deleteSchoolAction.bind(null, school.schoolId)}>
-                        <button type="submit" className="font-semibold text-red-700">
-                          Delete
-                        </button>
-                      </form>
+                      <InlineActionForm
+                        action={deleteSchoolAction.bind(null, school.schoolId)}
+                        variant="danger"
+                      >
+                        Delete
+                      </InlineActionForm>
                     </div>
                   </td>
                 </tr>

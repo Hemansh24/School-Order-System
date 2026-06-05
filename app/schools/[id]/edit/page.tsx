@@ -12,8 +12,7 @@ export default async function EditSchoolPage({
 }) {
   const { id } = await params;
   const school = await prisma.school.findUnique({
-    where: { schoolId: Number(id) },
-    include: { schoolBranches: { orderBy: { branchName: "asc" } } }
+    where: { schoolId: Number(id) }
   });
 
   if (!school) {

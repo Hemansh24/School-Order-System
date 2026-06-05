@@ -1,3 +1,6 @@
+"use client";
+
+import { useActionState } from "react";
 import {
   cancelHeldOrderAction,
   cancelOrderAction,
@@ -5,9 +8,12 @@ import {
   finalizeOrderAction,
   lockOrderAction,
   markPaymentReceivedAction,
-  putOrderOnHoldAction
+  putOrderOnHoldAction,
+  type OrderMutationState
 } from "@/app/orders/actions";
 import { ButtonLink, SubmitButton } from "@/components/ui";
+
+const initialState: OrderMutationState = { ok: false };
 
 export function OrderActionButtons({
   orderSheet1Id,
@@ -27,61 +33,79 @@ export function OrderActionButtons({
   const isFulfillmentCancelled = fulfillmentStatus === "cancelled";
 
   return (
-    <div className="flex flex-wrap gap-2">
-      {canEdit ? (
-        <ButtonLink href={`/orders/${orderSheet1Id}/edit`} className="border border-line bg-white">
-          Edit Draft
-        </ButtonLink>
-      ) : null}
-      <form action={createRevisionAction.bind(null, orderSheet1Id)}>
-        <SubmitButton type="submit" variant="secondary">
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2">
+        {canEdit ? (
+          <ButtonLink href={`/orders/${orderSheet1Id}/edit`} className="border border-line bg-white">
+            Edit Draft
+          </ButtonLink>
+        ) : null}
+        <OrderActionForm action={createRevisionAction.bind(null, orderSheet1Id)} variant="secondary">
           Create Sub-order / Revision
-        </SubmitButton>
-      </form>
-      {canEdit ? (
-        <form action={lockOrderAction.bind(null, orderSheet1Id)}>
-          <SubmitButton type="submit" variant="secondary">
+        </OrderActionForm>
+        {canEdit ? (
+          <OrderActionForm action={lockOrderAction.bind(null, orderSheet1Id)} variant="secondary">
             Lock Order
-          </SubmitButton>
-        </form>
-      ) : null}
-      {status === "locked" ? (
-        <form action={finalizeOrderAction.bind(null, orderSheet1Id)}>
-          <SubmitButton type="submit">Finalize Order</SubmitButton>
-        </form>
-      ) : null}
-      {canChangeStatus ? (
-        <form action={cancelOrderAction.bind(null, orderSheet1Id)}>
-          <SubmitButton type="submit" variant="danger">
+          </OrderActionForm>
+        ) : null}
+        {status === "locked" ? (
+          <OrderActionForm action={finalizeOrderAction.bind(null, orderSheet1Id)}>
+            Finalize Order
+          </OrderActionForm>
+        ) : null}
+        {canChangeStatus ? (
+          <OrderActionForm action={cancelOrderAction.bind(null, orderSheet1Id)} variant="danger">
             Cancel Order
-          </SubmitButton>
-        </form>
-      ) : null}
-      {hasFinalRows ? (
-        <>
-          {!isOnHold && !isFulfillmentCancelled ? (
-            <form action={putOrderOnHoldAction.bind(null, orderSheet1Id)}>
-              <SubmitButton type="submit" variant="secondary">
+          </OrderActionForm>
+        ) : null}
+        {hasFinalRows ? (
+          <>
+            {!isOnHold && !isFulfillmentCancelled ? (
+              <OrderActionForm action={putOrderOnHoldAction.bind(null, orderSheet1Id)} variant="secondary">
                 Put On Hold
-              </SubmitButton>
-            </form>
-          ) : null}
-          {isOnHold ? (
-            <form action={cancelHeldOrderAction.bind(null, orderSheet1Id)}>
-              <SubmitButton type="submit" variant="danger">
+              </OrderActionForm>
+            ) : null}
+            {isOnHold ? (
+              <OrderActionForm action={cancelHeldOrderAction.bind(null, orderSheet1Id)} variant="danger">
                 Cancel Order
-              </SubmitButton>
-            </form>
-          ) : null}
-          {!isFulfillmentCancelled ? (
-            <form action={markPaymentReceivedAction.bind(null, orderSheet1Id)}>
-              <SubmitButton type="submit" variant="secondary">
+              </OrderActionForm>
+            ) : null}
+            {!isFulfillmentCancelled ? (
+              <OrderActionForm
+                action={markPaymentReceivedAction.bind(null, orderSheet1Id)}
+                variant="secondary"
+              >
                 Mark Payment Received
-              </SubmitButton>
-            </form>
-          ) : null}
-        </>
-      ) : null}
+              </OrderActionForm>
+            ) : null}
+          </>
+        ) : null}
+      </div>
     </div>
+  );
+}
+
+function OrderActionForm({
+  action,
+  children,
+  variant
+}: {
+  action: (state: OrderMutationState, formData: FormData) => Promise<OrderMutationState>;
+  children: React.ReactNode;
+  variant?: "primary" | "secondary" | "danger";
+}) {
+  const [state, formAction] = useActionState(action, initialState);
+
+  return (
+    <form action={formAction} className="space-y-1">
+      <SubmitButton type="submit" variant={variant}>
+        {children}
+      </SubmitButton>
+      {state.message ? (
+        <p className={`max-w-64 text-xs ${state.ok ? "text-green-800" : "text-red-700"}`}>
+          {state.message}
+        </p>
+      ) : null}
+    </form>
   );
 }

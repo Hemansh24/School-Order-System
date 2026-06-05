@@ -2,30 +2,29 @@ import { z } from "zod";
 import { DEFAULT_LANGUAGE_CODE, generateItemCode } from "@/lib/item-code";
 
 const optionalText = z.preprocess(
-  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  (value) => {
+    if (value === null || value === undefined) {
+      return undefined;
+    }
+
+    return typeof value === "string" && value.trim() === "" ? undefined : value;
+  },
   z.string().trim().optional()
 );
 
-export const createSchoolSchema = z.object({
-  schoolCode: z.string().trim().min(1, "School code is required"),
-  schoolName: z.string().trim().min(1, "School name is required")
-});
-
-export const schoolBranchDraftSchema = z.object({
-  branchName: optionalText,
+export const schoolDetailsSchema = z.object({
+  schoolName: z.string().trim().min(1, "School name is required"),
   address: optionalText,
+  district: optionalText,
+  state: optionalText,
+  pincode: optionalText,
   contactPerson: optionalText,
   phone: optionalText,
   email: optionalText
 });
 
-export const createSchoolBranchSchema = z.object({
-  schoolId: z.coerce.number().int().positive("School is required"),
-  branchName: z.string().trim().min(1, "Branch name is required"),
-  address: optionalText,
-  contactPerson: optionalText,
-  phone: optionalText,
-  email: optionalText
+export const createSchoolSchema = schoolDetailsSchema.extend({
+  schoolCode: z.string().trim().min(1, "School code is required")
 });
 
 export const createVendorSchema = z.object({

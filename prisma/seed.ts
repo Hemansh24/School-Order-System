@@ -14,7 +14,6 @@ async function main() {
   await prisma.orderSheet1.deleteMany();
   await prisma.vendorSchool.deleteMany();
   await prisma.vendor.deleteMany();
-  await prisma.schoolBranch.deleteMany();
   await prisma.school.deleteMany();
   await prisma.item.deleteMany();
 
@@ -23,45 +22,39 @@ async function main() {
       data: {
         schoolCode: "SCH-001",
         schoolName: "Greenwood Public School",
-        schoolBranches: {
-          create: {
-            branchName: "Main",
-            address: "Sector 14",
-            contactPerson: "Anita Rao",
-            phone: "9876500011",
-            email: "admin@greenwood.example"
-          }
-        }
+        address: "Sector 14",
+        district: "Gautam Buddh Nagar",
+        state: "Uttar Pradesh",
+        pincode: "201301",
+        contactPerson: "Anita Rao",
+        phone: "9876500011",
+        email: "admin@greenwood.example"
       }
     }),
     prisma.school.create({
       data: {
         schoolCode: "SCH-002",
         schoolName: "Riverside International School",
-        schoolBranches: {
-          create: {
-            branchName: "Main",
-            address: "Lake Road",
-            contactPerson: "Kabir Sen",
-            phone: "9876500022",
-            email: "orders@riverside.example"
-          }
-        }
+        address: "Lake Road",
+        district: "Kolkata",
+        state: "West Bengal",
+        pincode: "700001",
+        contactPerson: "Kabir Sen",
+        phone: "9876500022",
+        email: "orders@riverside.example"
       }
     }),
     prisma.school.create({
       data: {
         schoolCode: "SCH-003",
         schoolName: "Sunrise Model School",
-        schoolBranches: {
-          create: {
-            branchName: "Main",
-            address: "MG Avenue",
-            contactPerson: "Meera Das",
-            phone: "9876500033",
-            email: "office@sunrise.example"
-          }
-        }
+        address: "MG Avenue",
+        district: "Bhopal",
+        state: "Madhya Pradesh",
+        pincode: "462001",
+        contactPerson: "Meera Das",
+        phone: "9876500033",
+        email: "office@sunrise.example"
       }
     })
   ]);

@@ -14,7 +14,6 @@ type SchoolRef = {
   optionKey: string;
   schoolCode: string;
   schoolName: string;
-  branchName: string | null;
 };
 type VendorRef = {
   vendorCode: string;

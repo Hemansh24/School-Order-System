@@ -1,7 +1,7 @@
 "use server";
 
-import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { formatActionError } from "@/lib/action-errors";
 import { prisma } from "@/lib/prisma";
 import { nextVendorCode } from "@/lib/reference-codes";
 import { createVendorSchema } from "@/lib/validation/reference";
@@ -12,11 +12,10 @@ export type ReferenceActionState = {
 };
 
 function duplicateMessage(error: unknown, fallback: string) {
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-    return fallback;
-  }
-
-  return error instanceof Error ? error.message : "Could not save.";
+  return formatActionError(error, {
+    fallback: "Could not save this vendor. Please review the form and try again.",
+    duplicate: fallback
+  });
 }
 
 export async function createVendorAction(
@@ -112,12 +111,26 @@ export async function updateVendorAction(
   }
 }
 
-export async function deleteVendorAction(vendorId: number): Promise<void> {
-  await prisma.vendor.delete({
-    where: { vendorId }
-  });
+export async function deleteVendorAction(
+  vendorId: number,
+  _previousState: ReferenceActionState,
+  _formData: FormData
+): Promise<ReferenceActionState> {
+  try {
+    await prisma.vendor.delete({
+      where: { vendorId }
+    });
 
-  revalidatePath("/vendors");
-  revalidatePath(`/vendors/${vendorId}/edit`);
-  revalidatePath("/orders/new");
+    revalidatePath("/vendors");
+    revalidatePath(`/vendors/${vendorId}/edit`);
+    revalidatePath("/orders/new");
+    return { ok: true, message: "Vendor deleted." };
+  } catch (error) {
+    return {
+      ok: false,
+      message: formatActionError(error, {
+        fallback: "Could not delete this vendor. Please try again."
+      })
+    };
+  }
 }

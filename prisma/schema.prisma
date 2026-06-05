@@ -42,34 +42,18 @@ model School {
   schoolCode    String   @unique @map("school_code")
   schoolName    String   @map("school_name")
   address       String?
+  district      String?
+  state         String?
+  pincode       String?
   contactPerson String?  @map("contact_person")
   phone         String?
   email         String?
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  schoolBranches SchoolBranch[]
   vendorSchools VendorSchool[]
 
   @@map("schools")
-}
-
-model SchoolBranch {
-  schoolBranchId Int      @id @default(autoincrement()) @map("school_branch_id")
-  schoolId       Int      @map("school_id")
-  branchName     String   @map("branch_name")
-  address        String?
-  contactPerson  String?  @map("contact_person")
-  phone          String?
-  email          String?
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
-
-  school School @relation(fields: [schoolId], references: [schoolId], onDelete: Cascade)
-
-  @@unique([schoolId, branchName])
-  @@index([schoolId])
-  @@map("school_branches")
 }
 
 model Vendor {

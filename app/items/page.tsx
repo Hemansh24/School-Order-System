@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card, PageHeader, StatusPill } from "@/components/ui";
 import { deleteItemAction } from "@/app/items/actions";
+import { InlineActionForm } from "@/components/inline-action-form";
 import { AddItemForm } from "@/components/reference/reference-forms";
 import { prisma } from "@/lib/prisma";
 
@@ -60,11 +61,12 @@ export default async function ItemsPage() {
                       >
                         Edit
                       </Link>
-                      <form action={deleteItemAction.bind(null, item.itemId)}>
-                        <button type="submit" className="font-semibold text-red-700">
-                          Delete
-                        </button>
-                      </form>
+                      <InlineActionForm
+                        action={deleteItemAction.bind(null, item.itemId)}
+                        variant="danger"
+                      >
+                        Delete
+                      </InlineActionForm>
                     </div>
                   </td>
                 </tr>

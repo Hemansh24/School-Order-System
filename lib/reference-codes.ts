@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 
-function nextCode(prefix: string, existingCodes: string[]) {
+export function nextCode(prefix: string, existingCodes: string[]) {
   const pattern = new RegExp(`^${prefix}-(\\d+)$`);
   const usedNumbers = new Set(
     existingCodes.flatMap((code) => {

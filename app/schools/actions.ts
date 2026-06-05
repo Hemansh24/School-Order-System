@@ -1,52 +1,51 @@
 "use server";
 
-import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { formatActionError } from "@/lib/action-errors";
 import { prisma } from "@/lib/prisma";
 import { nextSchoolCode } from "@/lib/reference-codes";
-import {
-  createSchoolBranchSchema,
-  createSchoolSchema,
-  schoolBranchDraftSchema
-} from "@/lib/validation/reference";
+import { createOrReuseSchool, findSchoolsByFields, type SchoolMatch } from "@/lib/services/schools";
+import { createSchoolSchema } from "@/lib/validation/reference";
 
 export type ReferenceActionState = {
   ok: boolean;
   message?: string;
-  existingSchool?: {
+  school?: {
     schoolId: number;
     schoolCode: string;
     schoolName: string;
   };
+  matches?: SchoolMatch[];
+  created?: boolean;
 };
 
-function duplicateMessage(error: unknown, fallback: string) {
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-    return fallback;
-  }
-
-  return error instanceof Error ? error.message : "Could not save.";
-}
-
-function hasBranchDetails(branch: {
-  branchName?: string;
-  address?: string;
-  contactPerson?: string;
-  phone?: string;
-  email?: string;
-}) {
-  return Boolean(
-    branch.branchName || branch.address || branch.contactPerson || branch.phone || branch.email
-  );
+function schoolActionMessage(error: unknown, fallback: string) {
+  return formatActionError(error, {
+    fallback,
+    duplicate: fallback
+  });
 }
 
 function revalidateSchoolPaths(schoolId?: number) {
   revalidatePath("/schools");
   revalidatePath("/vendors");
   revalidatePath("/orders/new");
+  revalidatePath("/orders");
   if (schoolId !== undefined) {
     revalidatePath(`/schools/${schoolId}/edit`);
   }
+}
+
+function hasCompleteLookupDetails(parsed: {
+  schoolName: string;
+  address?: string;
+  district?: string;
+  state?: string;
+  pincode?: string;
+}) {
+  return Boolean(
+    parsed.schoolName && parsed.address && parsed.district && parsed.state && parsed.pincode
+  );
 }
 
 export async function createSchoolAction(
@@ -54,98 +53,99 @@ export async function createSchoolAction(
   formData: FormData
 ): Promise<ReferenceActionState> {
   try {
-    const intent = formData.get("intent");
-
-    if (intent === "branch") {
-      const parsed = createSchoolBranchSchema.parse({
-        schoolId: formData.get("existingSchoolId"),
-        branchName: formData.get("branchName"),
-        address: formData.get("address"),
-        contactPerson: formData.get("contactPerson"),
-        phone: formData.get("phone"),
-        email: formData.get("email")
-      });
-
-      const school = await prisma.school.findUnique({
-        where: { schoolId: parsed.schoolId },
-        select: { schoolId: true, schoolCode: true, schoolName: true }
-      });
-      if (!school) {
-        throw new Error("School not found.");
-      }
-
-      await prisma.schoolBranch.create({
-        data: {
-          schoolId: school.schoolId,
-          branchName: parsed.branchName,
-          address: parsed.address,
-          contactPerson: parsed.contactPerson,
-          phone: parsed.phone,
-          email: parsed.email
-        }
-      });
-
-      revalidateSchoolPaths(school.schoolId);
-      return { ok: true, message: `Branch added under ${school.schoolCode} - ${school.schoolName}.` };
-    }
-
     const schoolCode = await nextSchoolCode();
     const parsed = createSchoolSchema.parse({
       schoolCode,
-      schoolName: formData.get("schoolName")
-    });
-    const branchDraft = schoolBranchDraftSchema.parse({
-      branchName: formData.get("branchName"),
+      schoolName: formData.get("schoolName"),
       address: formData.get("address"),
+      district: formData.get("district"),
+      state: formData.get("state"),
+      pincode: formData.get("pincode"),
       contactPerson: formData.get("contactPerson"),
       phone: formData.get("phone"),
       email: formData.get("email")
     });
 
-    const existingSchool = await prisma.school.findFirst({
-      where: {
-        schoolName: {
-          equals: parsed.schoolName,
-          mode: "insensitive"
-        }
+    const result = await createOrReuseSchool(parsed);
+
+    revalidateSchoolPaths();
+    return {
+      ok: true,
+      created: result.created,
+      school: {
+        schoolId: result.school.schoolId,
+        schoolCode: result.school.schoolCode,
+        schoolName: result.school.schoolName
       },
-      select: { schoolId: true, schoolCode: true, schoolName: true }
-    });
-
-    if (existingSchool) {
-      return {
-        ok: false,
-        message: `${existingSchool.schoolCode} - ${existingSchool.schoolName} already exists. Add a branch instead.`,
-        existingSchool
-      };
-    }
-
-    const school = await prisma.school.create({
-      data: {
-        schoolCode: parsed.schoolCode,
-        schoolName: parsed.schoolName
-      }
-    });
-
-    if (hasBranchDetails(branchDraft)) {
-      await prisma.schoolBranch.create({
-        data: {
-          schoolId: school.schoolId,
-          branchName: branchDraft.branchName ?? "Main",
-          address: branchDraft.address,
-          contactPerson: branchDraft.contactPerson,
-          phone: branchDraft.phone,
-          email: branchDraft.email
-        }
-      });
-    }
-
-    revalidateSchoolPaths(school.schoolId);
-    return { ok: true, message: "School added." };
+      message: result.created
+        ? `School added with code ${result.school.schoolCode}.`
+        : `Exact match found. Reusing ${result.school.schoolCode}.`
+    };
   } catch (error) {
     return {
       ok: false,
-      message: duplicateMessage(error, "A school or branch with this name already exists.")
+      message: schoolActionMessage(
+        error,
+        "Could not save this school. Please review the form and try again."
+      )
+    };
+  }
+}
+
+export async function lookupSchoolAction(
+  _previousState: ReferenceActionState,
+  formData: FormData
+): Promise<ReferenceActionState> {
+  try {
+    const parsed = createSchoolSchema.parse({
+      schoolCode: await nextSchoolCode(),
+      schoolName: formData.get("schoolName"),
+      address: formData.get("address"),
+      district: formData.get("district"),
+      state: formData.get("state"),
+      pincode: formData.get("pincode"),
+      contactPerson: formData.get("contactPerson"),
+      phone: formData.get("phone"),
+      email: formData.get("email")
+    });
+
+    const matches = await findSchoolsByFields(parsed);
+    const hasCompleteDetails = hasCompleteLookupDetails(parsed);
+
+    if (!hasCompleteDetails) {
+      return {
+        ok: matches.length > 0,
+        matches,
+        message:
+          matches.length > 0
+            ? `Found ${matches.length} matching school${matches.length === 1 ? "" : "s"}.`
+            : "No matching schools found for the entered fields."
+      };
+    }
+
+    const result = await createOrReuseSchool(parsed);
+
+    revalidateSchoolPaths();
+    return {
+      ok: true,
+      created: result.created,
+      matches: matches.length > 1 ? matches : undefined,
+      school: {
+        schoolId: result.school.schoolId,
+        schoolCode: result.school.schoolCode,
+        schoolName: result.school.schoolName
+      },
+      message: result.created
+        ? `New school created with code ${result.school.schoolCode}.`
+        : `Exact match found. Reusing ${result.school.schoolCode}.`
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: schoolActionMessage(
+        error,
+        "Could not check this school. Please review the details and try again."
+      )
     };
   }
 }
@@ -166,7 +166,14 @@ export async function updateSchoolAction(
 
     const parsed = createSchoolSchema.parse({
       schoolCode: existing.schoolCode,
-      schoolName: formData.get("schoolName")
+      schoolName: formData.get("schoolName"),
+      address: formData.get("address"),
+      district: formData.get("district"),
+      state: formData.get("state"),
+      pincode: formData.get("pincode"),
+      contactPerson: formData.get("contactPerson"),
+      phone: formData.get("phone"),
+      email: formData.get("email")
     });
 
     const duplicate = await prisma.school.findFirst({
@@ -181,13 +188,20 @@ export async function updateSchoolAction(
     });
 
     if (duplicate) {
-      throw new Error("A school with this name already exists. Rename branches instead.");
+      throw new Error("A school with this name already exists.");
     }
 
     await prisma.school.update({
       where: { schoolId },
       data: {
-        schoolName: parsed.schoolName
+        schoolName: parsed.schoolName,
+        address: parsed.address,
+        district: parsed.district,
+        state: parsed.state,
+        pincode: parsed.pincode,
+        contactPerson: parsed.contactPerson,
+        phone: parsed.phone,
+        email: parsed.email
       }
     });
 
@@ -196,59 +210,30 @@ export async function updateSchoolAction(
   } catch (error) {
     return {
       ok: false,
-      message: duplicateMessage(error, "A school with this name already exists.")
+      message: schoolActionMessage(
+        error,
+        "Could not update this school. Please review the form and try again."
+      )
     };
   }
 }
 
-export async function addSchoolBranchAction(
+export async function deleteSchoolAction(
   schoolId: number,
   _previousState: ReferenceActionState,
-  formData: FormData
+  _formData: FormData
 ): Promise<ReferenceActionState> {
   try {
-    const school = await prisma.school.findUnique({
-      where: { schoolId },
-      select: { schoolId: true, schoolCode: true, schoolName: true }
-    });
-    if (!school) {
-      throw new Error("School not found.");
-    }
-
-    const parsed = createSchoolBranchSchema.parse({
-      schoolId,
-      branchName: formData.get("branchName"),
-      address: formData.get("address"),
-      contactPerson: formData.get("contactPerson"),
-      phone: formData.get("phone"),
-      email: formData.get("email")
-    });
-
-    await prisma.schoolBranch.create({
-      data: {
-        schoolId: parsed.schoolId,
-        branchName: parsed.branchName,
-        address: parsed.address,
-        contactPerson: parsed.contactPerson,
-        phone: parsed.phone,
-        email: parsed.email
-      }
+    await prisma.school.delete({
+      where: { schoolId }
     });
 
     revalidateSchoolPaths(schoolId);
-    return { ok: true, message: `Branch added under ${school.schoolCode} - ${school.schoolName}.` };
+    return { ok: true, message: "School deleted." };
   } catch (error) {
     return {
       ok: false,
-      message: duplicateMessage(error, "A branch with this name already exists for this school.")
+      message: schoolActionMessage(error, "Could not delete this school. Please try again.")
     };
   }
-}
-
-export async function deleteSchoolAction(schoolId: number): Promise<void> {
-  await prisma.school.delete({
-    where: { schoolId }
-  });
-
-  revalidateSchoolPaths(schoolId);
 }

@@ -6,6 +6,7 @@ import {
   ClipboardList,
   FileSearch,
   PackagePlus,
+  Search,
   School,
   UserRound
 } from "lucide-react";
@@ -14,6 +15,7 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: BarChart3 },
   { href: "/orders", label: "Orders", icon: ClipboardList },
   { href: "/orders/new", label: "Create Order", icon: PackagePlus },
+  { href: "/orders/school-lookup", label: "School Lookup", icon: Search, indent: true },
   { href: "/schools", label: "Schools", icon: School },
   { href: "/vendors", label: "Vendors", icon: Building2 },
   { href: "/items", label: "Items", icon: BookOpen },
@@ -39,7 +41,7 @@ export function Navigation() {
             <Link
               key={item.href}
               href={item.href}
-              className="focus-ring flex min-w-max items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted transition hover:bg-brand-soft hover:text-ink"
+              className={`focus-ring flex min-w-max items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted transition hover:bg-brand-soft hover:text-ink ${item.indent ? "lg:ml-4" : ""}`}
             >
               <Icon className="h-4 w-4" />
               {item.label}

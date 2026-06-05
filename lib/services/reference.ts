@@ -4,19 +4,14 @@ import { compareEditionCodes, DEFAULT_LANGUAGE_CODE } from "@/lib/item-code";
 export async function getReferenceData() {
   const [schools, vendors, items] = await Promise.all([
     prisma.school.findMany({
-      orderBy: { schoolName: "asc" },
-      include: { schoolBranches: { orderBy: [{ branchName: "asc" }, { schoolBranchId: "asc" }] } }
+      orderBy: { schoolName: "asc" }
     }),
     prisma.vendor.findMany({
       orderBy: { vendorName: "asc" },
       include: {
         vendorSchools: {
           include: {
-            school: {
-              include: {
-                schoolBranches: { orderBy: [{ branchName: "asc" }, { schoolBranchId: "asc" }] }
-              }
-            }
+            school: true
           }
         }
       }

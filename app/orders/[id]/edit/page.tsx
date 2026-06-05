@@ -15,41 +15,17 @@ function toSchoolOptions(
   schools: Array<{
     schoolCode: string;
     schoolName: string;
-    schoolBranches: Array<{ schoolBranchId: number; branchName: string }>;
   }>
 ): Array<{
   optionKey: string;
   schoolCode: string;
   schoolName: string;
-  branchName: string | null;
 }> {
-  return schools.reduce<Array<{
-    optionKey: string;
-    schoolCode: string;
-    schoolName: string;
-    branchName: string | null;
-  }>>((options, school) => {
-    if (school.schoolBranches.length === 0) {
-      options.push({
-        optionKey: school.schoolCode,
-        schoolCode: school.schoolCode,
-        schoolName: school.schoolName,
-        branchName: null
-      });
-      return options;
-    }
-
-    for (const branch of school.schoolBranches) {
-      options.push({
-        optionKey: `${school.schoolCode}::${branch.schoolBranchId}`,
-        schoolCode: school.schoolCode,
-        schoolName: `${school.schoolName} - ${branch.branchName}`,
-        branchName: branch.branchName
-      });
-    }
-
-    return options;
-  }, []);
+  return schools.map((school) => ({
+    optionKey: school.schoolCode,
+    schoolCode: school.schoolCode,
+    schoolName: school.schoolName
+  }));
 }
 
 export default async function EditOrderPage({

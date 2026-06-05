@@ -1,7 +1,7 @@
 "use server";
 
-import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { formatActionError } from "@/lib/action-errors";
 import { prisma } from "@/lib/prisma";
 import { DEFAULT_LANGUAGE_CODE, generateItemCode } from "@/lib/item-code";
 import { validateItemCodeUnique } from "@/lib/services/reference";
@@ -13,11 +13,10 @@ export type ReferenceActionState = {
 };
 
 function duplicateMessage(error: unknown, fallback: string) {
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-    return fallback;
-  }
-
-  return error instanceof Error ? error.message : "Could not save.";
+  return formatActionError(error, {
+    fallback: "Could not save this item. Please review the form and try again.",
+    duplicate: fallback
+  });
 }
 
 function normalizeItemData(parsed: ReturnType<typeof createItemSchema.parse>) {
@@ -115,12 +114,26 @@ export async function updateItemAction(
   }
 }
 
-export async function deleteItemAction(itemId: number): Promise<void> {
-  await prisma.item.delete({
-    where: { itemId }
-  });
+export async function deleteItemAction(
+  itemId: number,
+  _previousState: ReferenceActionState,
+  _formData: FormData
+): Promise<ReferenceActionState> {
+  try {
+    await prisma.item.delete({
+      where: { itemId }
+    });
 
-  revalidatePath("/items");
-  revalidatePath(`/items/${itemId}/edit`);
-  revalidatePath("/orders/new");
+    revalidatePath("/items");
+    revalidatePath(`/items/${itemId}/edit`);
+    revalidatePath("/orders/new");
+    return { ok: true, message: "Item deleted." };
+  } catch (error) {
+    return {
+      ok: false,
+      message: formatActionError(error, {
+        fallback: "Could not delete this item. Please try again."
+      })
+    };
+  }
 }
