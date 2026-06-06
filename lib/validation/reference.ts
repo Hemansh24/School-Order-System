@@ -27,6 +27,26 @@ export const createSchoolSchema = schoolDetailsSchema.extend({
   schoolCode: z.string().trim().min(1, "School code is required")
 });
 
+export const lookupSchoolSchema = z
+  .object({
+    schoolName: optionalText,
+    address: optionalText,
+    district: optionalText,
+    state: optionalText,
+    pincode: optionalText,
+    contactPerson: optionalText,
+    phone: optionalText,
+    email: optionalText
+  })
+  .refine(
+    (data) =>
+      Boolean(data.schoolName || data.address || data.district || data.state || data.pincode),
+    {
+      message: "Enter at least one search field.",
+      path: ["schoolName"]
+    }
+  );
+
 export const createVendorSchema = z.object({
   vendorCode: z.string().trim().min(1, "Vendor code is required"),
   vendorName: z.string().trim().min(1, "Vendor name is required"),

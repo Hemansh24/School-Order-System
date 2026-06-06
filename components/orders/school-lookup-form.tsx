@@ -29,7 +29,7 @@ export function SchoolLookupForm() {
             </p>
           ) : null}
         </div>
-        <TextField name="schoolName" label="Name" required placeholder="Greenwood Public School" />
+        <TextField name="schoolName" label="Name" placeholder="Greenwood Public School" />
         <TextField name="address" label="Address" placeholder="Sector 14, Block A" />
         <TextField name="district" label="District" placeholder="Gautam Buddh Nagar" />
         <TextField name="state" label="State" placeholder="Uttar Pradesh" />

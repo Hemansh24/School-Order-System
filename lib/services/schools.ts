@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { nextCode } from "@/lib/reference-codes";
 
 type SchoolResolutionInput = {
-  schoolName: string;
+  schoolName?: string;
   address?: string;
   district?: string;
   state?: string;
@@ -10,6 +10,10 @@ type SchoolResolutionInput = {
   contactPerson?: string;
   phone?: string;
   email?: string;
+};
+
+type SchoolCreationInput = SchoolResolutionInput & {
+  schoolName: string;
 };
 
 type SchoolSelection = {
@@ -28,10 +32,6 @@ function normalizeSchoolField(value?: string | null) {
   return (value ?? "").trim().toLowerCase();
 }
 
-function hasValue(value?: string | null) {
-  return normalizeSchoolField(value) !== "";
-}
-
 function isExactSchoolMatch(school: SchoolSelection, input: SchoolResolutionInput) {
   return (
     normalizeSchoolField(school.schoolName) === normalizeSchoolField(input.schoolName) &&
@@ -42,28 +42,33 @@ function isExactSchoolMatch(school: SchoolSelection, input: SchoolResolutionInpu
   );
 }
 
-function hasSameSchoolName(school: SchoolSelection, schoolName: string) {
-  return normalizeSchoolField(school.schoolName) === normalizeSchoolField(schoolName);
+function containsEnteredValue(source?: string | null, entered?: string | null) {
+  const normalizedEntered = normalizeSchoolField(entered);
+  if (!normalizedEntered) {
+    return true;
+  }
+
+  return normalizeSchoolField(source).includes(normalizedEntered);
 }
 
 function matchesEnteredFields(school: SchoolSelection, input: SchoolResolutionInput) {
-  if (!hasSameSchoolName(school, input.schoolName)) {
+  if (!containsEnteredValue(school.schoolName, input.schoolName)) {
     return false;
   }
 
-  if (hasValue(input.address) && normalizeSchoolField(school.address) !== normalizeSchoolField(input.address)) {
+  if (!containsEnteredValue(school.address, input.address)) {
     return false;
   }
 
-  if (hasValue(input.district) && normalizeSchoolField(school.district) !== normalizeSchoolField(input.district)) {
+  if (!containsEnteredValue(school.district, input.district)) {
     return false;
   }
 
-  if (hasValue(input.state) && normalizeSchoolField(school.state) !== normalizeSchoolField(input.state)) {
+  if (!containsEnteredValue(school.state, input.state)) {
     return false;
   }
 
-  if (hasValue(input.pincode) && normalizeSchoolField(school.pincode) !== normalizeSchoolField(input.pincode)) {
+  if (!containsEnteredValue(school.pincode, input.pincode)) {
     return false;
   }
 
@@ -92,7 +97,7 @@ export async function findSchoolsByFields(input: SchoolResolutionInput): Promise
   return schools.filter((school) => matchesEnteredFields(school, input));
 }
 
-export async function createOrReuseSchool(input: SchoolResolutionInput) {
+export async function createOrReuseSchool(input: SchoolCreationInput) {
   return prisma.$transaction(async (tx) => {
     const schools = await tx.school.findMany({
       select: {

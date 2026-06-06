@@ -5,7 +5,7 @@ import { formatActionError } from "@/lib/action-errors";
 import { prisma } from "@/lib/prisma";
 import { nextSchoolCode } from "@/lib/reference-codes";
 import { createOrReuseSchool, findSchoolsByFields, type SchoolMatch } from "@/lib/services/schools";
-import { createSchoolSchema } from "@/lib/validation/reference";
+import { createSchoolSchema, lookupSchoolSchema } from "@/lib/validation/reference";
 
 export type ReferenceActionState = {
   ok: boolean;
@@ -37,7 +37,7 @@ function revalidateSchoolPaths(schoolId?: number) {
 }
 
 function hasCompleteLookupDetails(parsed: {
-  schoolName: string;
+  schoolName?: string;
   address?: string;
   district?: string;
   state?: string;
@@ -66,7 +66,10 @@ export async function createSchoolAction(
       email: formData.get("email")
     });
 
-    const result = await createOrReuseSchool(parsed);
+    const result = await createOrReuseSchool({
+      ...parsed,
+      schoolName: parsed.schoolName
+    });
 
     revalidateSchoolPaths();
     return {
@@ -97,8 +100,7 @@ export async function lookupSchoolAction(
   formData: FormData
 ): Promise<ReferenceActionState> {
   try {
-    const parsed = createSchoolSchema.parse({
-      schoolCode: await nextSchoolCode(),
+    const parsed = lookupSchoolSchema.parse({
       schoolName: formData.get("schoolName"),
       address: formData.get("address"),
       district: formData.get("district"),
@@ -123,7 +125,21 @@ export async function lookupSchoolAction(
       };
     }
 
-    const result = await createOrReuseSchool(parsed);
+    if (!parsed.schoolName) {
+      return {
+        ok: matches.length > 0,
+        matches,
+        message:
+          matches.length > 0
+            ? `Found ${matches.length} matching school${matches.length === 1 ? "" : "s"}.`
+            : "Add the school name as well if you want to create a new school code."
+      };
+    }
+
+    const result = await createOrReuseSchool({
+      ...parsed,
+      schoolName: parsed.schoolName
+    });
 
     revalidateSchoolPaths();
     return {
