@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const orderTypeSchema = z.enum(["descriptive", "ambiguous"]);
 export const billingToTypeSchema = z.enum(["school", "vendor"]);
+export const shippingToTypeSchema = z.enum(["school", "vendor"]);
 export const orderStatusSchema = z.enum([
   "draft",
   "revision_requested",
@@ -28,7 +29,10 @@ export const sheet1Schema = z
     billingToType: billingToTypeSchema,
     billingToCode: z.string().min(1, "Billing code is required"),
     billingToName: z.string().min(1, "Billing name is required"),
-    shippingToSummary: z.string().min(1, "Shipping destination is required"),
+    shippingToType: shippingToTypeSchema,
+    shippingToCode: z.string().min(1, "Shipping code is required"),
+    shippingToName: z.string().min(1, "Shipping name is required"),
+    shippingToSummary: z.string().min(1, "Shipping address is required"),
     orderType: orderTypeSchema,
     booksellerType: z.string().optional(),
     booksellerRating: z.string().optional(),

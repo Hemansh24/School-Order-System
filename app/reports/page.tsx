@@ -38,7 +38,7 @@ export default async function ReportsPage({
             <option value="vendor">Vendor</option>
           </Select>
           <Input name="billing" label="Billing Code/Name" defaultValue={params.get("billing") ?? ""} />
-          <Input name="shipping" label="Shipping School" defaultValue={params.get("shipping") ?? ""} />
+          <Input name="shipping" label="Shipping Code/Name" defaultValue={params.get("shipping") ?? ""} />
           <Select name="order_type" label="Order Type" defaultValue={params.get("order_type") ?? ""}>
             <option value="">All</option>
             <option value="descriptive">Descriptive</option>
@@ -114,7 +114,10 @@ export default async function ReportsPage({
                       <OrderNumber orderNo={order.orderNo} subOrderNo={order.subOrderNo} />
                     </td>
                     <td className="px-4 py-3">{order.billingToName}</td>
-                    <td className="max-w-xs truncate px-4 py-3 text-muted">{order.shippingToSummary}</td>
+                    <td className="max-w-xs px-4 py-3 text-muted">
+                      <div className="font-medium text-ink">{order.shippingToName}</div>
+                      <div className="truncate text-xs">{order.shippingToSummary}</div>
+                    </td>
                     <td className="px-4 py-3">
                       <StatusPill value={order.orderType} />
                     </td>

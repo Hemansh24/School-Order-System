@@ -7,6 +7,7 @@ import {
 } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { formatSchoolAddress, formatVendorAddress } from "@/lib/shipping";
 import { createOrderSchema, type CreateOrderInput } from "@/lib/validation/orders";
 import { parseDisplayOrderNo } from "@/lib/order-number";
 
@@ -87,6 +88,52 @@ async function assertVendorHasSchool(tx: Tx, input: CreateOrderInput): Promise<v
   }
 }
 
+async function assertShippingDestinationExists(tx: Tx, input: CreateOrderInput): Promise<void> {
+  if (input.sheet1.shippingToType === "school") {
+    const school = await tx.school.findUnique({
+      where: { schoolCode: input.sheet1.shippingToCode }
+    });
+
+    if (!school) {
+      throw new Error("Shipping school must exist.");
+    }
+
+    return;
+  }
+
+  const vendor = await tx.vendor.findUnique({
+    where: { vendorCode: input.sheet1.shippingToCode }
+  });
+
+  if (!vendor) {
+    throw new Error("Shipping vendor must exist.");
+  }
+}
+
+async function resolveShippingSummary(tx: Tx, input: CreateOrderInput) {
+  if (input.sheet1.shippingToType === "school") {
+    const school = await tx.school.findUnique({
+      where: { schoolCode: input.sheet1.shippingToCode }
+    });
+
+    if (!school) {
+      throw new Error("Shipping school must exist.");
+    }
+
+    return formatSchoolAddress(school);
+  }
+
+  const vendor = await tx.vendor.findUnique({
+    where: { vendorCode: input.sheet1.shippingToCode }
+  });
+
+  if (!vendor) {
+    throw new Error("Shipping vendor must exist.");
+  }
+
+  return formatVendorAddress(vendor.address);
+}
+
 export async function getDashboardData() {
   const currentWhere = await currentOrderWhere();
   const [
@@ -161,8 +208,10 @@ export async function createOrder(input: CreateOrderInput) {
 
   const created = await prisma.$transaction(async (tx) => {
     await assertVendorHasSchool(tx, parsed);
+    await assertShippingDestinationExists(tx, parsed);
     const orderNo = await nextParentOrderNo(tx);
     const subOrderNo = 0;
+    const shippingToSummary = await resolveShippingSummary(tx, parsed);
 
     const order = await tx.orderSheet1.create({
       data: {
@@ -174,7 +223,10 @@ export async function createOrder(input: CreateOrderInput) {
         billingToType: parsed.sheet1.billingToType as BillingToType,
         billingToCode: parsed.sheet1.billingToCode,
         billingToName: parsed.sheet1.billingToName,
-        shippingToSummary: parsed.sheet1.shippingToSummary,
+        shippingToType: parsed.sheet1.shippingToType as BillingToType,
+        shippingToCode: parsed.sheet1.shippingToCode,
+        shippingToName: parsed.sheet1.shippingToName,
+        shippingToSummary,
         orderType: parsed.sheet1.orderType as OrderType,
         orderStatus: "draft",
         booksellerType: parsed.sheet1.booksellerType || null,
@@ -238,6 +290,7 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
 
   const updated = await prisma.$transaction(async (tx) => {
     await assertVendorHasSchool(tx, parsed);
+    await assertShippingDestinationExists(tx, parsed);
 
     const existing = await tx.orderSheet1.findUnique({
       where: { orderSheet1Id },
@@ -262,6 +315,8 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
       tx.orderSheet2B2.deleteMany({ where: { orderSheet1Id } })
     ]);
 
+    const shippingToSummary = await resolveShippingSummary(tx, parsed);
+
     const order = await tx.orderSheet1.update({
       where: { orderSheet1Id },
       data: {
@@ -271,7 +326,10 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
         billingToType: parsed.sheet1.billingToType as BillingToType,
         billingToCode: parsed.sheet1.billingToCode,
         billingToName: parsed.sheet1.billingToName,
-        shippingToSummary: parsed.sheet1.shippingToSummary,
+        shippingToType: parsed.sheet1.shippingToType as BillingToType,
+        shippingToCode: parsed.sheet1.shippingToCode,
+        shippingToName: parsed.sheet1.shippingToName,
+        shippingToSummary,
         orderType: parsed.sheet1.orderType as OrderType,
         booksellerType: parsed.sheet1.booksellerType || null,
         booksellerRating: parsed.sheet1.booksellerRating || null,
@@ -578,6 +636,9 @@ export async function createRevision(orderSheet1Id: number) {
         billingToType: parent.billingToType,
         billingToCode: parent.billingToCode,
         billingToName: parent.billingToName,
+        shippingToType: parent.shippingToType,
+        shippingToCode: parent.shippingToCode,
+        shippingToName: parent.shippingToName,
         shippingToSummary: parent.shippingToSummary,
         orderType: parent.orderType,
         orderStatus: "revision_requested",
@@ -707,6 +768,16 @@ export async function searchOrders(params: URLSearchParams): Promise<SearchOrder
     });
   }
 
+  if (shipping) {
+    and.push({
+      OR: [
+        { shippingToCode: { contains: shipping, mode: "insensitive" } },
+        { shippingToName: { contains: shipping, mode: "insensitive" } },
+        { shippingToSummary: { contains: shipping, mode: "insensitive" } }
+      ]
+    });
+  }
+
   const where: Prisma.OrderSheet1WhereInput = {
     orderNo: orderNo ? Number(orderNo) : parsedDisplay.orderNo,
     subOrderNo: subOrderNo ? Number(subOrderNo) : parsedDisplay.subOrderNo,
@@ -733,7 +804,6 @@ export async function searchOrders(params: URLSearchParams): Promise<SearchOrder
           { billingToName: { contains: billing, mode: "insensitive" } }
         ]
       : undefined,
-    shippingToSummary: shipping ? { contains: shipping, mode: "insensitive" } : undefined,
     AND: and.length > 0 ? and : undefined
   };
 

@@ -78,7 +78,8 @@ export default async function DashboardPage() {
                     <div className="text-xs text-muted">{order.billingToType}</div>
                   </td>
                   <td className="max-w-xs truncate px-4 py-3 text-muted">
-                    {order.shippingToSummary}
+                    <div className="font-medium text-ink">{order.shippingToName}</div>
+                    <div className="truncate text-xs">{order.shippingToSummary}</div>
                   </td>
                   <td className="px-4 py-3 capitalize">{order.orderType}</td>
                   <td className="px-4 py-3">

@@ -45,7 +45,8 @@ export default async function OrdersPage() {
                     <div className="text-xs text-muted">{order.billingToCode}</div>
                   </td>
                   <td className="max-w-xs truncate px-4 py-3 text-muted">
-                    {order.shippingToSummary}
+                    <div className="font-medium text-ink">{order.shippingToName}</div>
+                    <div className="truncate text-xs">{order.shippingToSummary}</div>
                   </td>
                   <td className="px-4 py-3 capitalize">{order.orderType}</td>
                   <td className="px-4 py-3">

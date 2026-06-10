@@ -3,6 +3,7 @@ import { CreateOrderForm } from "@/components/orders/create-order-form";
 import { PageHeader } from "@/components/ui";
 import { getOrder } from "@/lib/services/orders";
 import { getReferenceData } from "@/lib/services/reference";
+import { formatSchoolAddress, formatVendorAddress } from "@/lib/shipping";
 import type { CreateOrderInput } from "@/lib/validation/orders";
 
 export const dynamic = "force-dynamic";
@@ -15,16 +16,22 @@ function toSchoolOptions(
   schools: Array<{
     schoolCode: string;
     schoolName: string;
+    address: string | null;
+    district: string | null;
+    state: string | null;
+    pincode: string | null;
   }>
 ): Array<{
   optionKey: string;
   schoolCode: string;
   schoolName: string;
+  addressSummary: string;
 }> {
   return schools.map((school) => ({
     optionKey: school.schoolCode,
     schoolCode: school.schoolCode,
-    schoolName: school.schoolName
+    schoolName: school.schoolName,
+    addressSummary: formatSchoolAddress(school)
   }));
 }
 
@@ -56,6 +63,9 @@ export default async function EditOrderPage({
       billingToType: order.billingToType,
       billingToCode: order.billingToCode,
       billingToName: order.billingToName,
+      shippingToType: order.shippingToType,
+      shippingToCode: order.shippingToCode,
+      shippingToName: order.shippingToName,
       shippingToSummary: order.shippingToSummary,
       orderType: order.orderType,
       booksellerType: order.booksellerType ?? "",
@@ -106,6 +116,7 @@ export default async function EditOrderPage({
           vendorName: vendor.vendorName,
           vendorType: vendor.vendorType,
           vendorRating: vendor.vendorRating,
+          addressSummary: formatVendorAddress(vendor.address),
           schools: toSchoolOptions(vendor.vendorSchools.map((row) => row.school))
         }))}
         items={reference.items.map((item) => ({

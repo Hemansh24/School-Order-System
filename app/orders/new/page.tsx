@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/ui";
 import { CreateOrderForm } from "@/components/orders/create-order-form";
 import { getReferenceData } from "@/lib/services/reference";
+import { formatSchoolAddress, formatVendorAddress } from "@/lib/shipping";
 
 export const dynamic = "force-dynamic";
 
@@ -8,16 +9,22 @@ function toSchoolOptions(
   schools: Array<{
     schoolCode: string;
     schoolName: string;
+    address: string | null;
+    district: string | null;
+    state: string | null;
+    pincode: string | null;
   }>
 ): Array<{
   optionKey: string;
   schoolCode: string;
   schoolName: string;
+  addressSummary: string;
 }> {
   return schools.map((school) => ({
     optionKey: school.schoolCode,
     schoolCode: school.schoolCode,
-    schoolName: school.schoolName
+    schoolName: school.schoolName,
+    addressSummary: formatSchoolAddress(school)
   }));
 }
 
@@ -37,6 +44,7 @@ export default async function CreateOrderPage() {
           vendorName: vendor.vendorName,
           vendorType: vendor.vendorType,
           vendorRating: vendor.vendorRating,
+          addressSummary: formatVendorAddress(vendor.address),
           schools: toSchoolOptions(vendor.vendorSchools.map((row) => row.school))
         }))}
         items={reference.items.map((item) => ({

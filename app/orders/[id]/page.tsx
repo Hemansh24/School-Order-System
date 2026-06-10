@@ -59,7 +59,13 @@ export default async function OrderDetailsPage({
                 {order.billingToType} - {order.billingToCode}
               </span>
             </Info>
-            <Info label="Shipping To">{order.shippingToSummary}</Info>
+            <Info label="Shipping To">
+              {order.shippingToName}
+              <span className="block text-xs text-muted">
+                {order.shippingToType} - {order.shippingToCode}
+              </span>
+              <span className="block text-xs text-muted">{order.shippingToSummary}</span>
+            </Info>
             <Info label="Order Type">
               <span className="capitalize">{order.orderType}</span>
             </Info>

@@ -14,12 +14,14 @@ type SchoolRef = {
   optionKey: string;
   schoolCode: string;
   schoolName: string;
+  addressSummary: string;
 };
 type VendorRef = {
   vendorCode: string;
   vendorName: string;
   vendorType: string | null;
   vendorRating: string | null;
+  addressSummary: string;
   schools: SchoolRef[];
 };
 type ItemRef = {
@@ -67,6 +69,8 @@ export function CreateOrderForm({
   const [selectedCustomisationCode, setSelectedCustomisationCode] = useState(
     items[0]?.customisationCode ?? ""
   );
+  const [isBillingDropdownOpen, setIsBillingDropdownOpen] = useState(false);
+  const [isShippingDropdownOpen, setIsShippingDropdownOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const today = new Date().toISOString().slice(0, 10);
@@ -101,7 +105,10 @@ export function CreateOrderForm({
         billingToType: "school",
         billingToCode: schools[0]?.schoolCode ?? "",
         billingToName: schools[0]?.schoolName ?? "",
-        shippingToSummary: schools[0]?.schoolName ?? "",
+        shippingToType: "school",
+        shippingToCode: schools[0]?.schoolCode ?? "",
+        shippingToName: schools[0]?.schoolName ?? "",
+        shippingToSummary: schools[0]?.addressSummary ?? "",
         orderType: "descriptive",
         booksellerType: "",
         booksellerRating: "",
@@ -117,6 +124,8 @@ export function CreateOrderForm({
   const orderType = form.watch("sheet1.orderType");
   const billingToType = form.watch("sheet1.billingToType");
   const billingToCode = form.watch("sheet1.billingToCode");
+  const shippingToType = form.watch("sheet1.shippingToType");
+  const shippingToCode = form.watch("sheet1.shippingToCode");
   const watchedDescriptiveRows = form.watch("descriptiveRows");
   const watchedAmbiguousItems = form.watch("ambiguousItems");
 
@@ -143,6 +152,55 @@ export function CreateOrderForm({
           })),
     [billingToType, schools, vendors]
   );
+  const selectedBillingOption = useMemo(
+    () =>
+      billingOptions.find(
+        (option) => option.code.toLowerCase() === billingToCode.trim().toLowerCase()
+      ),
+    [billingOptions, billingToCode]
+  );
+  const filteredBillingOptions = useMemo(() => {
+    const query = billingToCode.trim().toLowerCase();
+
+    if (!query) {
+      return billingOptions;
+    }
+
+    return billingOptions.filter(
+      (option) =>
+        option.code.toLowerCase().includes(query) || option.name.toLowerCase().includes(query)
+    );
+  }, [billingOptions, billingToCode]);
+
+  const shippingOptions = useMemo(
+    () =>
+      shippingToType === "school"
+        ? schools.map((school) => ({
+            value: school.optionKey,
+            code: school.schoolCode,
+            name: school.schoolName,
+            addressSummary: school.addressSummary
+          }))
+        : vendors.map((vendor) => ({
+            value: vendor.vendorCode,
+            code: vendor.vendorCode,
+            name: vendor.vendorName,
+            addressSummary: vendor.addressSummary
+          })),
+    [shippingToType, schools, vendors]
+  );
+  const filteredShippingOptions = useMemo(() => {
+    const query = shippingToCode.trim().toLowerCase();
+
+    if (!query) {
+      return shippingOptions;
+    }
+
+    return shippingOptions.filter(
+      (option) =>
+        option.code.toLowerCase().includes(query) || option.name.toLowerCase().includes(query)
+    );
+  }, [shippingOptions, shippingToCode]);
 
   const selectedVendorSchools = useMemo(() => {
     if (billingToType !== "vendor") {
@@ -280,8 +338,52 @@ export function CreateOrderForm({
     }
     if (billingToType === "school") {
       setSelectedDescriptiveSchoolKey(value);
-      form.setValue("sheet1.shippingToSummary", selected?.name ?? "");
     }
+    setIsBillingDropdownOpen(false);
+  }
+
+  function setBillingCode(rawCode: string) {
+    form.setValue("sheet1.billingToCode", rawCode);
+    setIsBillingDropdownOpen(true);
+
+    const selected = billingOptions.find(
+      (option) => option.code.toLowerCase() === rawCode.trim().toLowerCase()
+    );
+
+    form.setValue("sheet1.billingToName", selected?.name ?? "");
+    form.setValue("sheet1.booksellerType", selected?.type ?? "");
+    form.setValue("sheet1.booksellerRating", selected?.rating ?? "");
+
+    if (billingToType === "school") {
+      if (selected) {
+        setSelectedDescriptiveSchoolKey(selected.value);
+      }
+    }
+
+    if (billingToType === "vendor" && orderType === "descriptive") {
+      form.setValue("descriptiveRows", []);
+      setSelectedVendorSchoolKey("");
+    }
+  }
+
+  function setShipping(value: string) {
+    const selected = shippingOptions.find((option) => option.value === value);
+    form.setValue("sheet1.shippingToCode", selected?.code ?? "");
+    form.setValue("sheet1.shippingToName", selected?.name ?? "");
+    form.setValue("sheet1.shippingToSummary", selected?.addressSummary ?? "");
+    setIsShippingDropdownOpen(false);
+  }
+
+  function setShippingCode(rawCode: string) {
+    form.setValue("sheet1.shippingToCode", rawCode);
+    setIsShippingDropdownOpen(true);
+
+    const selected = shippingOptions.find(
+      (option) => option.code.toLowerCase() === rawCode.trim().toLowerCase()
+    );
+
+    form.setValue("sheet1.shippingToName", selected?.name ?? "");
+    form.setValue("sheet1.shippingToSummary", selected?.addressSummary ?? "");
   }
 
   function setAmbiguousSchool(index: number, optionKey: string) {
@@ -482,7 +584,6 @@ export function CreateOrderForm({
                           : undefined;
                     form.setValue("sheet1.billingToCode", first?.schoolCode ?? "");
                     form.setValue("sheet1.billingToName", first?.schoolName ?? "");
-                    form.setValue("sheet1.shippingToSummary", first?.schoolName ?? "");
                     if (orderType === "descriptive") {
                       form.setValue("descriptiveRows", []);
                       setSelectedVendorSchoolKey("");
@@ -496,21 +597,104 @@ export function CreateOrderForm({
               </select>
             </Field>
             <Field label="Billing To Code/Name" error={errors.sheet1?.billingToCode?.message}>
+              <div className="relative">
+                <input
+                  className={inputClass}
+                  value={form.watch("sheet1.billingToCode")}
+                  onChange={(event) => setBillingCode(event.target.value)}
+                  onFocus={() => setIsBillingDropdownOpen(true)}
+                  onBlur={() => {
+                    window.setTimeout(() => setIsBillingDropdownOpen(false), 150);
+                  }}
+                  placeholder="Type code or name to search"
+                />
+                {isBillingDropdownOpen ? (
+                  <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-white shadow-lg">
+                    {filteredBillingOptions.length > 0 ? (
+                      filteredBillingOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className={`block w-full px-3 py-2 text-left text-sm hover:bg-canvas ${
+                            selectedBillingOption?.value === option.value ? "bg-canvas" : ""
+                          }`}
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            setBilling(option.value);
+                          }}
+                        >
+                          <span className="font-medium text-ink">{option.code}</span>
+                          <span className="ml-2 text-muted">{option.name}</span>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-3 py-2 text-sm text-muted">No billing matches found.</div>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            </Field>
+            <Field label="Shipping To Type">
               <select
                 className={inputClass}
-                value={
-                  billingToType === "school"
-                    ? selectedBillingSchool?.optionKey ?? schools[0]?.optionKey ?? ""
-                    : form.watch("sheet1.billingToCode")
-                }
-                onChange={(event) => setBilling(event.target.value)}
+                {...form.register("sheet1.shippingToType", {
+                  onChange: (event) => {
+                    const nextType = event.target.value as "school" | "vendor";
+                    const first =
+                      nextType === "school"
+                        ? schools[0]
+                        : vendors[0]
+                          ? {
+                              schoolCode: vendors[0].vendorCode,
+                              schoolName: vendors[0].vendorName,
+                              addressSummary: vendors[0].addressSummary
+                            }
+                          : undefined;
+                    form.setValue("sheet1.shippingToCode", first?.schoolCode ?? "");
+                    form.setValue("sheet1.shippingToName", first?.schoolName ?? "");
+                    form.setValue("sheet1.shippingToSummary", first?.addressSummary ?? "");
+                  }
+                })}
               >
-                {billingOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.code} - {option.name}
-                  </option>
-                ))}
+                <option value="school">School</option>
+                <option value="vendor">Vendor / Bookseller</option>
               </select>
+            </Field>
+            <Field label="Shipping To Code/Name" error={errors.sheet1?.shippingToCode?.message}>
+              <div className="relative">
+                <input
+                  className={inputClass}
+                  value={form.watch("sheet1.shippingToCode")}
+                  onChange={(event) => setShippingCode(event.target.value)}
+                  onFocus={() => setIsShippingDropdownOpen(true)}
+                  onBlur={() => {
+                    window.setTimeout(() => setIsShippingDropdownOpen(false), 150);
+                  }}
+                  placeholder="Type code or name to search"
+                />
+                {isShippingDropdownOpen ? (
+                  <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-white shadow-lg">
+                    {filteredShippingOptions.length > 0 ? (
+                      filteredShippingOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className="block w-full px-3 py-2 text-left text-sm hover:bg-canvas"
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            setShipping(option.value);
+                          }}
+                        >
+                          <span className="font-medium text-ink">{option.code}</span>
+                          <span className="ml-2 text-muted">{option.name}</span>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-3 py-2 text-sm text-muted">No shipping matches found.</div>
+                    )}
+                  </div>
+                ) : null}
+              </div>
             </Field>
             <Field label="Order Type" error={errors.sheet1?.orderType?.message}>
               <select
@@ -534,8 +718,8 @@ export function CreateOrderForm({
             </label>
           </div>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <Field label="Shipping To Summary" error={errors.sheet1?.shippingToSummary?.message}>
-              <textarea className={textAreaClass} {...form.register("sheet1.shippingToSummary")} />
+            <Field label="Shipping Address" error={errors.sheet1?.shippingToSummary?.message}>
+              <textarea className={textAreaClass} readOnly {...form.register("sheet1.shippingToSummary")} />
             </Field>
             <Field label="Notes">
               <textarea className={textAreaClass} {...form.register("sheet1.notes")} />
@@ -942,7 +1126,8 @@ function ReviewBlock({ values }: { values: CreateOrderInput }) {
       <div className="rounded-md border border-line bg-canvas p-4">
         <p className="font-semibold text-ink">Sheet 1</p>
         <p className="mt-2 text-muted">Billing: {values.sheet1.billingToName}</p>
-        <p className="text-muted">Shipping: {values.sheet1.shippingToSummary}</p>
+        <p className="text-muted">Shipping: {values.sheet1.shippingToName}</p>
+        <p className="text-muted">Address: {values.sheet1.shippingToSummary}</p>
         <p className="text-muted">Type: {values.sheet1.orderType}</p>
       </div>
       <div className="rounded-md border border-line bg-canvas p-4">

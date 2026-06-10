@@ -233,7 +233,12 @@ async function main() {
       billingToType: "school",
       billingToCode: greenwood.schoolCode,
       billingToName: greenwood.schoolName,
-      shippingToSummary: greenwood.schoolName,
+      shippingToType: "school",
+      shippingToCode: greenwood.schoolCode,
+      shippingToName: greenwood.schoolName,
+      shippingToSummary: [greenwood.address, greenwood.district, greenwood.state, greenwood.pincode]
+        .filter(Boolean)
+        .join(", "),
       orderType: "descriptive",
       orderStatus: "finalized",
       pendingPayment: false,
@@ -298,7 +303,12 @@ async function main() {
       billingToType: "vendor",
       billingToCode: northBooks.vendorCode,
       billingToName: northBooks.vendorName,
-      shippingToSummary: `${greenwood.schoolName}, ${riverside.schoolName}`,
+      shippingToType: "school",
+      shippingToCode: greenwood.schoolCode,
+      shippingToName: greenwood.schoolName,
+      shippingToSummary: [greenwood.address, greenwood.district, greenwood.state, greenwood.pincode]
+        .filter(Boolean)
+        .join(", "),
       orderType: "ambiguous",
       orderStatus: "locked",
       booksellerType: northBooks.vendorType,
