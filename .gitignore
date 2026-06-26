@@ -11,6 +11,8 @@ build/
 
 # env files - never commit secrets
 .env
+.env.*
+!.env.example
 .env.local
 .env.development.local
 .env.test.local
@@ -42,3 +44,30 @@ Thumbs.db
 *.db-journal
 *.sqlite
 *.sqlite3
+
+# local data exports/imports - never commit database or sheet data
+*.csv
+*.sql
+*.dump
+*.backup
+
+# specific organisation import/export files
+organisations.csv
+organisations_utf8.csv
+organisations_clean.csv
+organisations_full.sql
+organisations_data.sql
+organisations_cloud_data.sql
+
+# Google Cloud / Firebase local credentials
+application_default_credentials.json
+*-service-account.json
+*serviceAccount*.json
+firebase-service-account*.json
+gcloud/
+.gcloud/
+
+# local temp files
+tmp/
+temp/
+*.tmp
