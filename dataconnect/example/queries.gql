@@ -1,0 +1,85 @@
+
+
+query ListOrganisations
+  @auth(level: PUBLIC) {
+  organisations {
+    id
+    prCode
+    organisationName
+    district
+    state
+    pinCode
+    phone
+    email
+    website
+    actionStatus
+    workingStatus
+  }
+}
+
+query SearchOrganisations(
+  $prCode: String
+  $organisationName: String
+  $district: String
+  $state: String
+  $actionStatus: String
+  $workingStatus: Boolean
+  $limit: Int = 25
+  $offset: Int = 0
+)
+  @auth(level: PUBLIC) {
+  organisations(
+    where: {
+      _and: [
+        { prCode: { contains: $prCode } }
+        { organisationName: { contains: $organisationName } }
+        { district: { contains: $district } }
+        { state: { contains: $state } }
+        { actionStatus: { contains: $actionStatus } }
+        { workingStatus: { eq: $workingStatus } }
+      ]
+    }
+    orderBy: [{ organisationName: ASC }, { prCode: ASC }]
+    limit: $limit
+    offset: $offset
+  ) {
+    id
+    prCode
+    organisationName
+    district
+    state
+    pinCode
+    phone
+    email
+    website
+    actionStatus
+    workingStatus
+  }
+}
+
+query GetOrganisationByPrCode($prCode: String!)
+  @auth(level: PUBLIC) {
+  organisations(where: { prCode: { eq: $prCode } }) {
+    id
+    prCode
+    groupCode
+    ptCode
+    organisationName
+    address
+    district
+    state
+    pinCode
+    phone
+    email
+    website
+    actionStatus
+    remark
+    academicYear
+    strength
+    boardType
+    sessionStartFrom
+    minorityType
+    saturdayStatus
+    workingStatus
+  }
+}

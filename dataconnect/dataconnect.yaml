@@ -1,0 +1,12 @@
+specVersion: "v1"
+serviceId: "system-order-34c0a-service"
+location: "asia-south1"
+schemas:
+  - source: "./schema"
+    datasource:
+      postgresql:
+        database: "postgres"
+        cloudSql:
+          instanceId: "order-fdc"
+        schemaValidation: "COMPATIBLE"
+connectorDirs: ["./example"]

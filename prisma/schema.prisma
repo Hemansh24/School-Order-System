@@ -56,6 +56,37 @@ model School {
   @@map("schools")
 }
 
+model Organisation {
+  id               BigInt   @id @default(autoincrement())
+  groupCode        String?  @map("group_code")
+  ptCode           String?  @map("pt_code")
+  prCode           String   @unique @map("pr_code")
+  organisationName String   @map("organisation_name")
+  address          String?
+  district         String?
+  state            String?
+  pinCode          String?  @map("pin_code") @db.VarChar(10)
+  phone            String?
+  email            String?
+  website          String?
+  actionStatus     String?  @map("action_status")
+  remark           String?
+  academicYear     String?  @map("academic_year")
+  strength         Int?
+  boardType        String?  @map("board_type")
+  sessionStartFrom DateTime? @map("session_start_from") @db.Date
+  minorityType     String?  @map("minority_type")
+  saturdayStatus   String?  @map("saturday_status")
+  workingStatus    Boolean? @map("working_status")
+  sourceSheetRow   Int?     @map("source_sheet_row")
+  sourceHash       String?  @map("source_hash")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  syncedAt         DateTime @default(now()) @map("synced_at") @db.Timestamptz(6)
+
+  @@map("organisations")
+}
+
 model Vendor {
   vendorId      Int      @id @default(autoincrement()) @map("vendor_id")
   vendorCode    String   @unique @map("vendor_code")

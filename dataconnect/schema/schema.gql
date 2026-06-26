@@ -1,0 +1,36 @@
+
+
+type Organisation
+  @table(name: "organisations") {
+  id: Int64! @col(name: "id")
+  groupCode: String @col(name: "group_code")
+  ptCode: String @col(name: "pt_code")
+  prCode: String! @col(name: "pr_code")
+
+  organisationName: String! @col(name: "organisation_name")
+  address: String
+  district: String
+  state: String
+  pinCode: String @col(name: "pin_code")
+
+  phone: String
+  email: String
+  website: String
+
+  actionStatus: String @col(name: "action_status")
+  remark: String
+  academicYear: String @col(name: "academic_year")
+  strength: Int
+  boardType: String @col(name: "board_type")
+  sessionStartFrom: Date @col(name: "session_start_from")
+  minorityType: String @col(name: "minority_type")
+  saturdayStatus: String @col(name: "saturday_status")
+  workingStatus: Boolean @col(name: "working_status")
+
+  sourceSheetRow: Int @col(name: "source_sheet_row")
+  sourceHash: String @col(name: "source_hash")
+
+  createdAt: Timestamp! @col(name: "created_at")
+  updatedAt: Timestamp! @col(name: "updated_at")
+  syncedAt: Timestamp! @col(name: "synced_at")
+}
