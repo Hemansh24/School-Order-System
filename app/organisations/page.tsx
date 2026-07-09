@@ -21,7 +21,7 @@ export default async function OrganisationsPage({
   return (
     <>
       <PageHeader
-        title="Organisation Lookup"
+        title="Organisations"
         description="Search, filter, and inspect organisation records synced into Cloud SQL PostgreSQL."
       />
 

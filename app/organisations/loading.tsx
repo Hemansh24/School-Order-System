@@ -4,7 +4,7 @@ export default function OrganisationsLoading() {
   return (
     <>
       <PageHeader
-        title="Organisation Lookup"
+        title="Organisations"
         description="Search, filter, and inspect organisation records synced into Cloud SQL PostgreSQL."
       />
       <Card className="mb-6 p-4">
