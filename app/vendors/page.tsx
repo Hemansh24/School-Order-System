@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Card, PageHeader } from "@/components/ui";
-import { deleteVendorAction } from "@/app/vendors/actions";
+import { deleteVendorAction, syncImportedBooksellersAction } from "@/app/vendors/actions";
 import { InlineActionForm } from "@/components/inline-action-form";
 import { AddVendorForm } from "@/components/reference/reference-forms";
 import { prisma } from "@/lib/prisma";
@@ -20,7 +20,15 @@ export default async function VendorsPage() {
 
   return (
     <>
-      <PageHeader title="Vendors" description="Booksellers must remain linked to at least one school." />
+      <PageHeader
+        title="Vendors"
+        description="Booksellers must remain linked to at least one school."
+        action={
+          <InlineActionForm action={syncImportedBooksellersAction}>
+            Replace With Imported Booksellers
+          </InlineActionForm>
+        }
+      />
       <AddVendorForm schools={schools} nextCode={vendorCode} />
       <Card>
         <div className="overflow-x-auto">

@@ -83,3 +83,86 @@ query GetOrganisationByPrCode($prCode: String!)
     workingStatus
   }
 }
+
+
+query ListBooksellers
+  @auth(level: PUBLIC) {
+  booksellers {
+    id
+    booksellerCode
+    booksellerSubCode
+    booksellerName
+    district
+    state
+    pinCode
+    contactNumber
+    email
+    vendorType
+  }
+}
+
+query GetBooksellerByCode($booksellerCode: String!)
+  @auth(level: PUBLIC) {
+  booksellers(where: { booksellerCode: { eq: $booksellerCode } }) {
+    id
+    booksellerCode
+    booksellerSubCode
+    booksellerName
+    academicYear
+    address01
+    district
+    state
+    pinCode
+    gstPin
+    incumbentCode
+    incumbentName
+    contactNumber
+    email
+    vendorType
+    remark
+  }
+}
+
+query ListItems
+@auth(level: PUBLIC){
+
+items{
+ id
+ itemCode
+ title
+ categoryType
+ languageCode
+ mrp
+ isbnNo
+ obsolete
+}
+
+}
+query GetItemByCode($itemCode:String!)
+@auth(level: PUBLIC){
+
+items(
+where:{
+itemCode:{
+eq:$itemCode
+}
+}
+){
+
+id
+itemCode
+title
+categoryType
+categoryCode
+subCategoryCode
+languageCode
+customisationType
+customisationCode
+editionCode
+mrp
+isbnNo
+obsolete
+
+}
+
+}

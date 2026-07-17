@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { nextCode } from "@/lib/reference-codes";
+import { ensureOrganisationForSchoolTx } from "@/lib/services/organisations";
 
 type SchoolResolutionInput = {
   schoolName?: string;
@@ -113,6 +114,16 @@ export async function createOrReuseSchool(input: SchoolCreationInput) {
 
     const existingSchool = schools.find((school) => isExactSchoolMatch(school, input));
     if (existingSchool) {
+      await ensureOrganisationForSchoolTx(tx, {
+        schoolName: existingSchool.schoolName,
+        address: existingSchool.address,
+        district: existingSchool.district,
+        state: existingSchool.state,
+        pincode: existingSchool.pincode,
+        phone: input.phone,
+        email: input.email
+      });
+
       return {
         created: false as const,
         school: existingSchool
@@ -143,6 +154,16 @@ export async function createOrReuseSchool(input: SchoolCreationInput) {
         state: true,
         pincode: true
       }
+    });
+
+    await ensureOrganisationForSchoolTx(tx, {
+      schoolName: school.schoolName,
+      address: school.address,
+      district: school.district,
+      state: school.state,
+      pincode: school.pincode,
+      phone: input.phone,
+      email: input.email
     });
 
     return {

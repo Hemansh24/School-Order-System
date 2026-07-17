@@ -11,6 +11,58 @@ export type DateString = string;
 
 
 
+export interface Bookseller_Key {
+  id: Int64String;
+  __typename?: 'Bookseller_Key';
+}
+
+export interface GetBooksellerByCodeData {
+  booksellers: ({
+    id: Int64String;
+    booksellerCode: string;
+    booksellerSubCode?: string | null;
+    booksellerName: string;
+    academicYear?: string | null;
+    address01?: string | null;
+    district?: string | null;
+    state?: string | null;
+    pinCode?: string | null;
+    gstPin?: string | null;
+    incumbentCode?: string | null;
+    incumbentName?: string | null;
+    contactNumber?: string | null;
+    email?: string | null;
+    vendorType?: string | null;
+    remark?: string | null;
+  } & Bookseller_Key)[];
+}
+
+export interface GetBooksellerByCodeVariables {
+  booksellerCode: string;
+}
+
+export interface GetItemByCodeData {
+  items: ({
+    id: Int64String;
+    itemCode: string;
+    title: string;
+    categoryType?: string | null;
+    categoryCode?: string | null;
+    subCategoryCode?: string | null;
+    languageCode?: string | null;
+    customisationType?: string | null;
+    customisationCode?: string | null;
+    editionCode?: string | null;
+    mrp?: number | null;
+    isbnNo?: string | null;
+    obsolete?: boolean | null;
+  } & Item_Key)[];
+}
+
+export interface GetItemByCodeVariables {
+  itemCode: string;
+}
+
 export interface GetOrganisationByPrCodeData {
   organisations: ({
     id: Int64String;
@@ -39,6 +91,39 @@ export interface GetOrganisationByPrCodeData {
 
 export interface GetOrganisationByPrCodeVariables {
   prCode: string;
+}
+
+export interface Item_Key {
+  id: Int64String;
+  __typename?: 'Item_Key';
+}
+
+export interface ListBooksellersData {
+  booksellers: ({
+    id: Int64String;
+    booksellerCode: string;
+    booksellerSubCode?: string | null;
+    booksellerName: string;
+    district?: string | null;
+    state?: string | null;
+    pinCode?: string | null;
+    contactNumber?: string | null;
+    email?: string | null;
+    vendorType?: string | null;
+  } & Bookseller_Key)[];
+}
+
+export interface ListItemsData {
+  items: ({
+    id: Int64String;
+    itemCode: string;
+    title: string;
+    categoryType?: string | null;
+    languageCode?: string | null;
+    mrp?: number | null;
+    isbnNo?: string | null;
+    obsolete?: boolean | null;
+  } & Item_Key)[];
 }
 
 export interface ListOrganisationsData {
@@ -124,4 +209,52 @@ export const getOrganisationByPrCodeRef: GetOrganisationByPrCodeRef;
 
 export function getOrganisationByPrCode(vars: GetOrganisationByPrCodeVariables, options?: ExecuteQueryOptions): QueryPromise<GetOrganisationByPrCodeData, GetOrganisationByPrCodeVariables>;
 export function getOrganisationByPrCode(dc: DataConnect, vars: GetOrganisationByPrCodeVariables, options?: ExecuteQueryOptions): QueryPromise<GetOrganisationByPrCodeData, GetOrganisationByPrCodeVariables>;
+
+interface ListBooksellersRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<ListBooksellersData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<ListBooksellersData, undefined>;
+  operationName: string;
+}
+export const listBooksellersRef: ListBooksellersRef;
+
+export function listBooksellers(options?: ExecuteQueryOptions): QueryPromise<ListBooksellersData, undefined>;
+export function listBooksellers(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListBooksellersData, undefined>;
+
+interface GetBooksellerByCodeRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetBooksellerByCodeVariables): QueryRef<GetBooksellerByCodeData, GetBooksellerByCodeVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetBooksellerByCodeVariables): QueryRef<GetBooksellerByCodeData, GetBooksellerByCodeVariables>;
+  operationName: string;
+}
+export const getBooksellerByCodeRef: GetBooksellerByCodeRef;
+
+export function getBooksellerByCode(vars: GetBooksellerByCodeVariables, options?: ExecuteQueryOptions): QueryPromise<GetBooksellerByCodeData, GetBooksellerByCodeVariables>;
+export function getBooksellerByCode(dc: DataConnect, vars: GetBooksellerByCodeVariables, options?: ExecuteQueryOptions): QueryPromise<GetBooksellerByCodeData, GetBooksellerByCodeVariables>;
+
+interface ListItemsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<ListItemsData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<ListItemsData, undefined>;
+  operationName: string;
+}
+export const listItemsRef: ListItemsRef;
+
+export function listItems(options?: ExecuteQueryOptions): QueryPromise<ListItemsData, undefined>;
+export function listItems(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListItemsData, undefined>;
+
+interface GetItemByCodeRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetItemByCodeVariables): QueryRef<GetItemByCodeData, GetItemByCodeVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetItemByCodeVariables): QueryRef<GetItemByCodeData, GetItemByCodeVariables>;
+  operationName: string;
+}
+export const getItemByCodeRef: GetItemByCodeRef;
+
+export function getItemByCode(vars: GetItemByCodeVariables, options?: ExecuteQueryOptions): QueryPromise<GetItemByCodeData, GetItemByCodeVariables>;
+export function getItemByCode(dc: DataConnect, vars: GetItemByCodeVariables, options?: ExecuteQueryOptions): QueryPromise<GetItemByCodeData, GetItemByCodeVariables>;
 

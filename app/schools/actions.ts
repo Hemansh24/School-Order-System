@@ -28,6 +28,7 @@ function schoolActionMessage(error: unknown, fallback: string) {
 
 function revalidateSchoolPaths(schoolId?: number) {
   revalidatePath("/schools");
+  revalidatePath("/organisations");
   revalidatePath("/vendors");
   revalidatePath("/orders/new");
   revalidatePath("/orders");

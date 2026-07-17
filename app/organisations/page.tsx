@@ -1,7 +1,14 @@
 import Link from "next/link";
 import { Search } from "lucide-react";
+import { deleteOrganisationAction } from "@/app/organisations/actions";
+import { InlineActionForm } from "@/components/inline-action-form";
+import { AddOrganisationForm } from "@/components/reference/organisation-forms";
 import { Card, EmptyState, PageHeader, SubmitButton } from "@/components/ui";
-import { getOrganisationLookupData } from "@/lib/services/organisations";
+import { nextOrganisationPrCode } from "@/lib/reference-codes";
+import {
+  getOrganisationLookupData,
+  isOrganisationPermissionError
+} from "@/lib/services/organisations";
 
 export const dynamic = "force-dynamic";
 
@@ -17,13 +24,32 @@ export default async function OrganisationsPage({
   const paramsObject = await searchParams;
   const params = toUrlSearchParams(paramsObject);
   const data = await getOrganisationLookupData(params);
+  let nextCode: string | null = null;
+  let organisationPermissionMessage: string | null = null;
+
+  try {
+    nextCode = await nextOrganisationPrCode();
+  } catch (error) {
+    if (isOrganisationPermissionError(error)) {
+      organisationPermissionMessage =
+        "The current database user cannot read the organisations table through Prisma. Grant table permissions before using add, edit, or delete here.";
+    } else {
+      throw error;
+    }
+  }
 
   return (
     <>
       <PageHeader
         title="Organisations"
-        description="Search, filter, and inspect organisation records synced into Cloud SQL PostgreSQL."
+        description="Assign PR codes when schools are introduced. PT codes are issued automatically on the first order."
       />
+      {organisationPermissionMessage ? (
+        <Card className="mb-6 border border-danger bg-red-50 p-4 text-sm text-red-900">
+          {organisationPermissionMessage}
+        </Card>
+      ) : null}
+      {nextCode ? <AddOrganisationForm nextCode={nextCode} /> : null}
 
       <Card className="mb-6 p-4">
         <form action="/organisations" className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -177,7 +203,7 @@ export default async function OrganisationsPage({
                     <th className="px-4 py-3">Website</th>
                     <th className="px-4 py-3">Action Status</th>
                     <th className="px-4 py-3">Working Status</th>
-                    <th className="px-4 py-3">View</th>
+                    <th className="px-4 py-3">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
@@ -200,12 +226,26 @@ export default async function OrganisationsPage({
                         {formatWorkingStatus(organisation.workingStatus)}
                       </td>
                       <td className="px-4 py-3">
-                        <Link
-                          href={buildOrganisationHref(params, organisation.prCode)}
-                          className="font-semibold text-brand-dark"
-                        >
-                          View
-                        </Link>
+                        <div className="flex flex-wrap gap-3">
+                          <Link
+                            href={buildOrganisationHref(params, organisation.prCode)}
+                            className="font-semibold text-brand-dark"
+                          >
+                            View
+                          </Link>
+                          <Link
+                            href={`/organisations/${organisation.id}/edit`}
+                            className="font-semibold text-brand-dark"
+                          >
+                            Edit
+                          </Link>
+                          <InlineActionForm
+                            action={deleteOrganisationAction.bind(null, organisation.id)}
+                            variant="danger"
+                          >
+                            Delete
+                          </InlineActionForm>
+                        </div>
                       </td>
                     </tr>
                   ))}

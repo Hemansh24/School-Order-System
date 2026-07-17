@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { formatActionError } from "@/lib/action-errors";
 import { prisma } from "@/lib/prisma";
 import { nextVendorCode } from "@/lib/reference-codes";
+import { replaceVendorsWithImportedBooksellers } from "@/lib/syncBooksellers";
 import { createVendorSchema } from "@/lib/validation/reference";
 
 export type ReferenceActionState = {
@@ -130,6 +131,30 @@ export async function deleteVendorAction(
       ok: false,
       message: formatActionError(error, {
         fallback: "Could not delete this vendor. Please try again."
+      })
+    };
+  }
+}
+
+export async function syncImportedBooksellersAction(
+  _previousState: ReferenceActionState,
+  _formData: FormData
+): Promise<ReferenceActionState> {
+  try {
+    const summary = await replaceVendorsWithImportedBooksellers();
+
+    revalidatePath("/vendors");
+    revalidatePath("/orders/new");
+    revalidatePath("/orders");
+    return {
+      ok: true,
+      message: `Replaced vendors with ${summary.importedBooksellers} imported booksellers and preserved ${summary.preservedSchoolLinks} school links.`
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: formatActionError(error, {
+        fallback: "Could not replace vendors from the imported booksellers table."
       })
     };
   }

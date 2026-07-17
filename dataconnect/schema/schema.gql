@@ -34,3 +34,70 @@ type Organisation
   updatedAt: Timestamp! @col(name: "updated_at")
   syncedAt: Timestamp! @col(name: "synced_at")
 }
+
+type Bookseller
+  @table(name: "booksellers") {
+  id: Int64! @col(name: "id")
+
+  booksellerCode: String! @col(name: "bookseller_code")
+  booksellerSubCode: String @col(name: "bookseller_sub_code")
+  booksellerName: String! @col(name: "bookseller_name")
+  academicYear: String @col(name: "academic_year")
+
+  address01: String @col(name: "address_01")
+  district: String
+  state: String
+  pinCode: String @col(name: "pin_code")
+  gstPin: String @col(name: "gst_pin")
+
+  incumbentCode: String @col(name: "incumbent_code")
+  incumbentName: String @col(name: "incumbent_name")
+  contactNumber: String @col(name: "contact_number")
+  email: String
+
+  vendorType: String @col(name: "vendor_type")
+  remark: String
+
+  sourceRow: Int @col(name: "source_row")
+  sourceHash: String @col(name: "source_hash")
+
+  createdAt: Timestamp! @col(name: "created_at")
+  updatedAt: Timestamp! @col(name: "updated_at")
+  syncedAt: Timestamp! @col(name: "synced_at")
+}
+
+type Item
+@table(name:"items") {
+
+  id: Int64!
+
+  itemSerialNo: Int @col(name:"item_serial_no")
+
+  title: String!
+
+  categoryType: String @col(name:"category_type")
+
+  categoryCode: String @col(name:"category_code")
+
+  subCategoryCode: String @col(name:"sub_category_code")
+
+  languageCode: String @col(name:"language_code")
+
+  customisationType: String @col(name:"customisation_type")
+
+  customisationCode: String @col(name:"customisation_code")
+
+  editionCode: String @col(name:"edition_code")
+
+  itemCode: String! @col(name:"item_code") @unique
+
+  mrp: Float
+
+  isbnNo: String @col(name:"isbn_no")
+
+  obsolete: Boolean
+
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+  syncedAt: Timestamp!
+}

@@ -7,6 +7,7 @@ import {
 } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { ensurePtCodesForSchoolCodesTx } from "@/lib/services/organisations";
 import { formatSchoolAddress, formatVendorAddress } from "@/lib/shipping";
 import { createOrderSchema, type CreateOrderInput } from "@/lib/validation/orders";
 import { parseDisplayOrderNo } from "@/lib/order-number";
@@ -134,6 +135,28 @@ async function resolveShippingSummary(tx: Tx, input: CreateOrderInput) {
   return formatVendorAddress(vendor.address);
 }
 
+function schoolCodesTouchedByOrder(input: CreateOrderInput) {
+  const schoolCodes = new Set<string>();
+
+  if (input.sheet1.billingToType === "school") {
+    schoolCodes.add(input.sheet1.billingToCode);
+  }
+
+  if (input.sheet1.shippingToType === "school") {
+    schoolCodes.add(input.sheet1.shippingToCode);
+  }
+
+  for (const row of input.descriptiveRows) {
+    schoolCodes.add(row.schoolCode);
+  }
+
+  for (const row of input.ambiguousSchools) {
+    schoolCodes.add(row.schoolCode);
+  }
+
+  return Array.from(schoolCodes);
+}
+
 export async function getDashboardData() {
   const currentWhere = await currentOrderWhere();
   const [
@@ -209,6 +232,7 @@ export async function createOrder(input: CreateOrderInput) {
   const created = await prisma.$transaction(async (tx) => {
     await assertVendorHasSchool(tx, parsed);
     await assertShippingDestinationExists(tx, parsed);
+    await ensurePtCodesForSchoolCodesTx(tx, schoolCodesTouchedByOrder(parsed));
     const orderNo = await nextParentOrderNo(tx);
     const subOrderNo = 0;
     const shippingToSummary = await resolveShippingSummary(tx, parsed);
@@ -282,6 +306,7 @@ export async function createOrder(input: CreateOrderInput) {
 
   revalidatePath("/");
   revalidatePath("/orders");
+  revalidatePath("/organisations");
   return created;
 }
 
@@ -291,6 +316,7 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
   const updated = await prisma.$transaction(async (tx) => {
     await assertVendorHasSchool(tx, parsed);
     await assertShippingDestinationExists(tx, parsed);
+    await ensurePtCodesForSchoolCodesTx(tx, schoolCodesTouchedByOrder(parsed));
 
     const existing = await tx.orderSheet1.findUnique({
       where: { orderSheet1Id },
@@ -386,6 +412,7 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
   revalidatePath(`/orders/${orderSheet1Id}/edit`);
   revalidatePath("/");
   revalidatePath("/orders");
+  revalidatePath("/organisations");
   return updated;
 }
 

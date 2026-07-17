@@ -12,7 +12,7 @@ For each operation, there is a wrapper hook that can be used to call the operati
 
 Here are all of the hooks that get generated:
 ```ts
-import { useListOrganisations, useSearchOrganisations, useGetOrganisationByPrCode } from '@dataconnect/generated/react';
+import { useListOrganisations, useSearchOrganisations, useGetOrganisationByPrCode, useListBooksellers, useGetBooksellerByCode, useListItems, useGetItemByCode } from '@dataconnect/generated/react';
 // The types of these hooks are available in react/index.d.ts
 
 const { data, isPending, isSuccess, isError, error } = useListOrganisations();
@@ -20,6 +20,14 @@ const { data, isPending, isSuccess, isError, error } = useListOrganisations();
 const { data, isPending, isSuccess, isError, error } = useSearchOrganisations(searchOrganisationsVars);
 
 const { data, isPending, isSuccess, isError, error } = useGetOrganisationByPrCode(getOrganisationByPrCodeVars);
+
+const { data, isPending, isSuccess, isError, error } = useListBooksellers();
+
+const { data, isPending, isSuccess, isError, error } = useGetBooksellerByCode(getBooksellerByCodeVars);
+
+const { data, isPending, isSuccess, isError, error } = useListItems();
+
+const { data, isPending, isSuccess, isError, error } = useGetItemByCode(getItemByCodeVars);
 
 ```
 
@@ -58,7 +66,7 @@ If a user is not using a supported framework, they can use the generated SDK dir
 Here's an example of how to use it with the first 5 operations:
 
 ```js
-import { listOrganisations, searchOrganisations, getOrganisationByPrCode } from '@dataconnect/generated';
+import { listOrganisations, searchOrganisations, getOrganisationByPrCode, listBooksellers, getBooksellerByCode, listItems, getItemByCode } from '@dataconnect/generated';
 
 
 // Operation ListOrganisations: 
@@ -69,6 +77,18 @@ const { data } = await SearchOrganisations(dataConnect, searchOrganisationsVars)
 
 // Operation GetOrganisationByPrCode:  For variables, look at type GetOrganisationByPrCodeVars in ../index.d.ts
 const { data } = await GetOrganisationByPrCode(dataConnect, getOrganisationByPrCodeVars);
+
+// Operation ListBooksellers: 
+const { data } = await ListBooksellers(dataConnect);
+
+// Operation GetBooksellerByCode:  For variables, look at type GetBooksellerByCodeVars in ../index.d.ts
+const { data } = await GetBooksellerByCode(dataConnect, getBooksellerByCodeVars);
+
+// Operation ListItems: 
+const { data } = await ListItems(dataConnect);
+
+// Operation GetItemByCode:  For variables, look at type GetItemByCodeVars in ../index.d.ts
+const { data } = await GetItemByCode(dataConnect, getItemByCodeVars);
 
 
 ```

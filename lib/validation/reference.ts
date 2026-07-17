@@ -12,6 +12,51 @@ const optionalText = z.preprocess(
   z.string().trim().optional()
 );
 
+const optionalInteger = z.preprocess(
+  (value) => {
+    if (value === null || value === undefined) {
+      return undefined;
+    }
+
+    return typeof value === "string" && value.trim() === "" ? undefined : value;
+  },
+  z.coerce.number().int().nonnegative().optional()
+);
+
+const optionalBoolean = z.preprocess(
+  (value) => {
+    if (value === null || value === undefined || value === "") {
+      return undefined;
+    }
+
+    if (value === "true") {
+      return true;
+    }
+
+    if (value === "false") {
+      return false;
+    }
+
+    return value;
+  },
+  z.boolean().optional()
+);
+
+const optionalDate = z.preprocess(
+  (value) => {
+    if (value === null || value === undefined) {
+      return undefined;
+    }
+
+    return typeof value === "string" && value.trim() === "" ? undefined : value;
+  },
+  z
+    .string()
+    .trim()
+    .refine((value) => !Number.isNaN(Date.parse(value)), "Invalid date")
+    .optional()
+);
+
 export const schoolDetailsSchema = z.object({
   schoolName: z.string().trim().min(1, "School name is required"),
   address: optionalText,
@@ -25,6 +70,31 @@ export const schoolDetailsSchema = z.object({
 
 export const createSchoolSchema = schoolDetailsSchema.extend({
   schoolCode: z.string().trim().min(1, "School code is required")
+});
+
+export const organisationDetailsSchema = z.object({
+  groupCode: optionalText,
+  organisationName: z.string().trim().min(1, "Organisation name is required"),
+  address: optionalText,
+  district: optionalText,
+  state: optionalText,
+  pinCode: optionalText,
+  phone: optionalText,
+  email: optionalText,
+  website: optionalText,
+  actionStatus: optionalText,
+  remark: optionalText,
+  academicYear: optionalText,
+  strength: optionalInteger,
+  boardType: optionalText,
+  sessionStartFrom: optionalDate,
+  minorityType: optionalText,
+  saturdayStatus: optionalText,
+  workingStatus: optionalBoolean
+});
+
+export const createOrganisationSchema = organisationDetailsSchema.extend({
+  prCode: z.string().trim().min(1, "PR code is required")
 });
 
 export const lookupSchoolSchema = z
