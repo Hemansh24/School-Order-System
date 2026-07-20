@@ -49,10 +49,13 @@ model School {
   phone         String?
   email         String?
   createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
 
   vendorSchools VendorSchool[]
 
+  @@index([district], map: "idx_schools_district")
+  @@index([schoolName], map: "idx_schools_school_name")
+  @@index([state], map: "idx_schools_state")
   @@map("schools")
 }
 
@@ -80,10 +83,14 @@ model Organisation {
   workingStatus    Boolean? @map("working_status")
   sourceSheetRow   Int?     @map("source_sheet_row")
   sourceHash       String?  @map("source_hash")
-  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
-  syncedAt         DateTime @default(now()) @map("synced_at") @db.Timestamptz(6)
+  createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  syncedAt         DateTime? @default(now()) @map("synced_at") @db.Timestamptz(6)
 
+  @@index([district], map: "idx_organisations_district")
+  @@index([organisationName], map: "idx_organisations_name")
+  @@index([prCode], map: "idx_organisations_pr_code")
+  @@index([state], map: "idx_organisations_state")
   @@map("organisations")
 }
 
@@ -98,7 +105,7 @@ model Vendor {
   phone         String?
   email         String?
   createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
 
   vendorSchools VendorSchool[]
 
@@ -110,10 +117,10 @@ model VendorSchool {
   vendorId       Int      @map("vendor_id")
   schoolId       Int      @map("school_id")
   createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
 
-  vendor Vendor @relation(fields: [vendorId], references: [vendorId], onDelete: Cascade)
-  school School @relation(fields: [schoolId], references: [schoolId], onDelete: Cascade)
+  vendor Vendor @relation(fields: [vendorId], references: [vendorId], onDelete: Cascade, onUpdate: NoAction)
+  school School @relation(fields: [schoolId], references: [schoolId], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([vendorId, schoolId])
   @@map("vendor_schools")
@@ -135,7 +142,7 @@ model Item {
   obsolete          Boolean  @default(false)
   active            Boolean  @default(true)
   createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
 
   @@index([categoryCode])
   @@index([customisationCode])
@@ -165,7 +172,7 @@ model OrderSheet1 {
   pendingPayment       Boolean       @default(false) @map("pending_payment")
   notes                String?
   createdAt            DateTime      @default(now()) @map("created_at")
-  updatedAt            DateTime      @updatedAt @map("updated_at")
+  updatedAt            DateTime      @default(now()) @updatedAt @map("updated_at")
 
   descriptiveRows OrderSheet2A[]
   ambiguousSchools OrderSheet2B1[]
@@ -190,9 +197,9 @@ model OrderSheet2A {
   quantity            Int
   notes               String?
   createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
+  updatedAt           DateTime @default(now()) @updatedAt @map("updated_at")
 
-  order OrderSheet1 @relation(fields: [orderSheet1Id], references: [orderSheet1Id], onDelete: Cascade)
+  order OrderSheet1 @relation(fields: [orderSheet1Id], references: [orderSheet1Id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([orderNo, subOrderNo])
   @@map("order_sheet_2a")
@@ -207,9 +214,9 @@ model OrderSheet2B1 {
   schoolName      String   @map("school_name")
   notes           String?
   createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
 
-  order OrderSheet1 @relation(fields: [orderSheet1Id], references: [orderSheet1Id], onDelete: Cascade)
+  order OrderSheet1 @relation(fields: [orderSheet1Id], references: [orderSheet1Id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([orderNo, subOrderNo])
   @@map("order_sheet_2b1")
@@ -226,9 +233,9 @@ model OrderSheet2B2 {
   groupedQuantity     Int      @map("grouped_quantity")
   notes               String?
   createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
+  updatedAt           DateTime @default(now()) @updatedAt @map("updated_at")
 
-  order OrderSheet1 @relation(fields: [orderSheet1Id], references: [orderSheet1Id], onDelete: Cascade)
+  order OrderSheet1 @relation(fields: [orderSheet1Id], references: [orderSheet1Id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([orderNo, subOrderNo])
   @@map("order_sheet_2b2")
@@ -259,9 +266,9 @@ model OrderSheet3 {
   bin                    String?
   notes                  String?
   createdAt              DateTime             @default(now()) @map("created_at")
-  updatedAt              DateTime             @updatedAt @map("updated_at")
+  updatedAt              DateTime             @default(now()) @updatedAt @map("updated_at")
 
-  order OrderSheet1 @relation(fields: [orderSheet1Id], references: [orderSheet1Id], onDelete: Cascade)
+  order OrderSheet1 @relation(fields: [orderSheet1Id], references: [orderSheet1Id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([sourceType, sourceId])
   @@index([orderNo, subOrderNo])
