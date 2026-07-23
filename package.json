@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "prisma generate && next dev",
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
@@ -11,6 +11,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:seed": "tsx prisma/seed.ts",
+    "postinstall": "prisma generate",
     "organisations:sync": "tsx -e \"import { syncOrganisations } from './lib/syncOrganisations'; syncOrganisations().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",
     "schools:sync": "tsx -e \"import { replaceSchoolsWithImportedOrganisations } from './lib/syncSchoolsFromOrganisations'; replaceSchoolsWithImportedOrganisations().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",
     "booksellers:sync": "tsx -e \"import { replaceVendorsWithImportedBooksellers } from './lib/syncBooksellers'; replaceVendorsWithImportedBooksellers().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",
