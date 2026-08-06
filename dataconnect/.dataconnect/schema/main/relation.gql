@@ -277,6 +277,116 @@ extend type Bookseller {
   """
   _id: ID! @fdc_generated(from: "Bookseller.id", purpose: ENTITY_ID)
 }
+extend type BooksellerSchoolMapping {
+  """
+  Implicit metadata field that cannot be written. It provides extra information about query results.
+  """
+  _metadata: _Metadata @fdc_generated(from: "BooksellerSchoolMapping", purpose: METADATA_FIELD)
+  """
+  ✨ Count the number of rows in the `BooksellerSchoolMapping` table.
+  """
+  _count: Int! @fdc_generated(from: "BooksellerSchoolMapping.", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `BooksellerSchoolMapping` table where the `booksellerCode` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  booksellerCode_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "BooksellerSchoolMapping.booksellerCode", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `BooksellerSchoolMapping` table where the `booksellerSubCode` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  booksellerSubCode_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "BooksellerSchoolMapping.booksellerSubCode", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `BooksellerSchoolMapping` table where the `createdAt` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  createdAt_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "BooksellerSchoolMapping.createdAt", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `BooksellerSchoolMapping` table where the `id` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  id_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "BooksellerSchoolMapping.id", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `BooksellerSchoolMapping` table where the `ptCode` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  ptCode_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "BooksellerSchoolMapping.ptCode", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `BooksellerSchoolMapping` table where the `updatedAt` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  updatedAt_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "BooksellerSchoolMapping.updatedAt", purpose: QUERY_COUNT)
+  """
+  ✨ Sum the `id` field in the `BooksellerSchoolMapping` table.
+  """
+  id_sum(
+    """
+    Set to true to sum the distinct values.
+    """
+    distinct: Boolean = false
+  ): Int64 @fdc_generated(from: "BooksellerSchoolMapping.id", purpose: QUERY_SUM)
+  """
+  ✨ Average the `id` field in the `BooksellerSchoolMapping` table.
+  """
+  id_avg(
+    """
+    Set to true to average the distinct values.
+    """
+    distinct: Boolean = false
+  ): Float @fdc_generated(from: "BooksellerSchoolMapping.id", purpose: QUERY_AVG)
+  """
+  ✨ Minimum of the `createdAt` field in the `BooksellerSchoolMapping` table.
+  """
+  createdAt_min: Timestamp @fdc_generated(from: "BooksellerSchoolMapping.createdAt", purpose: QUERY_MIN)
+  """
+  ✨ Minimum of the `id` field in the `BooksellerSchoolMapping` table.
+  """
+  id_min: Int64 @fdc_generated(from: "BooksellerSchoolMapping.id", purpose: QUERY_MIN)
+  """
+  ✨ Minimum of the `updatedAt` field in the `BooksellerSchoolMapping` table.
+  """
+  updatedAt_min: Timestamp @fdc_generated(from: "BooksellerSchoolMapping.updatedAt", purpose: QUERY_MIN)
+  """
+  ✨ Maximum of the `createdAt` field in the `BooksellerSchoolMapping` table.
+  """
+  createdAt_max: Timestamp @fdc_generated(from: "BooksellerSchoolMapping.createdAt", purpose: QUERY_MAX)
+  """
+  ✨ Maximum of the `id` field in the `BooksellerSchoolMapping` table.
+  """
+  id_max: Int64 @fdc_generated(from: "BooksellerSchoolMapping.id", purpose: QUERY_MAX)
+  """
+  ✨ Maximum of the `updatedAt` field in the `BooksellerSchoolMapping` table.
+  """
+  updatedAt_max: Timestamp @fdc_generated(from: "BooksellerSchoolMapping.updatedAt", purpose: QUERY_MAX)
+  """
+  A generated field that is used for caching results in SDKs.
+  """
+  _id: ID! @fdc_generated(from: "BooksellerSchoolMapping.id", purpose: ENTITY_ID)
+}
 extend type Item {
   """
   Implicit metadata field that cannot be written. It provides extra information about query results.

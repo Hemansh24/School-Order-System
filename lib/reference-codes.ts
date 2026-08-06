@@ -34,14 +34,6 @@ export function nextCompactCode(prefix: string, existingCodes: string[], width =
   return `${prefix}${String(nextNumber).padStart(width, "0")}`;
 }
 
-export async function nextSchoolCode() {
-  const schools = await prisma.school.findMany({ select: { schoolCode: true } });
-  return nextCode(
-    "SCH",
-    schools.map((school) => school.schoolCode)
-  );
-}
-
 export async function nextVendorCode() {
   const vendors = await prisma.vendor.findMany({ select: { vendorCode: true } });
   return nextCode(
@@ -65,6 +57,7 @@ export async function nextOrganisationPtCode() {
   });
   return nextCompactCode(
     "PT",
-    organisations.flatMap((organisation) => (organisation.ptCode ? [organisation.ptCode] : []))
+    organisations.flatMap((organisation) => (organisation.ptCode ? [organisation.ptCode] : [])),
+    4
   );
 }

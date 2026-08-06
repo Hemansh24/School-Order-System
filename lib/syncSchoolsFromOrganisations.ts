@@ -1,3 +1,9 @@
+import {
+  getOrganisationByPrCode,
+  listOrganisations,
+  type GetOrganisationByPrCodeData
+} from "@dataconnect/generated";
+import { getApp, getApps, initializeApp } from "firebase/app";
 import { prisma } from "@/lib/prisma";
 
 export type SchoolSyncSummary = {
@@ -5,6 +11,25 @@ export type SchoolSyncSummary = {
   replacedSchools: number;
   preservedVendorLinks: number;
 };
+
+const FIREBASE_PROJECT_ID =
+  process.env.FIREBASE_PROJECT_ID ??
+  process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ??
+  "system-order-34c0a";
+
+type OrganisationSource = {
+  prCode: string;
+  ptCode: string | null;
+  organisationName: string;
+  address: string | null;
+  district: string | null;
+  state: string | null;
+  pinCode: string | null;
+  phone: string | null;
+  email: string | null;
+};
+
+type ImportedOrganisationDetail = GetOrganisationByPrCodeData["organisations"][number];
 
 type ExistingVendor = Awaited<
   ReturnType<
@@ -23,6 +48,16 @@ type ExistingVendor = Awaited<
 function normalizeText(value?: string | null) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
+}
+
+function ensureFirebaseApp() {
+  if (getApps().length > 0) {
+    return getApp();
+  }
+
+  return initializeApp({
+    projectId: FIREBASE_PROJECT_ID
+  });
 }
 
 function schoolIdentityKey(input: {
@@ -68,6 +103,71 @@ function toSchoolData(organisation: {
   };
 }
 
+function toOrganisationSource(organisation: ImportedOrganisationDetail): OrganisationSource {
+  return {
+    prCode: organisation.prCode,
+    ptCode: organisation.ptCode ?? null,
+    organisationName: organisation.organisationName,
+    address: organisation.address ?? null,
+    district: organisation.district ?? null,
+    state: organisation.state ?? null,
+    pinCode: organisation.pinCode ?? null,
+    phone: organisation.phone ?? null,
+    email: organisation.email ?? null
+  };
+}
+
+async function loadLocalOrganisations(): Promise<OrganisationSource[]> {
+  return prisma.organisation.findMany({
+    orderBy: [{ organisationName: "asc" }, { prCode: "asc" }],
+    select: {
+      prCode: true,
+      ptCode: true,
+      organisationName: true,
+      address: true,
+      district: true,
+      state: true,
+      pinCode: true,
+      phone: true,
+      email: true
+    }
+  });
+}
+
+async function loadImportedOrganisationsFromDataConnect(): Promise<OrganisationSource[]> {
+  ensureFirebaseApp();
+
+  const { data } = await listOrganisations();
+  const details = await Promise.all(
+    data.organisations.map(async (organisation) => {
+      const { data: detailData } = await getOrganisationByPrCode({
+        prCode: organisation.prCode
+      });
+
+      return detailData.organisations[0] ?? null;
+    })
+  );
+
+  return details
+    .filter((organisation): organisation is ImportedOrganisationDetail => Boolean(organisation))
+    .map(toOrganisationSource)
+    .sort(
+      (left, right) =>
+        left.organisationName.localeCompare(right.organisationName) ||
+        left.prCode.localeCompare(right.prCode)
+    );
+}
+
+async function loadOrganisationSources(): Promise<OrganisationSource[]> {
+  const localOrganisations = await loadLocalOrganisations();
+
+  if (localOrganisations.length > 0) {
+    return localOrganisations;
+  }
+
+  return loadImportedOrganisationsFromDataConnect();
+}
+
 function collectPreservedVendorLinks(existingVendors: ExistingVendor[], nextSchools: ReturnType<typeof toSchoolData>[]) {
   const schoolCodeByIdentity = new Map(
     nextSchools.map((school) => [schoolIdentityKey(school), school.schoolCode])
@@ -91,20 +191,7 @@ function collectPreservedVendorLinks(existingVendors: ExistingVendor[], nextScho
 
 export async function replaceSchoolsWithImportedOrganisations(): Promise<SchoolSyncSummary> {
   const [organisations, existingVendors] = await Promise.all([
-    prisma.organisation.findMany({
-      orderBy: [{ organisationName: "asc" }, { prCode: "asc" }],
-      select: {
-        prCode: true,
-        ptCode: true,
-        organisationName: true,
-        address: true,
-        district: true,
-        state: true,
-        pinCode: true,
-        phone: true,
-        email: true
-      }
-    }),
+    loadOrganisationSources(),
     prisma.vendor.findMany({
       include: {
         vendorSchools: {

@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { formatActionError } from "@/lib/action-errors";
 import { prisma } from "@/lib/prisma";
-import { nextSchoolCode } from "@/lib/reference-codes";
 import { createOrReuseSchool, findSchoolsByFields, type SchoolMatch } from "@/lib/services/schools";
+import { replaceSchoolsWithImportedOrganisations } from "@/lib/syncSchoolsFromOrganisations";
 import { createSchoolSchema, lookupSchoolSchema } from "@/lib/validation/reference";
 
 export type ReferenceActionState = {
@@ -54,9 +54,8 @@ export async function createSchoolAction(
   formData: FormData
 ): Promise<ReferenceActionState> {
   try {
-    const schoolCode = await nextSchoolCode();
     const parsed = createSchoolSchema.parse({
-      schoolCode,
+      schoolCode: "PT-PENDING",
       schoolName: formData.get("schoolName"),
       address: formData.get("address"),
       district: formData.get("district"),
@@ -133,7 +132,7 @@ export async function lookupSchoolAction(
         message:
           matches.length > 0
             ? `Found ${matches.length} matching school${matches.length === 1 ? "" : "s"}.`
-            : "Add the school name as well if you want to create a new school code."
+            : "Add the school name as well if you want to create a new PT/PR-backed reference."
       };
     }
 
@@ -251,6 +250,29 @@ export async function deleteSchoolAction(
     return {
       ok: false,
       message: schoolActionMessage(error, "Could not delete this school. Please try again.")
+    };
+  }
+}
+
+export async function syncImportedOrganisationsAsSchoolsAction(
+  _previousState: ReferenceActionState,
+  _formData: FormData
+): Promise<ReferenceActionState> {
+  try {
+    const summary = await replaceSchoolsWithImportedOrganisations();
+
+    revalidateSchoolPaths();
+    return {
+      ok: true,
+      message: `Replaced local schools with ${summary.replacedSchools} organisations and preserved ${summary.preservedVendorLinks} vendor links.`
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: schoolActionMessage(
+        error,
+        "Could not replace schools from organisations. Please try again."
+      )
     };
   }
 }

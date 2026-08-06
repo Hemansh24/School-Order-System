@@ -166,3 +166,15 @@ obsolete
 }
 
 }
+
+query ListBooksellerSchoolMapping
+@auth(level: PUBLIC) {
+
+  booksellerSchoolMappings {
+    id
+    booksellerCode
+    booksellerSubCode
+    ptCode
+  }
+
+}

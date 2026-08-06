@@ -12,7 +12,7 @@ For each operation, there is a wrapper hook that can be used to call the operati
 
 Here are all of the hooks that get generated:
 ```ts
-import { useListOrganisations, useSearchOrganisations, useGetOrganisationByPrCode, useListBooksellers, useGetBooksellerByCode, useListItems, useGetItemByCode } from '@dataconnect/generated/react';
+import { useListOrganisations, useSearchOrganisations, useGetOrganisationByPrCode, useListBooksellers, useGetBooksellerByCode, useListItems, useGetItemByCode, useListBooksellerSchoolMapping } from '@dataconnect/generated/react';
 // The types of these hooks are available in react/index.d.ts
 
 const { data, isPending, isSuccess, isError, error } = useListOrganisations();
@@ -28,6 +28,8 @@ const { data, isPending, isSuccess, isError, error } = useGetBooksellerByCode(ge
 const { data, isPending, isSuccess, isError, error } = useListItems();
 
 const { data, isPending, isSuccess, isError, error } = useGetItemByCode(getItemByCodeVars);
+
+const { data, isPending, isSuccess, isError, error } = useListBooksellerSchoolMapping();
 
 ```
 
@@ -66,7 +68,7 @@ If a user is not using a supported framework, they can use the generated SDK dir
 Here's an example of how to use it with the first 5 operations:
 
 ```js
-import { listOrganisations, searchOrganisations, getOrganisationByPrCode, listBooksellers, getBooksellerByCode, listItems, getItemByCode } from '@dataconnect/generated';
+import { listOrganisations, searchOrganisations, getOrganisationByPrCode, listBooksellers, getBooksellerByCode, listItems, getItemByCode, listBooksellerSchoolMapping } from '@dataconnect/generated';
 
 
 // Operation ListOrganisations: 
@@ -89,6 +91,9 @@ const { data } = await ListItems(dataConnect);
 
 // Operation GetItemByCode:  For variables, look at type GetItemByCodeVars in ../index.d.ts
 const { data } = await GetItemByCode(dataConnect, getItemByCodeVars);
+
+// Operation ListBooksellerSchoolMapping: 
+const { data } = await ListBooksellerSchoolMapping(dataConnect);
 
 
 ```

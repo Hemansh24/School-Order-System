@@ -9,6 +9,15 @@ extend type Mutation {
     data: Bookseller_Data!
   ): Bookseller_KeyOutput! @fdc_generated(from: "Bookseller", purpose: INSERT_SINGLE)
   """
+  ✨ Insert a single `BooksellerSchoolMapping` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  booksellerSchoolMapping_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: BooksellerSchoolMapping_Data!
+  ): BooksellerSchoolMapping_KeyOutput! @fdc_generated(from: "BooksellerSchoolMapping", purpose: INSERT_SINGLE)
+  """
   ✨ Insert a single `Item` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
   """
   item_insert(
@@ -35,6 +44,15 @@ extend type Mutation {
     """
     data: [Bookseller_Data!]!
   ): [Bookseller_KeyOutput!]! @fdc_generated(from: "Bookseller", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `BooksellerSchoolMapping` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  booksellerSchoolMapping_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [BooksellerSchoolMapping_Data!]!
+  ): [BooksellerSchoolMapping_KeyOutput!]! @fdc_generated(from: "BooksellerSchoolMapping", purpose: INSERT_MULTIPLE)
   """
   ✨ Insert `Item` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
   """
@@ -63,6 +81,15 @@ extend type Mutation {
     data: Bookseller_Data!
   ): Bookseller_KeyOutput! @fdc_generated(from: "Bookseller", purpose: UPSERT_SINGLE)
   """
+  ✨ Insert or update a single `BooksellerSchoolMapping` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `BooksellerSchoolMapping`.
+  """
+  booksellerSchoolMapping_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: BooksellerSchoolMapping_Data!
+  ): BooksellerSchoolMapping_KeyOutput! @fdc_generated(from: "BooksellerSchoolMapping", purpose: UPSERT_SINGLE)
+  """
   ✨ Insert or update a single `Item` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Item`.
   """
   item_upsert(
@@ -89,6 +116,15 @@ extend type Mutation {
     """
     data: [Bookseller_Data!]!
   ): [Bookseller_KeyOutput!]! @fdc_generated(from: "Bookseller", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `BooksellerSchoolMapping` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `BooksellerSchoolMapping`.
+  """
+  booksellerSchoolMapping_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [BooksellerSchoolMapping_Data!]!
+  ): [BooksellerSchoolMapping_KeyOutput!]! @fdc_generated(from: "BooksellerSchoolMapping", purpose: UPSERT_MULTIPLE)
   """
   ✨ Insert or update `Item` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Item`.
   """
@@ -136,6 +172,35 @@ extend type Mutation {
     """
     data: Bookseller_Data!
   ): Bookseller_KeyOutput @fdc_generated(from: "Bookseller", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `BooksellerSchoolMapping` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `BooksellerSchoolMapping` or `null` if not found.
+  """
+  booksellerSchoolMapping_update(
+    """
+    The unique ID of the object.
+    """
+    id: Int64
+
+    """
+    ✨ `_expr` server value variant of `id` (The unique ID of the object.)
+    """
+    id_expr: Int64_Expr
+
+    """
+    The key used to identify the object.
+    """
+    key: BooksellerSchoolMapping_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: BooksellerSchoolMapping_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: BooksellerSchoolMapping_Data!
+  ): BooksellerSchoolMapping_KeyOutput @fdc_generated(from: "BooksellerSchoolMapping", purpose: UPDATE_SINGLE)
   """
   ✨ Update a single `Item` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `Item` or `null` if not found.
   """
@@ -214,6 +279,25 @@ extend type Mutation {
     data: Bookseller_Data!
   ): Int! @fdc_generated(from: "Bookseller", purpose: UPDATE_MULTIPLE)
   """
+  ✨ Update `BooksellerSchoolMapping` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  booksellerSchoolMapping_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: BooksellerSchoolMapping_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: BooksellerSchoolMapping_Data!
+  ): Int! @fdc_generated(from: "BooksellerSchoolMapping", purpose: UPDATE_MULTIPLE)
+  """
   ✨ Update `Item` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
   """
   item_updateMany(
@@ -276,6 +360,30 @@ extend type Mutation {
     first: Bookseller_FirstRow
   ): Bookseller_KeyOutput @fdc_generated(from: "Bookseller", purpose: DELETE_SINGLE)
   """
+  ✨ Delete a single `BooksellerSchoolMapping` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  booksellerSchoolMapping_delete(
+    """
+    The unique ID of the object.
+    """
+    id: Int64
+
+    """
+    ✨ `_expr` server value variant of `id` (The unique ID of the object.)
+    """
+    id_expr: Int64_Expr
+
+    """
+    The key used to identify the object.
+    """
+    key: BooksellerSchoolMapping_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: BooksellerSchoolMapping_FirstRow
+  ): BooksellerSchoolMapping_KeyOutput @fdc_generated(from: "BooksellerSchoolMapping", purpose: DELETE_SINGLE)
+  """
   ✨ Delete a single `Item` based on `id`, `key` or `first` and return its key (or `null` if not found).
   """
   item_delete(
@@ -337,6 +445,20 @@ extend type Mutation {
     """
     all: Boolean = false
   ): Int! @fdc_generated(from: "Bookseller", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `BooksellerSchoolMapping` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  booksellerSchoolMapping_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: BooksellerSchoolMapping_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "BooksellerSchoolMapping", purpose: DELETE_MULTIPLE)
   """
   ✨ Delete `Item` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
   """

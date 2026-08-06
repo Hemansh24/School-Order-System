@@ -174,7 +174,7 @@ function Sheet2B1Table({
     <Card>
       <TableTitle title="Order Sheet 2B1" subtitle="Schools included in grouped order" />
       <SimpleTable
-        headers={["School Code", "School Name"]}
+        headers={["PT/PR Code", "School Name"]}
         rows={rows.map((row) => [row.schoolCode, row.schoolName])}
       />
     </Card>

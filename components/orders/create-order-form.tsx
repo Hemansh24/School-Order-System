@@ -226,6 +226,8 @@ export function CreateOrderForm({
     billingToType === "vendor"
       ? activeVendorSchool
       : schools.find((school) => school.optionKey === activeDescriptiveSchoolKey);
+  const ambiguousSchoolOptions =
+    billingToType === "vendor" ? selectedVendorSchools : schools;
 
   useEffect(() => {
     if (billingToType === "school" && !selectedDescriptiveSchoolKey) {
@@ -332,8 +334,9 @@ export function CreateOrderForm({
     form.setValue("sheet1.billingToName", selected?.name ?? "");
     form.setValue("sheet1.booksellerType", selected?.type ?? "");
     form.setValue("sheet1.booksellerRating", selected?.rating ?? "");
-    if (billingToType === "vendor" && orderType === "descriptive") {
+    if (billingToType === "vendor") {
       form.setValue("descriptiveRows", []);
+      form.setValue("ambiguousSchools", []);
       setSelectedVendorSchoolKey("");
     }
     if (billingToType === "school") {
@@ -360,8 +363,9 @@ export function CreateOrderForm({
       }
     }
 
-    if (billingToType === "vendor" && orderType === "descriptive") {
+    if (billingToType === "vendor") {
       form.setValue("descriptiveRows", []);
+      form.setValue("ambiguousSchools", []);
       setSelectedVendorSchoolKey("");
     }
   }
@@ -387,9 +391,18 @@ export function CreateOrderForm({
   }
 
   function setAmbiguousSchool(index: number, optionKey: string) {
-    const selected = schools.find((school) => school.optionKey === optionKey);
+    const selected = ambiguousSchoolOptions.find((school) => school.optionKey === optionKey);
     form.setValue(`ambiguousSchools.${index}.schoolCode`, selected?.schoolCode ?? "");
     form.setValue(`ambiguousSchools.${index}.schoolName`, selected?.schoolName ?? "");
+  }
+
+  function appendAmbiguousSchool() {
+    const firstSchool = ambiguousSchoolOptions[0];
+    ambiguousSchools.append({
+      schoolCode: firstSchool?.schoolCode ?? "",
+      schoolName: firstSchool?.schoolName ?? "",
+      notes: ""
+    });
   }
 
   function setDescriptiveItemQuantity(item: ItemRef, rawQuantity: string) {
@@ -488,11 +501,7 @@ export function CreateOrderForm({
     } else {
       form.setValue("descriptiveRows", []);
       if (form.getValues("ambiguousSchools").length === 0) {
-        ambiguousSchools.append({
-          schoolCode: schools[0]?.schoolCode ?? "",
-          schoolName: schools[0]?.schoolName ?? "",
-          notes: ""
-        });
+        appendAmbiguousSchool();
       }
     }
   }
@@ -586,9 +595,11 @@ export function CreateOrderForm({
                     form.setValue("sheet1.billingToName", first?.schoolName ?? "");
                     if (orderType === "descriptive") {
                       form.setValue("descriptiveRows", []);
-                      setSelectedVendorSchoolKey("");
-                      setSelectedDescriptiveSchoolKey(nextType === "school" ? schools[0]?.optionKey ?? "" : "");
+                    } else {
+                      form.setValue("ambiguousSchools", []);
                     }
+                    setSelectedVendorSchoolKey("");
+                    setSelectedDescriptiveSchoolKey(nextType === "school" ? schools[0]?.optionKey ?? "" : "");
                   }
                 })}
               >
@@ -839,40 +850,41 @@ export function CreateOrderForm({
                 <SubmitButton
                   type="button"
                   variant="secondary"
-                  onClick={() =>
-                    ambiguousSchools.append({
-                      schoolCode: schools[0]?.schoolCode ?? "",
-                      schoolName: schools[0]?.schoolName ?? "",
-                      notes: ""
-                    })
-                  }
+                  onClick={appendAmbiguousSchool}
+                  disabled={ambiguousSchoolOptions.length === 0}
                 >
                   <Plus className="mr-2 h-4 w-4" /> Add school
                 </SubmitButton>
               </div>
-              <div className="space-y-3">
-                {ambiguousSchools.fields.map((field, index) => (
-                  <LineRow key={field.id} onRemove={() => ambiguousSchools.remove(index)}>
-                    <select
-                      className={inputClass}
-                      value={
-                        findSchoolOptionByStoredValue(
-                          schools,
-                          form.watch(`ambiguousSchools.${index}.schoolCode`),
-                          form.watch(`ambiguousSchools.${index}.schoolName`)
-                        )?.optionKey ?? schools[0]?.optionKey ?? ""
-                      }
-                      onChange={(event) => setAmbiguousSchool(index, event.target.value)}
-                    >
-                      {schools.map((school) => (
-                        <option key={school.optionKey} value={school.optionKey}>
-                          {school.schoolCode} - {school.schoolName}
-                        </option>
-                      ))}
-                    </select>
-                  </LineRow>
-                ))}
-              </div>
+              {billingToType === "vendor" && selectedVendorSchools.length === 0 ? (
+                <div className="rounded-md border border-danger bg-red-50 p-3 text-sm text-red-900">
+                  This vendor is not linked to any schools yet.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {ambiguousSchools.fields.map((field, index) => (
+                    <LineRow key={field.id} onRemove={() => ambiguousSchools.remove(index)}>
+                      <select
+                        className={inputClass}
+                        value={
+                          findSchoolOptionByStoredValue(
+                            ambiguousSchoolOptions,
+                            form.watch(`ambiguousSchools.${index}.schoolCode`),
+                            form.watch(`ambiguousSchools.${index}.schoolName`)
+                          )?.optionKey ?? ambiguousSchoolOptions[0]?.optionKey ?? ""
+                        }
+                        onChange={(event) => setAmbiguousSchool(index, event.target.value)}
+                      >
+                        {ambiguousSchoolOptions.map((school) => (
+                          <option key={school.optionKey} value={school.optionKey}>
+                            {school.schoolCode} - {school.schoolName}
+                          </option>
+                        ))}
+                      </select>
+                    </LineRow>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <div className="mb-3">

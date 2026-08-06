@@ -8,7 +8,7 @@ export default function SchoolLookupPage() {
     <>
       <PageHeader
         title="School Lookup"
-        description="Create or reuse a school code from the exact combination of name, address, district, state, and pincode."
+        description="Create or reuse a PT/PR-backed school reference from the exact combination of name, address, district, state, and pincode."
       />
       <SchoolLookupForm />
     </>

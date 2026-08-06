@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { nextCode } from "@/lib/reference-codes";
 import { ensureOrganisationForSchoolTx } from "@/lib/services/organisations";
 
 type SchoolResolutionInput = {
@@ -76,6 +75,10 @@ function matchesEnteredFields(school: SchoolSelection, input: SchoolResolutionIn
   return true;
 }
 
+function organisationSchoolCode(organisation: { ptCode: string | null; prCode: string }) {
+  return organisation.ptCode?.trim() || organisation.prCode.trim();
+}
+
 export async function findSchoolsByFields(input: SchoolResolutionInput): Promise<SchoolMatch[]> {
   const schools = await prisma.school.findMany({
     select: {
@@ -114,7 +117,7 @@ export async function createOrReuseSchool(input: SchoolCreationInput) {
 
     const existingSchool = schools.find((school) => isExactSchoolMatch(school, input));
     if (existingSchool) {
-      await ensureOrganisationForSchoolTx(tx, {
+      const organisation = await ensureOrganisationForSchoolTx(tx, {
         schoolName: existingSchool.schoolName,
         address: existingSchool.address,
         district: existingSchool.district,
@@ -123,6 +126,28 @@ export async function createOrReuseSchool(input: SchoolCreationInput) {
         phone: input.phone,
         email: input.email
       });
+      const schoolCode = organisationSchoolCode(organisation);
+
+      if (existingSchool.schoolCode !== schoolCode) {
+        const updatedSchool = await tx.school.update({
+          where: { schoolId: existingSchool.schoolId },
+          data: { schoolCode },
+          select: {
+            schoolId: true,
+            schoolCode: true,
+            schoolName: true,
+            address: true,
+            district: true,
+            state: true,
+            pincode: true
+          }
+        });
+
+        return {
+          created: false as const,
+          school: updatedSchool
+        };
+      }
 
       return {
         created: false as const,
@@ -130,12 +155,19 @@ export async function createOrReuseSchool(input: SchoolCreationInput) {
       };
     }
 
+    const organisation = await ensureOrganisationForSchoolTx(tx, {
+      schoolName: input.schoolName,
+      address: input.address,
+      district: input.district,
+      state: input.state,
+      pincode: input.pincode,
+      phone: input.phone,
+      email: input.email
+    });
+
     const school = await tx.school.create({
       data: {
-        schoolCode: nextCode(
-          "SCH",
-          schools.map((candidate) => candidate.schoolCode)
-        ),
+        schoolCode: organisationSchoolCode(organisation),
         schoolName: input.schoolName.trim(),
         address: input.address?.trim() || null,
         district: input.district?.trim() || null,
@@ -154,16 +186,6 @@ export async function createOrReuseSchool(input: SchoolCreationInput) {
         state: true,
         pincode: true
       }
-    });
-
-    await ensureOrganisationForSchoolTx(tx, {
-      schoolName: school.schoolName,
-      address: school.address,
-      district: school.district,
-      state: school.state,
-      pincode: school.pincode,
-      phone: input.phone,
-      email: input.email
     });
 
     return {

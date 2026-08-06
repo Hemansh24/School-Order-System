@@ -11,6 +11,11 @@ export type DateString = string;
 
 
 
+export interface BooksellerSchoolMapping_Key {
+  id: Int64String;
+  __typename?: 'BooksellerSchoolMapping_Key';
+}
+
 export interface Bookseller_Key {
   id: Int64String;
   __typename?: 'Bookseller_Key';
@@ -96,6 +101,15 @@ export interface GetOrganisationByPrCodeVariables {
 export interface Item_Key {
   id: Int64String;
   __typename?: 'Item_Key';
+}
+
+export interface ListBooksellerSchoolMappingData {
+  booksellerSchoolMappings: ({
+    id: Int64String;
+    booksellerCode: string;
+    booksellerSubCode?: string | null;
+    ptCode: string;
+  } & BooksellerSchoolMapping_Key)[];
 }
 
 export interface ListBooksellersData {
@@ -257,4 +271,16 @@ export const getItemByCodeRef: GetItemByCodeRef;
 
 export function getItemByCode(vars: GetItemByCodeVariables, options?: ExecuteQueryOptions): QueryPromise<GetItemByCodeData, GetItemByCodeVariables>;
 export function getItemByCode(dc: DataConnect, vars: GetItemByCodeVariables, options?: ExecuteQueryOptions): QueryPromise<GetItemByCodeData, GetItemByCodeVariables>;
+
+interface ListBooksellerSchoolMappingRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<ListBooksellerSchoolMappingData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<ListBooksellerSchoolMappingData, undefined>;
+  operationName: string;
+}
+export const listBooksellerSchoolMappingRef: ListBooksellerSchoolMappingRef;
+
+export function listBooksellerSchoolMapping(options?: ExecuteQueryOptions): QueryPromise<ListBooksellerSchoolMappingData, undefined>;
+export function listBooksellerSchoolMapping(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListBooksellerSchoolMappingData, undefined>;
 

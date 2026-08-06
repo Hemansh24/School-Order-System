@@ -400,7 +400,32 @@ export async function ensureOrganisationForSchoolTx(
   });
 
   if (match) {
-    return match;
+    if (match.ptCode) {
+      return match;
+    }
+
+    return tx.organisation.update({
+      where: { id: match.id },
+      data: {
+        ptCode: nextCompactCode(
+          "PT",
+          organisations.flatMap((organisation) =>
+            organisation.ptCode ? [organisation.ptCode] : []
+          ),
+          4
+        )
+      },
+      select: {
+        id: true,
+        prCode: true,
+        ptCode: true,
+        organisationName: true,
+        address: true,
+        district: true,
+        state: true,
+        pinCode: true
+      }
+    });
   }
 
   return tx.organisation.create({
@@ -409,6 +434,13 @@ export async function ensureOrganisationForSchoolTx(
         "PR",
         organisations.map((organisation) => organisation.prCode)
       ),
+      ptCode: nextCompactCode(
+        "PT",
+        organisations.flatMap((organisation) =>
+          organisation.ptCode ? [organisation.ptCode] : []
+        ),
+        4
+      ),
       organisationName: school.schoolName.trim(),
       address: normalizeText(school.address),
       district: normalizeText(school.district),
@@ -416,19 +448,31 @@ export async function ensureOrganisationForSchoolTx(
       pinCode: normalizeText(school.pincode),
       phone: normalizeText(school.phone),
       email: normalizeText(school.email)
+    },
+    select: {
+      id: true,
+      prCode: true,
+      ptCode: true,
+      organisationName: true,
+      address: true,
+      district: true,
+      state: true,
+      pinCode: true
     }
   });
 }
 
 export async function ensurePtCodesForSchoolCodesTx(tx: Tx, schoolCodes: string[]) {
+  const ptCodeByOriginalCode = new Map<string, string>();
   const uniqueCodes = Array.from(new Set(schoolCodes.map((code) => code.trim()).filter(Boolean)));
   if (uniqueCodes.length === 0) {
-    return;
+    return ptCodeByOriginalCode;
   }
 
   const schools = await tx.school.findMany({
     where: { schoolCode: { in: uniqueCodes } },
     select: {
+      schoolId: true,
       schoolCode: true,
       schoolName: true,
       address: true,
@@ -500,7 +544,8 @@ export async function ensurePtCodesForSchoolCodesTx(tx: Tx, schoolCodes: string[
         data: {
           ptCode: nextCompactCode(
             "PT",
-            cache.flatMap((candidate) => (candidate.ptCode ? [candidate.ptCode] : []))
+            cache.flatMap((candidate) => (candidate.ptCode ? [candidate.ptCode] : [])),
+            4
           )
         },
         select: {
@@ -517,8 +562,22 @@ export async function ensurePtCodesForSchoolCodesTx(tx: Tx, schoolCodes: string[
 
       const index = cache.findIndex((candidate) => candidate.id === updated.id);
       cache[index] = updated;
+      organisation = updated;
+    }
+
+    if (organisation.ptCode) {
+      ptCodeByOriginalCode.set(school.schoolCode, organisation.ptCode);
+
+      if (school.schoolCode !== organisation.ptCode) {
+        await tx.school.update({
+          where: { schoolId: school.schoolId },
+          data: { schoolCode: organisation.ptCode }
+        });
+      }
     }
   }
+
+  return ptCodeByOriginalCode;
 }
 
 async function loadFilteredOrganisations(filters: OrganisationLookupFilters) {

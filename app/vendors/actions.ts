@@ -148,7 +148,7 @@ export async function syncImportedBooksellersAction(
     revalidatePath("/orders");
     return {
       ok: true,
-      message: `Replaced vendors with ${summary.importedBooksellers} imported booksellers and preserved ${summary.preservedSchoolLinks} school links.`
+      message: `Replaced vendors with ${summary.importedBooksellers} imported booksellers and linked ${summary.linkedSchoolMappings} of ${summary.importedSchoolMappings} imported school mappings (${summary.unmatchedSchoolMappings} unmatched).`
     };
   } catch (error) {
     return {

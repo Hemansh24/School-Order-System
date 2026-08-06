@@ -1,4 +1,4 @@
-import { ListOrganisationsData, SearchOrganisationsData, SearchOrganisationsVariables, GetOrganisationByPrCodeData, GetOrganisationByPrCodeVariables, ListBooksellersData, GetBooksellerByCodeData, GetBooksellerByCodeVariables, ListItemsData, GetItemByCodeData, GetItemByCodeVariables } from '../';
+import { ListOrganisationsData, SearchOrganisationsData, SearchOrganisationsVariables, GetOrganisationByPrCodeData, GetOrganisationByPrCodeVariables, ListBooksellersData, GetBooksellerByCodeData, GetBooksellerByCodeVariables, ListItemsData, GetItemByCodeData, GetItemByCodeVariables, ListBooksellerSchoolMappingData } from '../';
 import { UseDataConnectQueryResult, useDataConnectQueryOptions} from '@tanstack-query-firebase/react/data-connect';
 import { UseQueryResult} from '@tanstack/react-query';
 import { DataConnect } from 'firebase/data-connect';
@@ -25,3 +25,6 @@ export function useListItems(dc: DataConnect, options?: useDataConnectQueryOptio
 
 export function useGetItemByCode(vars: GetItemByCodeVariables, options?: useDataConnectQueryOptions<GetItemByCodeData>): UseDataConnectQueryResult<GetItemByCodeData, GetItemByCodeVariables>;
 export function useGetItemByCode(dc: DataConnect, vars: GetItemByCodeVariables, options?: useDataConnectQueryOptions<GetItemByCodeData>): UseDataConnectQueryResult<GetItemByCodeData, GetItemByCodeVariables>;
+
+export function useListBooksellerSchoolMapping(options?: useDataConnectQueryOptions<ListBooksellerSchoolMappingData>): UseDataConnectQueryResult<ListBooksellerSchoolMappingData, undefined>;
+export function useListBooksellerSchoolMapping(dc: DataConnect, options?: useDataConnectQueryOptions<ListBooksellerSchoolMappingData>): UseDataConnectQueryResult<ListBooksellerSchoolMappingData, undefined>;

@@ -36,7 +36,7 @@ export function SchoolLookupForm() {
         <TextField name="pincode" label="Pincode" placeholder="201301" />
         {state.ok && state.school ? (
           <div className="rounded-md border border-line bg-canvas p-3 md:col-span-2 xl:col-span-3">
-            <span className={labelClass}>{state.created ? "New School Code" : "Existing School Code"}</span>
+            <span className={labelClass}>{state.created ? "New PT/PR Code" : "Existing PT/PR Code"}</span>
             <div className="mt-2 flex flex-wrap items-center gap-3">
               <code className="rounded bg-white px-3 py-2 text-sm font-semibold text-ink">
                 {state.school.schoolCode}
@@ -54,7 +54,7 @@ export function SchoolLookupForm() {
               <table className="min-w-full text-sm">
                 <thead className="bg-canvas text-left text-xs uppercase text-muted">
                   <tr>
-                    <th className="px-3 py-2">Code</th>
+                    <th className="px-3 py-2">PT/PR Code</th>
                     <th className="px-3 py-2">Address</th>
                     <th className="px-3 py-2">District</th>
                     <th className="px-3 py-2">State</th>

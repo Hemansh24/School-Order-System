@@ -101,3 +101,25 @@ type Item
   updatedAt: Timestamp!
   syncedAt: Timestamp!
 }
+
+type BooksellerSchoolMapping
+@table(name: "bookseller_school_mapping")
+@unique(fields: ["booksellerCode", "booksellerSubCode", "ptCode"]) {
+
+  id: Int64!
+
+  booksellerCode: String!
+    @col(name: "bookseller_code")
+
+  booksellerSubCode: String
+    @col(name: "bookseller_sub_code")
+
+  ptCode: String!
+    @col(name: "pt_code")
+
+  createdAt: Timestamp!
+    @col(name: "created_at")
+
+  updatedAt: Timestamp!
+    @col(name: "updated_at")
+}

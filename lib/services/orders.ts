@@ -81,11 +81,38 @@ async function assertVendorHasSchool(tx: Tx, input: CreateOrderInput): Promise<v
 
   const vendor = await tx.vendor.findUnique({
     where: { vendorCode: input.sheet1.billingToCode },
-    include: { vendorSchools: true }
+    include: {
+      vendorSchools: {
+        include: {
+          school: {
+            select: {
+              schoolCode: true
+            }
+          }
+        }
+      }
+    }
   });
 
   if (!vendor || vendor.vendorSchools.length === 0) {
     throw new Error("Billing vendor must exist and be linked to at least one school.");
+  }
+
+  const mappedSchoolCodes = new Set(
+    vendor.vendorSchools.map((row) => row.school.schoolCode)
+  );
+  const orderSchoolCodes =
+    input.sheet1.orderType === "descriptive"
+      ? input.descriptiveRows.map((row) => row.schoolCode)
+      : input.ambiguousSchools.map((row) => row.schoolCode);
+  const unmappedSchoolCode = orderSchoolCodes.find(
+    (schoolCode) => !mappedSchoolCodes.has(schoolCode)
+  );
+
+  if (unmappedSchoolCode) {
+    throw new Error(
+      `School ${unmappedSchoolCode} is not linked to billing vendor ${input.sheet1.billingToCode}.`
+    );
   }
 }
 
@@ -155,6 +182,38 @@ function schoolCodesTouchedByOrder(input: CreateOrderInput) {
   }
 
   return Array.from(schoolCodes);
+}
+
+function applyPtCodesToOrder(
+  input: CreateOrderInput,
+  ptCodeByOriginalCode: Map<string, string>
+): CreateOrderInput {
+  function mappedCode(code: string) {
+    return ptCodeByOriginalCode.get(code) ?? code;
+  }
+
+  return {
+    sheet1: {
+      ...input.sheet1,
+      billingToCode:
+        input.sheet1.billingToType === "school"
+          ? mappedCode(input.sheet1.billingToCode)
+          : input.sheet1.billingToCode,
+      shippingToCode:
+        input.sheet1.shippingToType === "school"
+          ? mappedCode(input.sheet1.shippingToCode)
+          : input.sheet1.shippingToCode
+    },
+    descriptiveRows: input.descriptiveRows.map((row) => ({
+      ...row,
+      schoolCode: mappedCode(row.schoolCode)
+    })),
+    ambiguousSchools: input.ambiguousSchools.map((row) => ({
+      ...row,
+      schoolCode: mappedCode(row.schoolCode)
+    })),
+    ambiguousItems: input.ambiguousItems
+  };
 }
 
 export async function getDashboardData() {
@@ -230,39 +289,43 @@ export async function createOrder(input: CreateOrderInput) {
   const parsed = createOrderSchema.parse(input);
 
   const created = await prisma.$transaction(async (tx) => {
-    await assertVendorHasSchool(tx, parsed);
     await assertShippingDestinationExists(tx, parsed);
-    await ensurePtCodesForSchoolCodesTx(tx, schoolCodesTouchedByOrder(parsed));
+    const ptCodeByOriginalCode = await ensurePtCodesForSchoolCodesTx(
+      tx,
+      schoolCodesTouchedByOrder(parsed)
+    );
+    const orderInput = applyPtCodesToOrder(parsed, ptCodeByOriginalCode);
+    await assertVendorHasSchool(tx, orderInput);
     const orderNo = await nextParentOrderNo(tx);
     const subOrderNo = 0;
-    const shippingToSummary = await resolveShippingSummary(tx, parsed);
+    const shippingToSummary = await resolveShippingSummary(tx, orderInput);
 
     const order = await tx.orderSheet1.create({
       data: {
         orderNo,
         subOrderNo,
-        sessionYear: parsed.sheet1.sessionYear,
-        orderReceivedDate: toDate(parsed.sheet1.orderReceivedDate),
-        expectedDeliveryDate: toDate(parsed.sheet1.expectedDeliveryDate),
-        billingToType: parsed.sheet1.billingToType as BillingToType,
-        billingToCode: parsed.sheet1.billingToCode,
-        billingToName: parsed.sheet1.billingToName,
-        shippingToType: parsed.sheet1.shippingToType as BillingToType,
-        shippingToCode: parsed.sheet1.shippingToCode,
-        shippingToName: parsed.sheet1.shippingToName,
+        sessionYear: orderInput.sheet1.sessionYear,
+        orderReceivedDate: toDate(orderInput.sheet1.orderReceivedDate),
+        expectedDeliveryDate: toDate(orderInput.sheet1.expectedDeliveryDate),
+        billingToType: orderInput.sheet1.billingToType as BillingToType,
+        billingToCode: orderInput.sheet1.billingToCode,
+        billingToName: orderInput.sheet1.billingToName,
+        shippingToType: orderInput.sheet1.shippingToType as BillingToType,
+        shippingToCode: orderInput.sheet1.shippingToCode,
+        shippingToName: orderInput.sheet1.shippingToName,
         shippingToSummary,
-        orderType: parsed.sheet1.orderType as OrderType,
+        orderType: orderInput.sheet1.orderType as OrderType,
         orderStatus: "draft",
-        booksellerType: parsed.sheet1.booksellerType || null,
-        booksellerRating: parsed.sheet1.booksellerRating || null,
-        pendingPayment: parsed.sheet1.pendingPayment,
-        notes: parsed.sheet1.notes || null
+        booksellerType: orderInput.sheet1.booksellerType || null,
+        booksellerRating: orderInput.sheet1.booksellerRating || null,
+        pendingPayment: orderInput.sheet1.pendingPayment,
+        notes: orderInput.sheet1.notes || null
       }
     });
 
-    if (parsed.sheet1.orderType === "descriptive") {
+    if (orderInput.sheet1.orderType === "descriptive") {
       await tx.orderSheet2A.createMany({
-        data: parsed.descriptiveRows.map((row) => ({
+        data: orderInput.descriptiveRows.map((row) => ({
           orderSheet1Id: order.orderSheet1Id,
           orderNo,
           subOrderNo,
@@ -276,7 +339,7 @@ export async function createOrder(input: CreateOrderInput) {
       });
     } else {
       await tx.orderSheet2B1.createMany({
-        data: parsed.ambiguousSchools.map((row) => ({
+        data: orderInput.ambiguousSchools.map((row) => ({
           orderSheet1Id: order.orderSheet1Id,
           orderNo,
           subOrderNo,
@@ -286,7 +349,7 @@ export async function createOrder(input: CreateOrderInput) {
         }))
       });
       await tx.orderSheet2B2.createMany({
-        data: parsed.ambiguousItems.map((row) => ({
+        data: orderInput.ambiguousItems.map((row) => ({
           orderSheet1Id: order.orderSheet1Id,
           orderNo,
           subOrderNo,
@@ -314,9 +377,13 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
   const parsed = createOrderSchema.parse(input);
 
   const updated = await prisma.$transaction(async (tx) => {
-    await assertVendorHasSchool(tx, parsed);
     await assertShippingDestinationExists(tx, parsed);
-    await ensurePtCodesForSchoolCodesTx(tx, schoolCodesTouchedByOrder(parsed));
+    const ptCodeByOriginalCode = await ensurePtCodesForSchoolCodesTx(
+      tx,
+      schoolCodesTouchedByOrder(parsed)
+    );
+    const orderInput = applyPtCodesToOrder(parsed, ptCodeByOriginalCode);
+    await assertVendorHasSchool(tx, orderInput);
 
     const existing = await tx.orderSheet1.findUnique({
       where: { orderSheet1Id },
@@ -341,32 +408,32 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
       tx.orderSheet2B2.deleteMany({ where: { orderSheet1Id } })
     ]);
 
-    const shippingToSummary = await resolveShippingSummary(tx, parsed);
+    const shippingToSummary = await resolveShippingSummary(tx, orderInput);
 
     const order = await tx.orderSheet1.update({
       where: { orderSheet1Id },
       data: {
-        sessionYear: parsed.sheet1.sessionYear,
-        orderReceivedDate: toDate(parsed.sheet1.orderReceivedDate),
-        expectedDeliveryDate: toDate(parsed.sheet1.expectedDeliveryDate),
-        billingToType: parsed.sheet1.billingToType as BillingToType,
-        billingToCode: parsed.sheet1.billingToCode,
-        billingToName: parsed.sheet1.billingToName,
-        shippingToType: parsed.sheet1.shippingToType as BillingToType,
-        shippingToCode: parsed.sheet1.shippingToCode,
-        shippingToName: parsed.sheet1.shippingToName,
+        sessionYear: orderInput.sheet1.sessionYear,
+        orderReceivedDate: toDate(orderInput.sheet1.orderReceivedDate),
+        expectedDeliveryDate: toDate(orderInput.sheet1.expectedDeliveryDate),
+        billingToType: orderInput.sheet1.billingToType as BillingToType,
+        billingToCode: orderInput.sheet1.billingToCode,
+        billingToName: orderInput.sheet1.billingToName,
+        shippingToType: orderInput.sheet1.shippingToType as BillingToType,
+        shippingToCode: orderInput.sheet1.shippingToCode,
+        shippingToName: orderInput.sheet1.shippingToName,
         shippingToSummary,
-        orderType: parsed.sheet1.orderType as OrderType,
-        booksellerType: parsed.sheet1.booksellerType || null,
-        booksellerRating: parsed.sheet1.booksellerRating || null,
-        pendingPayment: parsed.sheet1.pendingPayment,
-        notes: parsed.sheet1.notes || null
+        orderType: orderInput.sheet1.orderType as OrderType,
+        booksellerType: orderInput.sheet1.booksellerType || null,
+        booksellerRating: orderInput.sheet1.booksellerRating || null,
+        pendingPayment: orderInput.sheet1.pendingPayment,
+        notes: orderInput.sheet1.notes || null
       }
     });
 
-    if (parsed.sheet1.orderType === "descriptive") {
+    if (orderInput.sheet1.orderType === "descriptive") {
       await tx.orderSheet2A.createMany({
-        data: parsed.descriptiveRows.map((row) => ({
+        data: orderInput.descriptiveRows.map((row) => ({
           orderSheet1Id,
           orderNo: existing.orderNo,
           subOrderNo: existing.subOrderNo,
@@ -380,7 +447,7 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
       });
     } else {
       await tx.orderSheet2B1.createMany({
-        data: parsed.ambiguousSchools.map((row) => ({
+        data: orderInput.ambiguousSchools.map((row) => ({
           orderSheet1Id,
           orderNo: existing.orderNo,
           subOrderNo: existing.subOrderNo,
@@ -390,7 +457,7 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
         }))
       });
       await tx.orderSheet2B2.createMany({
-        data: parsed.ambiguousItems.map((row) => ({
+        data: orderInput.ambiguousItems.map((row) => ({
           orderSheet1Id,
           orderNo: existing.orderNo,
           subOrderNo: existing.subOrderNo,

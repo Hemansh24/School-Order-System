@@ -65,11 +65,7 @@ const inputClass =
 const labelClass = "mb-1 block text-xs font-semibold uppercase text-muted";
 const initialState = { ok: false } satisfies SchoolActionState;
 
-export function AddSchoolForm({
-  nextCode
-}: {
-  nextCode: string;
-}) {
+export function AddSchoolForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const [state, action] = useActionState<SchoolActionState, FormData>(
     createSchoolAction,
@@ -85,13 +81,10 @@ export function AddSchoolForm({
   return (
     <ReferenceForm ref={formRef} action={action} title="Add School" state={state}>
       <TextField
-        key="new-school-code"
         name="schoolCode"
         label="Code"
-        required
-        defaultValue={nextCode}
-        placeholder="SCH-001"
-        helpText="Auto-generated from the latest school code."
+        defaultValue="Assigned from PT/PR"
+        helpText="Saved from the matching organisation PT code, falling back to PR code."
         readOnly
       />
       <TextField
@@ -123,11 +116,10 @@ export function EditSchoolForm({ school }: { school: SchoolFormValues }) {
     <ReferenceForm action={action} title="Edit School" state={state}>
       <TextField
         name="schoolCode"
-        label="Code"
+        label="PT/PR Code"
         required
         defaultValue={school.schoolCode}
-        placeholder="SCH-001"
-        helpText="Code is locked after creation."
+        helpText="Organisation PT code, falling back to PR code."
         readOnly
       />
       <TextField
@@ -498,7 +490,7 @@ function SchoolCodeResult({ state }: { state: SchoolActionState }) {
 
   return (
     <div className="rounded-md border border-line bg-canvas p-3 md:col-span-2 xl:col-span-3">
-      <span className={labelClass}>{state.created ? "Created School Code" : "Reused School Code"}</span>
+      <span className={labelClass}>{state.created ? "Created PT/PR Code" : "Reused PT/PR Code"}</span>
       <div className="mt-2 flex flex-wrap items-center gap-3">
         <code className="rounded bg-white px-3 py-2 text-sm font-semibold text-ink">
           {state.school.schoolCode}

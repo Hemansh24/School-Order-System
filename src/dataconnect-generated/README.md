@@ -17,6 +17,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*GetBooksellerByCode*](#getbooksellerbycode)
   - [*ListItems*](#listitems)
   - [*GetItemByCode*](#getitembycode)
+  - [*ListBooksellerSchoolMapping*](#listbooksellerschoolmapping)
 - [**Mutations**](#mutations)
 
 # Accessing the connector
@@ -892,6 +893,102 @@ console.log(data.items);
 executeQuery(ref).then((response) => {
   const data = response.data;
   console.log(data.items);
+});
+```
+
+## ListBooksellerSchoolMapping
+You can execute the `ListBooksellerSchoolMapping` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+listBooksellerSchoolMapping(options?: ExecuteQueryOptions): QueryPromise<ListBooksellerSchoolMappingData, undefined>;
+
+interface ListBooksellerSchoolMappingRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<ListBooksellerSchoolMappingData, undefined>;
+}
+export const listBooksellerSchoolMappingRef: ListBooksellerSchoolMappingRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+listBooksellerSchoolMapping(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListBooksellerSchoolMappingData, undefined>;
+
+interface ListBooksellerSchoolMappingRef {
+  ...
+  (dc: DataConnect): QueryRef<ListBooksellerSchoolMappingData, undefined>;
+}
+export const listBooksellerSchoolMappingRef: ListBooksellerSchoolMappingRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listBooksellerSchoolMappingRef:
+```typescript
+const name = listBooksellerSchoolMappingRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ListBooksellerSchoolMapping` query has no variables.
+### Return Type
+Recall that executing the `ListBooksellerSchoolMapping` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ListBooksellerSchoolMappingData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ListBooksellerSchoolMappingData {
+  booksellerSchoolMappings: ({
+    id: Int64String;
+    booksellerCode: string;
+    booksellerSubCode?: string | null;
+    ptCode: string;
+  } & BooksellerSchoolMapping_Key)[];
+}
+```
+### Using `ListBooksellerSchoolMapping`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, listBooksellerSchoolMapping } from '@dataconnect/generated';
+
+
+// Call the `listBooksellerSchoolMapping()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await listBooksellerSchoolMapping();
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await listBooksellerSchoolMapping(dataConnect);
+
+console.log(data.booksellerSchoolMappings);
+
+// Or, you can use the `Promise` API.
+listBooksellerSchoolMapping().then((response) => {
+  const data = response.data;
+  console.log(data.booksellerSchoolMappings);
+});
+```
+
+### Using `ListBooksellerSchoolMapping`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, listBooksellerSchoolMappingRef } from '@dataconnect/generated';
+
+
+// Call the `listBooksellerSchoolMappingRef()` function to get a reference to the query.
+const ref = listBooksellerSchoolMappingRef();
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = listBooksellerSchoolMappingRef(dataConnect);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.booksellerSchoolMappings);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.booksellerSchoolMappings);
 });
 ```
 

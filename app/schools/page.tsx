@@ -1,25 +1,29 @@
 import Link from "next/link";
 import { Card, PageHeader } from "@/components/ui";
-import { deleteSchoolAction } from "@/app/schools/actions";
+import { deleteSchoolAction, syncImportedOrganisationsAsSchoolsAction } from "@/app/schools/actions";
 import { InlineActionForm } from "@/components/inline-action-form";
 import { AddSchoolForm } from "@/components/reference/reference-forms";
 import { prisma } from "@/lib/prisma";
-import { nextSchoolCode } from "@/lib/reference-codes";
 
 export const dynamic = "force-dynamic";
 
 export default async function SchoolsPage() {
-  const [schools, schoolCode] = await Promise.all([
-    prisma.school.findMany({
-      orderBy: { schoolName: "asc" }
-    }),
-    nextSchoolCode()
-  ]);
+  const schools = await prisma.school.findMany({
+    orderBy: { schoolName: "asc" }
+  });
 
   return (
     <>
-      <PageHeader title="Schools" description="Destination schools for shipping and vendor links." />
-      <AddSchoolForm nextCode={schoolCode} />
+      <PageHeader
+        title="Schools"
+        description="Organisation-backed school destinations keyed by PT code, falling back to PR code."
+        action={
+          <InlineActionForm action={syncImportedOrganisationsAsSchoolsAction}>
+            Replace With Organisations
+          </InlineActionForm>
+        }
+      />
+      <AddSchoolForm />
       <Card>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[920px] text-left text-sm">
