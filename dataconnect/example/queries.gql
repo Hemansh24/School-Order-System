@@ -166,7 +166,6 @@ obsolete
 }
 
 }
-
 query ListBooksellerSchoolMapping
 @auth(level: PUBLIC) {
 

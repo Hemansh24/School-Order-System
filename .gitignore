@@ -71,3 +71,9 @@ gcloud/
 tmp/
 temp/
 *.tmp
+
+# Firebase Data Connect local emulator/generated state
+dataconnect/.dataconnect/
+
+# TypeScript incremental build cache
+tsconfig.tsbuildinfo
