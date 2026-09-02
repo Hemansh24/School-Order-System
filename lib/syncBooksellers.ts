@@ -152,6 +152,9 @@ export async function replaceVendorsWithImportedBooksellers(): Promise<Bookselle
   );
   const mappedSchoolCodes = flattenMappedSchoolCodes(schoolCodesByVendorCode);
 
+  let linkedSchoolMappings = 0;
+  let unmatchedSchoolMappings = mappingRows.length;
+
   if (mappingRows.length > 0 && mappedSchoolCodes.length > 0) {
     const matchingSchools = await prisma.school.count({
       where: {
@@ -162,14 +165,13 @@ export async function replaceVendorsWithImportedBooksellers(): Promise<Bookselle
     });
 
     if (matchingSchools === 0) {
-      throw new Error(
-        "Imported school mappings were found, but none match local PT/PR school references. Sync organisations with PT codes before replacing vendors."
+      // No local schools match the imported PT/PR codes, but we can still import vendors.
+      // The unmatched school mappings will be reported in the sync summary.
+      console.warn(
+        "Imported school mappings were found, but none match local PT/PR school references. Proceeding without school links."
       );
     }
   }
-
-  let linkedSchoolMappings = 0;
-  let unmatchedSchoolMappings = mappingRows.length;
 
   await prisma.$transaction(async (tx) => {
     await tx.vendorSchool.deleteMany();
