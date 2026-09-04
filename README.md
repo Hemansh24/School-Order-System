@@ -42,6 +42,14 @@ npm run prisma:migrate
 npm run prisma:seed
 ```
 
+The seed command installs demo records only. To replace them with the shared Firebase Data Connect records, run the imports in dependency order:
+
+```bash
+npm run organisations:sync
+npm run booksellers:sync
+npm run items:sync
+```
+
 4. Start the app:
 
 ```bash
@@ -49,6 +57,8 @@ npm run dev
 ```
 
 Open `http://localhost:3000`.
+
+The same imports are available in the UI through the replace buttons on the Organisations, Vendors, and Items pages. Each clone uses its own PostgreSQL database from `DATABASE_URL`; Git does not transfer database contents.
 
 ## Important Files
 

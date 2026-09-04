@@ -5,6 +5,7 @@ import { formatActionError } from "@/lib/action-errors";
 import { prisma } from "@/lib/prisma";
 import { DEFAULT_LANGUAGE_CODE, generateItemCode } from "@/lib/item-code";
 import { validateItemCodeUnique } from "@/lib/services/reference";
+import { replaceItemsWithImportedItems } from "@/lib/syncItems";
 import { createItemSchema } from "@/lib/validation/reference";
 
 export type ReferenceActionState = {
@@ -133,6 +134,30 @@ export async function deleteItemAction(
       ok: false,
       message: formatActionError(error, {
         fallback: "Could not delete this item. Please try again."
+      })
+    };
+  }
+}
+
+export async function syncImportedItemsAction(
+  _previousState: ReferenceActionState,
+  _formData: FormData
+): Promise<ReferenceActionState> {
+  try {
+    const summary = await replaceItemsWithImportedItems();
+
+    revalidatePath("/items");
+    revalidatePath("/orders/new");
+    revalidatePath("/orders");
+    return {
+      ok: true,
+      message: `Replaced items with ${summary.replacedItems} of ${summary.importedItems} imported items.`
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: formatActionError(error, {
+        fallback: "Could not replace items from the imported items table."
       })
     };
   }

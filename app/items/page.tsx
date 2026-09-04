@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Card, PageHeader, StatusPill } from "@/components/ui";
-import { deleteItemAction } from "@/app/items/actions";
+import { deleteItemAction, syncImportedItemsAction } from "@/app/items/actions";
 import { InlineActionForm } from "@/components/inline-action-form";
 import { AddItemForm } from "@/components/reference/reference-forms";
 import { prisma } from "@/lib/prisma";
@@ -12,7 +12,15 @@ export default async function ItemsPage() {
 
   return (
     <>
-      <PageHeader title="Items" description="Books and related items available for order rows." />
+      <PageHeader
+        title="Items"
+        description="Books and related items available for order rows."
+        action={
+          <InlineActionForm action={syncImportedItemsAction}>
+            Replace With Imported Items
+          </InlineActionForm>
+        }
+      />
       <AddItemForm />
       <Card>
         <div className="overflow-x-auto">

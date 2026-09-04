@@ -16,6 +16,8 @@ export type BooksellerSyncSummary = {
   importedSchoolMappings: number;
   linkedSchoolMappings: number;
   unmatchedSchoolMappings: number;
+  linkedVendors: number;
+  unlinkedVendors: number;
 };
 
 const FIREBASE_PROJECT_ID =
@@ -170,6 +172,7 @@ export async function replaceVendorsWithImportedBooksellers(): Promise<Bookselle
 
   let linkedSchoolMappings = 0;
   let unmatchedSchoolMappings = mappingRows.length;
+  let linkedVendors = 0;
 
   await prisma.$transaction(async (tx) => {
     await tx.vendorSchool.deleteMany();
@@ -181,6 +184,7 @@ export async function replaceVendorsWithImportedBooksellers(): Promise<Bookselle
     const vendorSchoolRows = await resolveVendorSchoolRows(tx, schoolCodesByVendorCode);
     linkedSchoolMappings = vendorSchoolRows.length;
     unmatchedSchoolMappings = Math.max(0, mappingRows.length - linkedSchoolMappings);
+    linkedVendors = new Set(vendorSchoolRows.map((row) => row.vendorId)).size;
 
     if (vendorSchoolRows.length > 0) {
       await tx.vendorSchool.createMany({
@@ -195,7 +199,9 @@ export async function replaceVendorsWithImportedBooksellers(): Promise<Bookselle
     replacedVendors: nextVendors.length,
     importedSchoolMappings: mappingRows.length,
     linkedSchoolMappings,
-    unmatchedSchoolMappings
+    unmatchedSchoolMappings,
+    linkedVendors,
+    unlinkedVendors: Math.max(0, nextVendors.length - linkedVendors)
   };
 }
 

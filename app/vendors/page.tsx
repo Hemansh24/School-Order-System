@@ -52,7 +52,9 @@ export default async function VendorsPage() {
                   <td className="px-4 py-3 text-muted">{vendor.vendorType}</td>
                   <td className="px-4 py-3 text-muted">{vendor.vendorRating}</td>
                   <td className="px-4 py-3 text-muted">
-                    {vendor.vendorSchools.map((row) => row.school.schoolName).join(", ")}
+                    {vendor.vendorSchools.length > 0
+                      ? vendor.vendorSchools.map((row) => row.school.schoolName).join(", ")
+                      : "Not linked"}
                   </td>
                   <td className="px-4 py-3 text-muted">{vendor.contactPerson}</td>
                   <td className="px-4 py-3">

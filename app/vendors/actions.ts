@@ -148,7 +148,7 @@ export async function syncImportedBooksellersAction(
     revalidatePath("/orders");
     return {
       ok: true,
-      message: `Replaced vendors with ${summary.importedBooksellers} imported booksellers and linked ${summary.linkedSchoolMappings} of ${summary.importedSchoolMappings} imported school mappings (${summary.unmatchedSchoolMappings} unmatched).`
+      message: `Replaced vendors with ${summary.importedBooksellers} imported booksellers. ${summary.linkedVendors} vendors have school links and ${summary.unlinkedVendors} do not; ${summary.linkedSchoolMappings} of ${summary.importedSchoolMappings} mapping rows matched (${summary.unmatchedSchoolMappings} unmatched).`
     };
   } catch (error) {
     return {
