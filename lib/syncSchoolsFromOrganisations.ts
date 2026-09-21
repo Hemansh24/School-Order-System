@@ -117,23 +117,6 @@ function toOrganisationSource(organisation: ImportedOrganisationDetail): Organis
   };
 }
 
-async function loadLocalOrganisations(): Promise<OrganisationSource[]> {
-  return prisma.organisation.findMany({
-    orderBy: [{ organisationName: "asc" }, { prCode: "asc" }],
-    select: {
-      prCode: true,
-      ptCode: true,
-      organisationName: true,
-      address: true,
-      district: true,
-      state: true,
-      pinCode: true,
-      phone: true,
-      email: true
-    }
-  });
-}
-
 async function loadImportedOrganisationsFromDataConnect(): Promise<OrganisationSource[]> {
   ensureFirebaseApp();
 
@@ -159,12 +142,9 @@ async function loadImportedOrganisationsFromDataConnect(): Promise<OrganisationS
 }
 
 async function loadOrganisationSources(): Promise<OrganisationSource[]> {
-  const localOrganisations = await loadLocalOrganisations();
-
-  if (localOrganisations.length > 0) {
-    return localOrganisations;
-  }
-
+  // Schools in the shared master-data workflow must use the Data Connect PT
+  // codes. Local Organisation rows may be partial or manually maintained and
+  // must not prevent vendor-to-school mappings from being resolved.
   return loadImportedOrganisationsFromDataConnect();
 }
 

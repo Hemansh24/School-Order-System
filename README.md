@@ -73,6 +73,8 @@ npm run master-data:sync
 
 The import order is significant: schools must exist before bookseller-school mappings are created. The import commands replace the local school, vendor, and item master tables.
 
+`schools:sync` always imports the shared Firebase/Data Connect organisations and their PT codes. Local Organisation records are not used for this shared master-data import, so they cannot prevent bookseller-to-school mappings from being created.
+
 7. Start the development server:
 
 ```bash
