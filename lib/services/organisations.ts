@@ -1,24 +1,8 @@
-import {
-  getOrganisationByPrCode,
-  listOrganisations,
-  searchOrganisations,
-  type GetOrganisationByPrCodeData,
-  type SearchOrganisationsData,
-  type SearchOrganisationsVariables
-} from "@dataconnect/generated";
 import { Prisma } from "@prisma/client";
-import { getApp, getApps, initializeApp } from "firebase/app";
 import { prisma } from "@/lib/prisma";
 import { nextCompactCode } from "@/lib/reference-codes";
 
 const ORGANISATIONS_PAGE_SIZE = 25;
-const FIREBASE_PROJECT_ID =
-  process.env.FIREBASE_PROJECT_ID ??
-  process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ??
-  "system-order-34c0a";
-
-type OrganisationListRecord = SearchOrganisationsData["organisations"][number];
-type OrganisationDetailRecord = GetOrganisationByPrCodeData["organisations"][number];
 type Tx = Prisma.TransactionClient;
 
 type OrganisationAddressInput = {
@@ -107,16 +91,6 @@ export type OrganisationLookupData = {
   usedFallbackSearch: boolean;
 };
 
-function ensureFirebaseApp() {
-  if (getApps().length > 0) {
-    return getApp();
-  }
-
-  return initializeApp({
-    projectId: FIREBASE_PROJECT_ID
-  });
-}
-
 function normalizeValue(value: string | null) {
   return value?.trim() ?? "";
 }
@@ -200,53 +174,21 @@ function toWorkingStatusFilter(value: string): boolean | null | undefined {
   return undefined;
 }
 
-function includesValue(source: string | null | undefined, entered: string) {
-  if (!entered) {
-    return true;
-  }
-
-  return (source ?? "").toLowerCase().includes(entered.toLowerCase());
-}
-
-function matchesFilters(record: OrganisationListRecord, filters: OrganisationLookupFilters) {
-  if (!includesValue(record.prCode, filters.prCode)) {
-    return false;
-  }
-
-  if (!includesValue(record.organisationName, filters.organisationName)) {
-    return false;
-  }
-
-  if (!includesValue(record.district, filters.district)) {
-    return false;
-  }
-
-  if (!includesValue(record.state, filters.state)) {
-    return false;
-  }
-
-  if (!includesValue(record.actionStatus, filters.actionStatus)) {
-    return false;
-  }
-
-  if (filters.workingStatus === "working" && record.workingStatus !== true) {
-    return false;
-  }
-
-  if (filters.workingStatus === "not_working" && record.workingStatus !== false) {
-    return false;
-  }
-
-  if (filters.workingStatus === "unknown" && record.workingStatus !== null) {
-    return false;
-  }
-
-  return true;
-}
-
-function mapListItem(record: OrganisationListRecord): OrganisationListItem {
+function mapListItem(record: {
+  id: bigint;
+  prCode: string;
+  organisationName: string;
+  district: string | null;
+  state: string | null;
+  pinCode: string | null;
+  phone: string | null;
+  email: string | null;
+  website: string | null;
+  actionStatus: string | null;
+  workingStatus: boolean | null;
+}): OrganisationListItem {
   return {
-    id: record.id,
+    id: record.id.toString(),
     prCode: record.prCode,
     organisationName: record.organisationName,
     district: record.district ?? null,
@@ -260,9 +202,31 @@ function mapListItem(record: OrganisationListRecord): OrganisationListItem {
   };
 }
 
-function mapDetail(record: OrganisationDetailRecord): OrganisationDetail {
+function mapDetail(record: {
+  id: bigint;
+  prCode: string;
+  groupCode: string | null;
+  ptCode: string | null;
+  organisationName: string;
+  address: string | null;
+  district: string | null;
+  state: string | null;
+  pinCode: string | null;
+  phone: string | null;
+  email: string | null;
+  website: string | null;
+  actionStatus: string | null;
+  remark: string | null;
+  academicYear: string | null;
+  strength: number | null;
+  boardType: string | null;
+  sessionStartFrom: Date | null;
+  minorityType: string | null;
+  saturdayStatus: string | null;
+  workingStatus: boolean | null;
+}): OrganisationDetail {
   return {
-    id: record.id,
+    id: record.id.toString(),
     prCode: record.prCode,
     groupCode: record.groupCode ?? null,
     ptCode: record.ptCode ?? null,
@@ -279,18 +243,11 @@ function mapDetail(record: OrganisationDetailRecord): OrganisationDetail {
     academicYear: record.academicYear ?? null,
     strength: record.strength ?? null,
     boardType: record.boardType ?? null,
-    sessionStartFrom: record.sessionStartFrom ?? null,
+    sessionStartFrom: record.sessionStartFrom?.toISOString() ?? null,
     minorityType: record.minorityType ?? null,
     saturdayStatus: record.saturdayStatus ?? null,
     workingStatus: record.workingStatus ?? null
   };
-}
-
-function isOperationNotDeployed(error: unknown) {
-  return (
-    error instanceof Error &&
-    error.message.includes('operation "SearchOrganisations" not found')
-  );
 }
 
 export function isOrganisationPermissionError(error: unknown) {
@@ -581,38 +538,41 @@ export async function ensurePtCodesForSchoolCodesTx(tx: Tx, schoolCodes: string[
 }
 
 async function loadFilteredOrganisations(filters: OrganisationLookupFilters) {
-  ensureFirebaseApp();
-
   const workingStatus = toWorkingStatusFilter(filters.workingStatus);
-  const vars: SearchOrganisationsVariables = {
-    prCode: filters.prCode || undefined,
-    organisationName: filters.organisationName || undefined,
-    district: filters.district || undefined,
-    state: filters.state || undefined,
-    actionStatus: filters.actionStatus || undefined,
-    workingStatus,
-    limit: 1000,
-    offset: 0
+  const where: Prisma.OrganisationWhereInput = {
+    ...(filters.prCode && { prCode: { contains: filters.prCode, mode: "insensitive" } }),
+    ...(filters.organisationName && {
+      organisationName: { contains: filters.organisationName, mode: "insensitive" }
+    }),
+    ...(filters.district && { district: { contains: filters.district, mode: "insensitive" } }),
+    ...(filters.state && { state: { contains: filters.state, mode: "insensitive" } }),
+    ...(filters.actionStatus && {
+      actionStatus: { contains: filters.actionStatus, mode: "insensitive" }
+    }),
+    ...(workingStatus !== undefined && { workingStatus })
   };
 
-  try {
-    const { data } = await searchOrganisations(vars);
-    return {
-      organisations: data.organisations.map(mapListItem),
-      usedFallbackSearch: false
-    };
-  } catch (error) {
-    if (!isOperationNotDeployed(error)) {
-      throw error;
+  const organisations = await prisma.organisation.findMany({
+    where,
+    orderBy: [{ organisationName: "asc" }, { prCode: "asc" }],
+    select: {
+      id: true,
+      prCode: true,
+      organisationName: true,
+      district: true,
+      state: true,
+      pinCode: true,
+      phone: true,
+      email: true,
+      website: true,
+      actionStatus: true,
+      workingStatus: true
     }
-  }
-
-  const { data } = await listOrganisations();
-  const filtered = data.organisations.filter((record) => matchesFilters(record, filters));
+  });
 
   return {
-    organisations: filtered.map(mapListItem),
-    usedFallbackSearch: true
+    organisations: organisations.map(mapListItem),
+    usedFallbackSearch: false
   };
 }
 
@@ -621,9 +581,16 @@ async function loadSelectedOrganisation(prCode: string) {
     return null;
   }
 
-  ensureFirebaseApp();
-  const { data } = await getOrganisationByPrCode({ prCode });
-  const selected = data.organisations[0];
+  const selected = await prisma.organisation.findUnique({
+    where: { prCode },
+    select: {
+      id: true, prCode: true, groupCode: true, ptCode: true, organisationName: true,
+      address: true, district: true, state: true, pinCode: true, phone: true, email: true,
+      website: true, actionStatus: true, remark: true, academicYear: true, strength: true,
+      boardType: true, sessionStartFrom: true, minorityType: true, saturdayStatus: true,
+      workingStatus: true
+    }
+  });
   return selected ? mapDetail(selected) : null;
 }
 

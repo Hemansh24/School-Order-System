@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "prisma generate && next dev",
+    "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
@@ -15,7 +15,8 @@
     "organisations:sync": "tsx -e \"import { syncOrganisations } from './lib/syncOrganisations'; syncOrganisations().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",
     "schools:sync": "tsx -e \"import { replaceSchoolsWithImportedOrganisations } from './lib/syncSchoolsFromOrganisations'; replaceSchoolsWithImportedOrganisations().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",
     "booksellers:sync": "tsx -e \"import { replaceVendorsWithImportedBooksellers } from './lib/syncBooksellers'; replaceVendorsWithImportedBooksellers().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",
-    "items:sync": "tsx -e \"import { replaceItemsWithImportedItems } from './lib/syncItems'; replaceItemsWithImportedItems().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\""
+    "items:sync": "tsx -e \"import { replaceItemsWithImportedItems } from './lib/syncItems'; replaceItemsWithImportedItems().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",
+    "master-data:sync": "npm run schools:sync && npm run booksellers:sync && npm run items:sync"
   },
   "dependencies": {
     "@dataconnect/generated": "file:src/dataconnect-generated",

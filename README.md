@@ -23,34 +23,57 @@ Next.js App Router application for school-book order processing with the require
 
 ## Setup
 
-1. Install dependencies:
+### Prerequisites
+
+- Git
+- Node.js 22 LTS and npm
+- PostgreSQL with a running server
+- Network access to Firebase project `system-order-34c0a`
+
+### Fresh clone
+
+1. Clone the repository and enter it:
 
 ```bash
-npm install
+git clone <repository-url>
+cd order
 ```
 
-2. Create `.env` from the example and point it to PostgreSQL:
+2. Install the exact dependency versions from the lockfile:
 
 ```bash
-cp .env.example .env
+npm ci
 ```
 
-3. Run migrations and seed data:
+3. Create the PostgreSQL database:
+
+```sql
+CREATE DATABASE school_order_management;
+```
+
+4. Copy `.env.example` to `.env`. On Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Update `DATABASE_URL` in `.env` if the PostgreSQL username, password, host, port, or database name differs from the example.
+
+5. Apply the committed database migrations:
 
 ```bash
-npm run prisma:migrate
-npm run prisma:seed
+npm run prisma:deploy
 ```
 
-The seed command installs demo records only. To replace them with the shared Firebase Data Connect records, run the imports in dependency order:
+6. Import shared schools, vendors, and items from Firebase Data Connect:
 
 ```bash
-npm run organisations:sync
-npm run booksellers:sync
-npm run items:sync
+npm run master-data:sync
 ```
 
-4. Start the app:
+The import order is significant: schools must exist before bookseller-school mappings are created. The import commands replace the local school, vendor, and item master tables.
+
+7. Start the development server:
 
 ```bash
 npm run dev
@@ -58,7 +81,30 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-The same imports are available in the UI through the replace buttons on the Organisations, Vendors, and Items pages. Each clone uses its own PostgreSQL database from `DATABASE_URL`; Git does not transfer database contents.
+8. Verify the Organisations, Schools, Vendors, Items, Create Order, Orders, and Reports/Search pages. Create one test order to verify local PostgreSQL writes.
+
+### Optional data workflows
+
+To install demo schools, vendors, items, and orders instead of shared master data, run:
+
+```bash
+npm run prisma:seed
+```
+
+The seed command deletes existing application data before inserting demo records. Do not run it against a database containing data you need.
+
+`npm run organisations:sync` is a separate Google Sheets-to-local-PostgreSQL import. It requires `GOOGLE_SHEETS_ID`, `GOOGLE_SHEETS_RANGE`, Google Application Default Credentials, and read access to the spreadsheet. It is not required for the normal Firebase Data Connect setup above.
+
+The shared imports are also available through replace buttons on the Schools, Vendors, and Items pages. Each clone uses its own PostgreSQL database from `DATABASE_URL`; Git never transfers PostgreSQL contents or `.env` secrets.
+
+### Production check
+
+Before handing off a clone, verify a production build:
+
+```bash
+npm run build
+npm start
+```
 
 ## Important Files
 
