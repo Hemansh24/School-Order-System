@@ -121,15 +121,22 @@ Below are examples of how to use the `example` connector's generated Query hook 
 You can execute the `ListOrganisations` Query using the following Query hook function, which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts):
 
 ```javascript
-useListOrganisations(dc: DataConnect, options?: useDataConnectQueryOptions<ListOrganisationsData>): UseDataConnectQueryResult<ListOrganisationsData, undefined>;
+useListOrganisations(dc: DataConnect, vars?: ListOrganisationsVariables, options?: useDataConnectQueryOptions<ListOrganisationsData>): UseDataConnectQueryResult<ListOrganisationsData, ListOrganisationsVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Query hook function.
 ```javascript
-useListOrganisations(options?: useDataConnectQueryOptions<ListOrganisationsData>): UseDataConnectQueryResult<ListOrganisationsData, undefined>;
+useListOrganisations(vars?: ListOrganisationsVariables, options?: useDataConnectQueryOptions<ListOrganisationsData>): UseDataConnectQueryResult<ListOrganisationsData, ListOrganisationsVariables>;
 ```
 
 ### Variables
-The `ListOrganisations` Query has no variables.
+The `ListOrganisations` Query has an optional argument of type `ListOrganisationsVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface ListOrganisationsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+```
 ### Return Type
 Recall that calling the `ListOrganisations` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
 
@@ -140,8 +147,11 @@ To access the data returned by a Query, use the `UseQueryResult.data` field. The
 export interface ListOrganisationsData {
   organisations: ({
     id: Int64String;
+    groupCode?: string | null;
+    ptCode?: string | null;
     prCode: string;
     organisationName: string;
+    address?: string | null;
     district?: string | null;
     state?: string | null;
     pinCode?: string | null;
@@ -149,6 +159,13 @@ export interface ListOrganisationsData {
     email?: string | null;
     website?: string | null;
     actionStatus?: string | null;
+    remark?: string | null;
+    academicYear?: string | null;
+    strength?: number | null;
+    boardType?: string | null;
+    sessionStartFrom?: DateString | null;
+    minorityType?: string | null;
+    saturdayStatus?: string | null;
     workingStatus?: boolean | null;
   } & Organisation_Key)[];
 }
@@ -160,26 +177,40 @@ To learn more about the `UseQueryResult` object, see the [TanStack React Query d
 
 ```javascript
 import { getDataConnect } from 'firebase/data-connect';
-import { connectorConfig } from '@dataconnect/generated';
+import { connectorConfig, ListOrganisationsVariables } from '@dataconnect/generated';
 import { useListOrganisations } from '@dataconnect/generated/react'
 
 export default function ListOrganisationsComponent() {
+  // The `useListOrganisations` Query hook has an optional argument of type `ListOrganisationsVariables`:
+  const listOrganisationsVars: ListOrganisationsVariables = {
+    limit: ..., // optional
+    offset: ..., // optional
+  };
+
   // You don't have to do anything to "execute" the Query.
   // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
+  const query = useListOrganisations(listOrganisationsVars);
+  // Variables can be defined inline as well.
+  const query = useListOrganisations({ limit: ..., offset: ..., });
+  // Since all variables are optional for this Query, you can omit the `ListOrganisationsVariables` argument.
+  // (as long as you don't want to provide any `options`!)
   const query = useListOrganisations();
 
   // You can also pass in a `DataConnect` instance to the Query hook function.
   const dataConnect = getDataConnect(connectorConfig);
-  const query = useListOrganisations(dataConnect);
+  const query = useListOrganisations(dataConnect, listOrganisationsVars);
 
   // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
   const options = { staleTime: 5 * 1000 };
-  const query = useListOrganisations(options);
+  const query = useListOrganisations(listOrganisationsVars, options);
+  // If you'd like to provide options without providing any variables, you must
+  // pass `undefined` where you would normally pass the variables.
+  const query = useListOrganisations(undefined, options);
 
   // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
   const dataConnect = getDataConnect(connectorConfig);
   const options = { staleTime: 5 * 1000 };
-  const query = useListOrganisations(dataConnect, options);
+  const query = useListOrganisations(dataConnect, listOrganisationsVars /** or undefined */, options);
 
   // Then, you can render your component dynamically based on the status of the Query.
   if (query.isPending) {
@@ -420,15 +451,22 @@ export default function GetOrganisationByPrCodeComponent() {
 You can execute the `ListBooksellers` Query using the following Query hook function, which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts):
 
 ```javascript
-useListBooksellers(dc: DataConnect, options?: useDataConnectQueryOptions<ListBooksellersData>): UseDataConnectQueryResult<ListBooksellersData, undefined>;
+useListBooksellers(dc: DataConnect, vars?: ListBooksellersVariables, options?: useDataConnectQueryOptions<ListBooksellersData>): UseDataConnectQueryResult<ListBooksellersData, ListBooksellersVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Query hook function.
 ```javascript
-useListBooksellers(options?: useDataConnectQueryOptions<ListBooksellersData>): UseDataConnectQueryResult<ListBooksellersData, undefined>;
+useListBooksellers(vars?: ListBooksellersVariables, options?: useDataConnectQueryOptions<ListBooksellersData>): UseDataConnectQueryResult<ListBooksellersData, ListBooksellersVariables>;
 ```
 
 ### Variables
-The `ListBooksellers` Query has no variables.
+The `ListBooksellers` Query has an optional argument of type `ListBooksellersVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface ListBooksellersVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+```
 ### Return Type
 Recall that calling the `ListBooksellers` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
 
@@ -442,12 +480,18 @@ export interface ListBooksellersData {
     booksellerCode: string;
     booksellerSubCode?: string | null;
     booksellerName: string;
+    academicYear?: string | null;
+    address01?: string | null;
     district?: string | null;
     state?: string | null;
     pinCode?: string | null;
+    gstPin?: string | null;
+    incumbentCode?: string | null;
+    incumbentName?: string | null;
     contactNumber?: string | null;
     email?: string | null;
     vendorType?: string | null;
+    remark?: string | null;
   } & Bookseller_Key)[];
 }
 ```
@@ -458,26 +502,40 @@ To learn more about the `UseQueryResult` object, see the [TanStack React Query d
 
 ```javascript
 import { getDataConnect } from 'firebase/data-connect';
-import { connectorConfig } from '@dataconnect/generated';
+import { connectorConfig, ListBooksellersVariables } from '@dataconnect/generated';
 import { useListBooksellers } from '@dataconnect/generated/react'
 
 export default function ListBooksellersComponent() {
+  // The `useListBooksellers` Query hook has an optional argument of type `ListBooksellersVariables`:
+  const listBooksellersVars: ListBooksellersVariables = {
+    limit: ..., // optional
+    offset: ..., // optional
+  };
+
   // You don't have to do anything to "execute" the Query.
   // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
+  const query = useListBooksellers(listBooksellersVars);
+  // Variables can be defined inline as well.
+  const query = useListBooksellers({ limit: ..., offset: ..., });
+  // Since all variables are optional for this Query, you can omit the `ListBooksellersVariables` argument.
+  // (as long as you don't want to provide any `options`!)
   const query = useListBooksellers();
 
   // You can also pass in a `DataConnect` instance to the Query hook function.
   const dataConnect = getDataConnect(connectorConfig);
-  const query = useListBooksellers(dataConnect);
+  const query = useListBooksellers(dataConnect, listBooksellersVars);
 
   // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
   const options = { staleTime: 5 * 1000 };
-  const query = useListBooksellers(options);
+  const query = useListBooksellers(listBooksellersVars, options);
+  // If you'd like to provide options without providing any variables, you must
+  // pass `undefined` where you would normally pass the variables.
+  const query = useListBooksellers(undefined, options);
 
   // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
   const dataConnect = getDataConnect(connectorConfig);
   const options = { staleTime: 5 * 1000 };
-  const query = useListBooksellers(dataConnect, options);
+  const query = useListBooksellers(dataConnect, listBooksellersVars /** or undefined */, options);
 
   // Then, you can render your component dynamically based on the status of the Query.
   if (query.isPending) {
@@ -599,15 +657,22 @@ export default function GetBooksellerByCodeComponent() {
 You can execute the `ListItems` Query using the following Query hook function, which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts):
 
 ```javascript
-useListItems(dc: DataConnect, options?: useDataConnectQueryOptions<ListItemsData>): UseDataConnectQueryResult<ListItemsData, undefined>;
+useListItems(dc: DataConnect, vars?: ListItemsVariables, options?: useDataConnectQueryOptions<ListItemsData>): UseDataConnectQueryResult<ListItemsData, ListItemsVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Query hook function.
 ```javascript
-useListItems(options?: useDataConnectQueryOptions<ListItemsData>): UseDataConnectQueryResult<ListItemsData, undefined>;
+useListItems(vars?: ListItemsVariables, options?: useDataConnectQueryOptions<ListItemsData>): UseDataConnectQueryResult<ListItemsData, ListItemsVariables>;
 ```
 
 ### Variables
-The `ListItems` Query has no variables.
+The `ListItems` Query has an optional argument of type `ListItemsVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface ListItemsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+```
 ### Return Type
 Recall that calling the `ListItems` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
 
@@ -621,7 +686,12 @@ export interface ListItemsData {
     itemCode: string;
     title: string;
     categoryType?: string | null;
+    categoryCode?: string | null;
+    subCategoryCode?: string | null;
     languageCode?: string | null;
+    customisationType?: string | null;
+    customisationCode?: string | null;
+    editionCode?: string | null;
     mrp?: number | null;
     isbnNo?: string | null;
     obsolete?: boolean | null;
@@ -635,26 +705,40 @@ To learn more about the `UseQueryResult` object, see the [TanStack React Query d
 
 ```javascript
 import { getDataConnect } from 'firebase/data-connect';
-import { connectorConfig } from '@dataconnect/generated';
+import { connectorConfig, ListItemsVariables } from '@dataconnect/generated';
 import { useListItems } from '@dataconnect/generated/react'
 
 export default function ListItemsComponent() {
+  // The `useListItems` Query hook has an optional argument of type `ListItemsVariables`:
+  const listItemsVars: ListItemsVariables = {
+    limit: ..., // optional
+    offset: ..., // optional
+  };
+
   // You don't have to do anything to "execute" the Query.
   // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
+  const query = useListItems(listItemsVars);
+  // Variables can be defined inline as well.
+  const query = useListItems({ limit: ..., offset: ..., });
+  // Since all variables are optional for this Query, you can omit the `ListItemsVariables` argument.
+  // (as long as you don't want to provide any `options`!)
   const query = useListItems();
 
   // You can also pass in a `DataConnect` instance to the Query hook function.
   const dataConnect = getDataConnect(connectorConfig);
-  const query = useListItems(dataConnect);
+  const query = useListItems(dataConnect, listItemsVars);
 
   // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
   const options = { staleTime: 5 * 1000 };
-  const query = useListItems(options);
+  const query = useListItems(listItemsVars, options);
+  // If you'd like to provide options without providing any variables, you must
+  // pass `undefined` where you would normally pass the variables.
+  const query = useListItems(undefined, options);
 
   // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
   const dataConnect = getDataConnect(connectorConfig);
   const options = { staleTime: 5 * 1000 };
-  const query = useListItems(dataConnect, options);
+  const query = useListItems(dataConnect, listItemsVars /** or undefined */, options);
 
   // Then, you can render your component dynamically based on the status of the Query.
   if (query.isPending) {
@@ -773,15 +857,22 @@ export default function GetItemByCodeComponent() {
 You can execute the `ListBooksellerSchoolMapping` Query using the following Query hook function, which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts):
 
 ```javascript
-useListBooksellerSchoolMapping(dc: DataConnect, options?: useDataConnectQueryOptions<ListBooksellerSchoolMappingData>): UseDataConnectQueryResult<ListBooksellerSchoolMappingData, undefined>;
+useListBooksellerSchoolMapping(dc: DataConnect, vars?: ListBooksellerSchoolMappingVariables, options?: useDataConnectQueryOptions<ListBooksellerSchoolMappingData>): UseDataConnectQueryResult<ListBooksellerSchoolMappingData, ListBooksellerSchoolMappingVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Query hook function.
 ```javascript
-useListBooksellerSchoolMapping(options?: useDataConnectQueryOptions<ListBooksellerSchoolMappingData>): UseDataConnectQueryResult<ListBooksellerSchoolMappingData, undefined>;
+useListBooksellerSchoolMapping(vars?: ListBooksellerSchoolMappingVariables, options?: useDataConnectQueryOptions<ListBooksellerSchoolMappingData>): UseDataConnectQueryResult<ListBooksellerSchoolMappingData, ListBooksellerSchoolMappingVariables>;
 ```
 
 ### Variables
-The `ListBooksellerSchoolMapping` Query has no variables.
+The `ListBooksellerSchoolMapping` Query has an optional argument of type `ListBooksellerSchoolMappingVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface ListBooksellerSchoolMappingVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+```
 ### Return Type
 Recall that calling the `ListBooksellerSchoolMapping` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
 
@@ -805,26 +896,40 @@ To learn more about the `UseQueryResult` object, see the [TanStack React Query d
 
 ```javascript
 import { getDataConnect } from 'firebase/data-connect';
-import { connectorConfig } from '@dataconnect/generated';
+import { connectorConfig, ListBooksellerSchoolMappingVariables } from '@dataconnect/generated';
 import { useListBooksellerSchoolMapping } from '@dataconnect/generated/react'
 
 export default function ListBooksellerSchoolMappingComponent() {
+  // The `useListBooksellerSchoolMapping` Query hook has an optional argument of type `ListBooksellerSchoolMappingVariables`:
+  const listBooksellerSchoolMappingVars: ListBooksellerSchoolMappingVariables = {
+    limit: ..., // optional
+    offset: ..., // optional
+  };
+
   // You don't have to do anything to "execute" the Query.
   // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
+  const query = useListBooksellerSchoolMapping(listBooksellerSchoolMappingVars);
+  // Variables can be defined inline as well.
+  const query = useListBooksellerSchoolMapping({ limit: ..., offset: ..., });
+  // Since all variables are optional for this Query, you can omit the `ListBooksellerSchoolMappingVariables` argument.
+  // (as long as you don't want to provide any `options`!)
   const query = useListBooksellerSchoolMapping();
 
   // You can also pass in a `DataConnect` instance to the Query hook function.
   const dataConnect = getDataConnect(connectorConfig);
-  const query = useListBooksellerSchoolMapping(dataConnect);
+  const query = useListBooksellerSchoolMapping(dataConnect, listBooksellerSchoolMappingVars);
 
   // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
   const options = { staleTime: 5 * 1000 };
-  const query = useListBooksellerSchoolMapping(options);
+  const query = useListBooksellerSchoolMapping(listBooksellerSchoolMappingVars, options);
+  // If you'd like to provide options without providing any variables, you must
+  // pass `undefined` where you would normally pass the variables.
+  const query = useListBooksellerSchoolMapping(undefined, options);
 
   // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
   const dataConnect = getDataConnect(connectorConfig);
   const options = { staleTime: 5 * 1000 };
-  const query = useListBooksellerSchoolMapping(dataConnect, options);
+  const query = useListBooksellerSchoolMapping(dataConnect, listBooksellerSchoolMappingVars /** or undefined */, options);
 
   // Then, you can render your component dynamically based on the status of the Query.
   if (query.isPending) {

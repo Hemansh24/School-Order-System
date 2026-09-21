@@ -1,7 +1,6 @@
 import {
-  getOrganisationByPrCode,
   listOrganisations,
-  type GetOrganisationByPrCodeData
+  type ListOrganisationsData
 } from "@dataconnect/generated";
 import { getApp, getApps, initializeApp } from "firebase/app";
 import { prisma } from "@/lib/prisma";
@@ -29,7 +28,7 @@ type OrganisationSource = {
   email: string | null;
 };
 
-type ImportedOrganisationDetail = GetOrganisationByPrCodeData["organisations"][number];
+type ImportedOrganisation = ListOrganisationsData["organisations"][number];
 
 type ExistingVendor = Awaited<
   ReturnType<
@@ -103,7 +102,7 @@ function toSchoolData(organisation: {
   };
 }
 
-function toOrganisationSource(organisation: ImportedOrganisationDetail): OrganisationSource {
+function toOrganisationSource(organisation: ImportedOrganisation): OrganisationSource {
   return {
     prCode: organisation.prCode,
     ptCode: organisation.ptCode ?? null,
@@ -120,19 +119,19 @@ function toOrganisationSource(organisation: ImportedOrganisationDetail): Organis
 async function loadImportedOrganisationsFromDataConnect(): Promise<OrganisationSource[]> {
   ensureFirebaseApp();
 
-  const { data } = await listOrganisations();
-  const details = await Promise.all(
-    data.organisations.map(async (organisation) => {
-      const { data: detailData } = await getOrganisationByPrCode({
-        prCode: organisation.prCode
-      });
+  const pageSize = 500;
+  const organisations: ImportedOrganisation[] = [];
 
-      return detailData.organisations[0] ?? null;
-    })
-  );
+  for (let offset = 0; ; offset += pageSize) {
+    const { data } = await listOrganisations({ limit: pageSize, offset });
+    organisations.push(...data.organisations);
 
-  return details
-    .filter((organisation): organisation is ImportedOrganisationDetail => Boolean(organisation))
+    if (data.organisations.length < pageSize) {
+      break;
+    }
+  }
+
+  return organisations
     .map(toOrganisationSource)
     .sort(
       (left, right) =>

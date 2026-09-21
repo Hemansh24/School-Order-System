@@ -1,4 +1,4 @@
-import { getItemByCode, listItems, type GetItemByCodeData, type ListItemsData } from "@dataconnect/generated";
+import { listItems, type ListItemsData } from "@dataconnect/generated";
 import { getApp, getApps, initializeApp } from "firebase/app";
 import { DEFAULT_LANGUAGE_CODE, generateItemCode } from "@/lib/item-code";
 import { prisma } from "@/lib/prisma";
@@ -14,7 +14,8 @@ const FIREBASE_PROJECT_ID =
   "system-order-34c0a";
 
 type ImportedItem = ListItemsData["items"][number];
-type ImportedItemDetail = GetItemByCodeData["items"][number];
+
+const PAGE_SIZE = 500;
 
 function ensureFirebaseApp() {
   if (getApps().length > 0) {
@@ -48,7 +49,7 @@ function deriveItemName(item: { title: string }) {
   return item.title.trim();
 }
 
-function toPrismaItemData(item: ImportedItemDetail) {
+function toPrismaItemData(item: ImportedItem) {
   const categoryCode = normalizeCode(item.categoryCode, "LEGACY");
   const subCategoryCode = normalizeCode(item.subCategoryCode, "00");
   const languageCode = normalizeCode(item.languageCode, DEFAULT_LANGUAGE_CODE);
@@ -81,8 +82,18 @@ function toPrismaItemData(item: ImportedItemDetail) {
 export async function replaceItemsWithImportedItems(): Promise<ItemSyncSummary> {
   ensureFirebaseApp();
 
-  const { data } = await listItems();
-  const importedItems = [...data.items].sort(
+  const importedItems: ImportedItem[] = [];
+
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    const { data } = await listItems({ limit: PAGE_SIZE, offset });
+    importedItems.push(...data.items);
+
+    if (data.items.length < PAGE_SIZE) {
+      break;
+    }
+  }
+
+  importedItems.sort(
     (left, right) => left.itemCode.localeCompare(right.itemCode) || left.title.localeCompare(right.title)
   );
 
@@ -90,20 +101,8 @@ export async function replaceItemsWithImportedItems(): Promise<ItemSyncSummary> 
     throw new Error("No imported item rows were returned from Data Connect.");
   }
 
-  const detailedItems = (
-    await Promise.all(
-      importedItems.map(async (item: ImportedItem) => {
-        const { data: detailData } = await getItemByCode({
-          itemCode: item.itemCode
-        });
-
-        return detailData.items[0] ?? null;
-      })
-    )
-  ).filter((item): item is ImportedItemDetail => Boolean(item));
-
   const nextItemsByCode = new Map(
-    detailedItems.map((item) => {
+    importedItems.map((item) => {
       const normalized = toPrismaItemData(item);
       return [normalized.itemCode, normalized] as const;
     })
@@ -125,7 +124,7 @@ export async function replaceItemsWithImportedItems(): Promise<ItemSyncSummary> 
   });
 
   return {
-    importedItems: detailedItems.length,
+    importedItems: importedItems.length,
     replacedItems: nextItems.length
   };
 }

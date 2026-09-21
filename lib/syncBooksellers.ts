@@ -1,8 +1,6 @@
 import {
-  getBooksellerByCode,
   listBooksellerSchoolMapping,
   listBooksellers,
-  type GetBooksellerByCodeData,
   type ListBooksellerSchoolMappingData,
   type ListBooksellersData
 } from "@dataconnect/generated";
@@ -26,9 +24,10 @@ const FIREBASE_PROJECT_ID =
   "system-order-34c0a";
 
 type ImportedBookseller = ListBooksellersData["booksellers"][number];
-type ImportedBooksellerDetail = GetBooksellerByCodeData["booksellers"][number];
 type ImportedBooksellerSchoolMapping =
   ListBooksellerSchoolMappingData["booksellerSchoolMappings"][number];
+
+const PAGE_SIZE = 500;
 
 function ensureFirebaseApp() {
   if (getApps().length > 0) {
@@ -68,31 +67,45 @@ function booksellerKey(input: {
   return `${input.booksellerCode.trim()}|${normalizeText(input.booksellerSubCode) ?? ""}`;
 }
 
-function pickBooksellerDetail(
-  source: ImportedBookseller,
-  details: ImportedBooksellerDetail[]
-) {
-  return (
-    details.find((detail) => detail.id === source.id) ??
-    details.find((detail) => booksellerKey(detail) === booksellerKey(source)) ??
-    details[0] ??
-    null
-  );
+async function listAllBooksellers() {
+  const booksellers: ImportedBookseller[] = [];
+
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    const { data } = await listBooksellers({ limit: PAGE_SIZE, offset });
+    booksellers.push(...data.booksellers);
+
+    if (data.booksellers.length < PAGE_SIZE) {
+      return booksellers;
+    }
+  }
+}
+
+async function listAllBooksellerSchoolMappings() {
+  const mappings: ImportedBooksellerSchoolMapping[] = [];
+
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    const { data } = await listBooksellerSchoolMapping({ limit: PAGE_SIZE, offset });
+    mappings.push(...data.booksellerSchoolMappings);
+
+    if (data.booksellerSchoolMappings.length < PAGE_SIZE) {
+      return mappings;
+    }
+  }
 }
 
 export async function replaceVendorsWithImportedBooksellers(): Promise<BooksellerSyncSummary> {
   ensureFirebaseApp();
 
-  const [{ data }, { data: mappingData }, existingVendors] = await Promise.all([
-    listBooksellers(),
-    listBooksellerSchoolMapping(),
+  const [importedBooksellers, mappingRows, existingVendors] = await Promise.all([
+    listAllBooksellers(),
+    listAllBooksellerSchoolMappings(),
     prisma.vendor.findMany({
       include: {
         vendorSchools: true
       }
     })
   ]);
-  const booksellers = [...data.booksellers].sort(
+  const booksellers = [...importedBooksellers].sort(
     (left, right) =>
       left.booksellerName.localeCompare(right.booksellerName) ||
       left.booksellerCode.localeCompare(right.booksellerCode)
@@ -103,21 +116,9 @@ export async function replaceVendorsWithImportedBooksellers(): Promise<Bookselle
   }
 
   const existingByCode = new Map(existingVendors.map((vendor) => [vendor.vendorCode, vendor]));
-  const detailedBooksellers = (
-    await Promise.all(
-      booksellers.map(async (bookseller: ImportedBookseller) => {
-        const { data: detailData } = await getBooksellerByCode({
-          booksellerCode: bookseller.booksellerCode
-        });
-
-        return pickBooksellerDetail(bookseller, detailData.booksellers);
-      })
-    )
-  ).filter((bookseller): bookseller is ImportedBooksellerDetail => Boolean(bookseller));
-
   const usedVendorCodes = new Map<string, number>();
   const vendorCodeByBooksellerKey = new Map<string, string>();
-  const nextVendors = detailedBooksellers.map((bookseller) => {
+  const nextVendors = booksellers.map((bookseller) => {
     const preferredCode = preferredVendorCode(bookseller);
     const duplicateCount = usedVendorCodes.get(preferredCode) ?? 0;
     usedVendorCodes.set(preferredCode, duplicateCount + 1);
@@ -147,7 +148,6 @@ export async function replaceVendorsWithImportedBooksellers(): Promise<Bookselle
     };
   });
 
-  const mappingRows = mappingData.booksellerSchoolMappings;
   const schoolCodesByVendorCode = collectMappedSchoolCodes(
     mappingRows,
     vendorCodeByBooksellerKey
@@ -195,7 +195,7 @@ export async function replaceVendorsWithImportedBooksellers(): Promise<Bookselle
   });
 
   return {
-    importedBooksellers: detailedBooksellers.length,
+    importedBooksellers: booksellers.length,
     replacedVendors: nextVendors.length,
     importedSchoolMappings: mappingRows.length,
     linkedSchoolMappings,

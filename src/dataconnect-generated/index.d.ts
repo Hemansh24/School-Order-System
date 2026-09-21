@@ -112,19 +112,35 @@ export interface ListBooksellerSchoolMappingData {
   } & BooksellerSchoolMapping_Key)[];
 }
 
+export interface ListBooksellerSchoolMappingVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+
 export interface ListBooksellersData {
   booksellers: ({
     id: Int64String;
     booksellerCode: string;
     booksellerSubCode?: string | null;
     booksellerName: string;
+    academicYear?: string | null;
+    address01?: string | null;
     district?: string | null;
     state?: string | null;
     pinCode?: string | null;
+    gstPin?: string | null;
+    incumbentCode?: string | null;
+    incumbentName?: string | null;
     contactNumber?: string | null;
     email?: string | null;
     vendorType?: string | null;
+    remark?: string | null;
   } & Bookseller_Key)[];
+}
+
+export interface ListBooksellersVariables {
+  limit?: number | null;
+  offset?: number | null;
 }
 
 export interface ListItemsData {
@@ -133,18 +149,31 @@ export interface ListItemsData {
     itemCode: string;
     title: string;
     categoryType?: string | null;
+    categoryCode?: string | null;
+    subCategoryCode?: string | null;
     languageCode?: string | null;
+    customisationType?: string | null;
+    customisationCode?: string | null;
+    editionCode?: string | null;
     mrp?: number | null;
     isbnNo?: string | null;
     obsolete?: boolean | null;
   } & Item_Key)[];
 }
 
+export interface ListItemsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+
 export interface ListOrganisationsData {
   organisations: ({
     id: Int64String;
+    groupCode?: string | null;
+    ptCode?: string | null;
     prCode: string;
     organisationName: string;
+    address?: string | null;
     district?: string | null;
     state?: string | null;
     pinCode?: string | null;
@@ -152,8 +181,20 @@ export interface ListOrganisationsData {
     email?: string | null;
     website?: string | null;
     actionStatus?: string | null;
+    remark?: string | null;
+    academicYear?: string | null;
+    strength?: number | null;
+    boardType?: string | null;
+    sessionStartFrom?: DateString | null;
+    minorityType?: string | null;
+    saturdayStatus?: string | null;
     workingStatus?: boolean | null;
   } & Organisation_Key)[];
+}
+
+export interface ListOrganisationsVariables {
+  limit?: number | null;
+  offset?: number | null;
 }
 
 export interface Organisation_Key {
@@ -190,15 +231,15 @@ export interface SearchOrganisationsVariables {
 
 interface ListOrganisationsRef {
   /* Allow users to create refs without passing in DataConnect */
-  (): QueryRef<ListOrganisationsData, undefined>;
+  (vars?: ListOrganisationsVariables): QueryRef<ListOrganisationsData, ListOrganisationsVariables>;
   /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect): QueryRef<ListOrganisationsData, undefined>;
+  (dc: DataConnect, vars?: ListOrganisationsVariables): QueryRef<ListOrganisationsData, ListOrganisationsVariables>;
   operationName: string;
 }
 export const listOrganisationsRef: ListOrganisationsRef;
 
-export function listOrganisations(options?: ExecuteQueryOptions): QueryPromise<ListOrganisationsData, undefined>;
-export function listOrganisations(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListOrganisationsData, undefined>;
+export function listOrganisations(vars?: ListOrganisationsVariables, options?: ExecuteQueryOptions): QueryPromise<ListOrganisationsData, ListOrganisationsVariables>;
+export function listOrganisations(dc: DataConnect, vars?: ListOrganisationsVariables, options?: ExecuteQueryOptions): QueryPromise<ListOrganisationsData, ListOrganisationsVariables>;
 
 interface SearchOrganisationsRef {
   /* Allow users to create refs without passing in DataConnect */
@@ -226,15 +267,15 @@ export function getOrganisationByPrCode(dc: DataConnect, vars: GetOrganisationBy
 
 interface ListBooksellersRef {
   /* Allow users to create refs without passing in DataConnect */
-  (): QueryRef<ListBooksellersData, undefined>;
+  (vars?: ListBooksellersVariables): QueryRef<ListBooksellersData, ListBooksellersVariables>;
   /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect): QueryRef<ListBooksellersData, undefined>;
+  (dc: DataConnect, vars?: ListBooksellersVariables): QueryRef<ListBooksellersData, ListBooksellersVariables>;
   operationName: string;
 }
 export const listBooksellersRef: ListBooksellersRef;
 
-export function listBooksellers(options?: ExecuteQueryOptions): QueryPromise<ListBooksellersData, undefined>;
-export function listBooksellers(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListBooksellersData, undefined>;
+export function listBooksellers(vars?: ListBooksellersVariables, options?: ExecuteQueryOptions): QueryPromise<ListBooksellersData, ListBooksellersVariables>;
+export function listBooksellers(dc: DataConnect, vars?: ListBooksellersVariables, options?: ExecuteQueryOptions): QueryPromise<ListBooksellersData, ListBooksellersVariables>;
 
 interface GetBooksellerByCodeRef {
   /* Allow users to create refs without passing in DataConnect */
@@ -250,15 +291,15 @@ export function getBooksellerByCode(dc: DataConnect, vars: GetBooksellerByCodeVa
 
 interface ListItemsRef {
   /* Allow users to create refs without passing in DataConnect */
-  (): QueryRef<ListItemsData, undefined>;
+  (vars?: ListItemsVariables): QueryRef<ListItemsData, ListItemsVariables>;
   /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect): QueryRef<ListItemsData, undefined>;
+  (dc: DataConnect, vars?: ListItemsVariables): QueryRef<ListItemsData, ListItemsVariables>;
   operationName: string;
 }
 export const listItemsRef: ListItemsRef;
 
-export function listItems(options?: ExecuteQueryOptions): QueryPromise<ListItemsData, undefined>;
-export function listItems(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListItemsData, undefined>;
+export function listItems(vars?: ListItemsVariables, options?: ExecuteQueryOptions): QueryPromise<ListItemsData, ListItemsVariables>;
+export function listItems(dc: DataConnect, vars?: ListItemsVariables, options?: ExecuteQueryOptions): QueryPromise<ListItemsData, ListItemsVariables>;
 
 interface GetItemByCodeRef {
   /* Allow users to create refs without passing in DataConnect */
@@ -274,13 +315,13 @@ export function getItemByCode(dc: DataConnect, vars: GetItemByCodeVariables, opt
 
 interface ListBooksellerSchoolMappingRef {
   /* Allow users to create refs without passing in DataConnect */
-  (): QueryRef<ListBooksellerSchoolMappingData, undefined>;
+  (vars?: ListBooksellerSchoolMappingVariables): QueryRef<ListBooksellerSchoolMappingData, ListBooksellerSchoolMappingVariables>;
   /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect): QueryRef<ListBooksellerSchoolMappingData, undefined>;
+  (dc: DataConnect, vars?: ListBooksellerSchoolMappingVariables): QueryRef<ListBooksellerSchoolMappingData, ListBooksellerSchoolMappingVariables>;
   operationName: string;
 }
 export const listBooksellerSchoolMappingRef: ListBooksellerSchoolMappingRef;
 
-export function listBooksellerSchoolMapping(options?: ExecuteQueryOptions): QueryPromise<ListBooksellerSchoolMappingData, undefined>;
-export function listBooksellerSchoolMapping(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListBooksellerSchoolMappingData, undefined>;
+export function listBooksellerSchoolMapping(vars?: ListBooksellerSchoolMappingVariables, options?: ExecuteQueryOptions): QueryPromise<ListBooksellerSchoolMappingData, ListBooksellerSchoolMappingVariables>;
+export function listBooksellerSchoolMapping(dc: DataConnect, vars?: ListBooksellerSchoolMappingVariables, options?: ExecuteQueryOptions): QueryPromise<ListBooksellerSchoolMappingData, ListBooksellerSchoolMappingVariables>;
 

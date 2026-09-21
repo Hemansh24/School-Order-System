@@ -3,9 +3,9 @@ const { CallerSdkTypeEnum } = require('firebase/data-connect');
 const { useDataConnectQuery, validateReactArgs } = require('@tanstack-query-firebase/react/data-connect');
 
 
-exports.useListOrganisations = function useListOrganisations(dcOrOptions, options) {
-  const { dc: dcInstance, options: inputOpts } = validateReactArgs(connectorConfig, dcOrOptions, options);
-  const ref = listOrganisationsRef(dcInstance);
+exports.useListOrganisations = function useListOrganisations(dcOrVars, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateReactArgs(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  const ref = listOrganisationsRef(dcInstance, inputVars);
   return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }
 
@@ -21,9 +21,9 @@ exports.useGetOrganisationByPrCode = function useGetOrganisationByPrCode(dcOrVar
   return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }
 
-exports.useListBooksellers = function useListBooksellers(dcOrOptions, options) {
-  const { dc: dcInstance, options: inputOpts } = validateReactArgs(connectorConfig, dcOrOptions, options);
-  const ref = listBooksellersRef(dcInstance);
+exports.useListBooksellers = function useListBooksellers(dcOrVars, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateReactArgs(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  const ref = listBooksellersRef(dcInstance, inputVars);
   return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }
 
@@ -33,9 +33,9 @@ exports.useGetBooksellerByCode = function useGetBooksellerByCode(dcOrVars, varsO
   return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }
 
-exports.useListItems = function useListItems(dcOrOptions, options) {
-  const { dc: dcInstance, options: inputOpts } = validateReactArgs(connectorConfig, dcOrOptions, options);
-  const ref = listItemsRef(dcInstance);
+exports.useListItems = function useListItems(dcOrVars, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateReactArgs(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  const ref = listItemsRef(dcInstance, inputVars);
   return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }
 
@@ -45,8 +45,8 @@ exports.useGetItemByCode = function useGetItemByCode(dcOrVars, varsOrOptions, op
   return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }
 
-exports.useListBooksellerSchoolMapping = function useListBooksellerSchoolMapping(dcOrOptions, options) {
-  const { dc: dcInstance, options: inputOpts } = validateReactArgs(connectorConfig, dcOrOptions, options);
-  const ref = listBooksellerSchoolMappingRef(dcInstance);
+exports.useListBooksellerSchoolMapping = function useListBooksellerSchoolMapping(dcOrVars, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateReactArgs(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  const ref = listBooksellerSchoolMappingRef(dcInstance, inputVars);
   return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }
