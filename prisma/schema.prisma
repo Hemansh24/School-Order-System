@@ -68,7 +68,7 @@ model Organisation {
   address          String?
   district         String?
   state            String?
-  pinCode          String?  @map("pin_code") @db.VarChar(10)
+  pinCode          String?  @map("pin_code")
   phone            String?
   email            String?
   website          String?
