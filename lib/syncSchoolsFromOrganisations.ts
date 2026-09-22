@@ -18,6 +18,8 @@ const FIREBASE_PROJECT_ID =
   process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ??
   "system-order-34c0a";
 
+const MASTER_DATA_TRANSACTION_TIMEOUT_MS = 120_000;
+
 type OrganisationSource = {
   groupCode: string | null;
   prCode: string;
@@ -259,68 +261,71 @@ export async function replaceSchoolsWithImportedOrganisations(): Promise<SchoolS
 
   const preservedLinks = collectPreservedVendorLinks(existingVendors, nextSchools);
 
-  await prisma.$transaction(async (tx) => {
-    await tx.vendorSchool.deleteMany();
-    await tx.school.deleteMany();
-    await tx.organisation.deleteMany();
+  await prisma.$transaction(
+    async (tx) => {
+      await tx.vendorSchool.deleteMany();
+      await tx.school.deleteMany();
+      await tx.organisation.deleteMany();
 
-    await tx.organisation.createMany({ data: nextOrganisations });
-    await tx.school.createMany({
-      data: nextSchools
-    });
-
-    if (preservedLinks.length === 0) {
-      return;
-    }
-
-    const [vendors, schools] = await Promise.all([
-      tx.vendor.findMany({
-        where: {
-          vendorCode: {
-            in: Array.from(new Set(preservedLinks.map((row) => row.vendorCode)))
-          }
-        },
-        select: {
-          vendorId: true,
-          vendorCode: true
-        }
-      }),
-      tx.school.findMany({
-        where: {
-          schoolCode: {
-            in: Array.from(new Set(preservedLinks.map((row) => row.schoolCode)))
-          }
-        },
-        select: {
-          schoolId: true,
-          schoolCode: true
-        }
-      })
-    ]);
-
-    const vendorIdByCode = new Map(vendors.map((vendor) => [vendor.vendorCode, vendor.vendorId]));
-    const schoolIdByCode = new Map(schools.map((school) => [school.schoolCode, school.schoolId]));
-
-    const vendorSchoolRows = preservedLinks
-      .map((row) => {
-        const vendorId = vendorIdByCode.get(row.vendorCode);
-        const schoolId = schoolIdByCode.get(row.schoolCode);
-
-        if (!vendorId || !schoolId) {
-          return null;
-        }
-
-        return { vendorId, schoolId };
-      })
-      .filter((row): row is { vendorId: number; schoolId: number } => Boolean(row));
-
-    if (vendorSchoolRows.length > 0) {
-      await tx.vendorSchool.createMany({
-        data: vendorSchoolRows,
-        skipDuplicates: true
+      await tx.organisation.createMany({ data: nextOrganisations });
+      await tx.school.createMany({
+        data: nextSchools
       });
-    }
-  });
+
+      if (preservedLinks.length === 0) {
+        return;
+      }
+
+      const [vendors, schools] = await Promise.all([
+        tx.vendor.findMany({
+          where: {
+            vendorCode: {
+              in: Array.from(new Set(preservedLinks.map((row) => row.vendorCode)))
+            }
+          },
+          select: {
+            vendorId: true,
+            vendorCode: true
+          }
+        }),
+        tx.school.findMany({
+          where: {
+            schoolCode: {
+              in: Array.from(new Set(preservedLinks.map((row) => row.schoolCode)))
+            }
+          },
+          select: {
+            schoolId: true,
+            schoolCode: true
+          }
+        })
+      ]);
+
+      const vendorIdByCode = new Map(vendors.map((vendor) => [vendor.vendorCode, vendor.vendorId]));
+      const schoolIdByCode = new Map(schools.map((school) => [school.schoolCode, school.schoolId]));
+
+      const vendorSchoolRows = preservedLinks
+        .map((row) => {
+          const vendorId = vendorIdByCode.get(row.vendorCode);
+          const schoolId = schoolIdByCode.get(row.schoolCode);
+
+          if (!vendorId || !schoolId) {
+            return null;
+          }
+
+          return { vendorId, schoolId };
+        })
+        .filter((row): row is { vendorId: number; schoolId: number } => Boolean(row));
+
+      if (vendorSchoolRows.length > 0) {
+        await tx.vendorSchool.createMany({
+          data: vendorSchoolRows,
+          skipDuplicates: true
+        });
+      }
+    },
+    { maxWait: 10_000, timeout: MASTER_DATA_TRANSACTION_TIMEOUT_MS }
+  );
 
   return {
     importedOrganisations: organisations.length,
