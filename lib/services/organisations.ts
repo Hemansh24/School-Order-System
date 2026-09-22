@@ -523,6 +523,21 @@ export async function ensurePtCodesForSchoolCodesTx(tx: Tx, schoolCodes: string[
     }
 
     if (organisation.ptCode) {
+      const targetSchool = await tx.school.findUnique({
+        where: { schoolCode: organisation.ptCode },
+        select: { schoolId: true }
+      });
+
+      // A school code is unique. Two legacy school records can resolve to the
+      // same organisation/PT code, so do not overwrite one record's code with
+      // the other's while an order is being created. Keep the selected
+      // school's valid code in that case; it also keeps vendor-school links
+      // and the order input in sync.
+      if (targetSchool && targetSchool.schoolId !== school.schoolId) {
+        ptCodeByOriginalCode.set(school.schoolCode, school.schoolCode);
+        continue;
+      }
+
       ptCodeByOriginalCode.set(school.schoolCode, organisation.ptCode);
 
       if (school.schoolCode !== organisation.ptCode) {

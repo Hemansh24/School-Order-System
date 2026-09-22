@@ -129,6 +129,21 @@ export async function createOrReuseSchool(input: SchoolCreationInput) {
       const schoolCode = organisationSchoolCode(organisation);
 
       if (existingSchool.schoolCode !== schoolCode) {
+        const schoolUsingOrganisationCode = await tx.school.findUnique({
+          where: { schoolCode },
+          select: { schoolId: true }
+        });
+
+        // Keep a legacy school code when the organisation's PT code already
+        // belongs to another school record. Updating it would violate the
+        // unique school_code constraint.
+        if (schoolUsingOrganisationCode && schoolUsingOrganisationCode.schoolId !== existingSchool.schoolId) {
+          return {
+            created: false as const,
+            school: existingSchool
+          };
+        }
+
         const updatedSchool = await tx.school.update({
           where: { schoolId: existingSchool.schoolId },
           data: { schoolCode },
