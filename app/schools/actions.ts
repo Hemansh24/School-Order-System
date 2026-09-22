@@ -264,7 +264,7 @@ export async function syncImportedOrganisationsAsSchoolsAction(
     revalidateSchoolPaths();
     return {
       ok: true,
-      message: `Replaced local schools with ${summary.replacedSchools} organisations and preserved ${summary.preservedVendorLinks} vendor links.`
+      message: `Replaced ${summary.replacedOrganisations} local organisations and ${summary.replacedSchools} schools; preserved ${summary.preservedVendorLinks} vendor links.`
     };
   } catch (error) {
     return {

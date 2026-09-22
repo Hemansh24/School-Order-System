@@ -2,11 +2,13 @@ import {
   listOrganisations,
   type ListOrganisationsData
 } from "@dataconnect/generated";
+import type { Prisma } from "@prisma/client";
 import { getApp, getApps, initializeApp } from "firebase/app";
 import { prisma } from "@/lib/prisma";
 
 export type SchoolSyncSummary = {
   importedOrganisations: number;
+  replacedOrganisations: number;
   replacedSchools: number;
   preservedVendorLinks: number;
 };
@@ -17,6 +19,7 @@ const FIREBASE_PROJECT_ID =
   "system-order-34c0a";
 
 type OrganisationSource = {
+  groupCode: string | null;
   prCode: string;
   ptCode: string | null;
   organisationName: string;
@@ -26,6 +29,16 @@ type OrganisationSource = {
   pinCode: string | null;
   phone: string | null;
   email: string | null;
+  website: string | null;
+  actionStatus: string | null;
+  remark: string | null;
+  academicYear: string | null;
+  strength: number | null;
+  boardType: string | null;
+  sessionStartFrom: string | null;
+  minorityType: string | null;
+  saturdayStatus: string | null;
+  workingStatus: boolean | null;
 };
 
 type ImportedOrganisation = ListOrganisationsData["organisations"][number];
@@ -104,6 +117,7 @@ function toSchoolData(organisation: {
 
 function toOrganisationSource(organisation: ImportedOrganisation): OrganisationSource {
   return {
+    groupCode: organisation.groupCode ?? null,
     prCode: organisation.prCode,
     ptCode: organisation.ptCode ?? null,
     organisationName: organisation.organisationName,
@@ -112,7 +126,47 @@ function toOrganisationSource(organisation: ImportedOrganisation): OrganisationS
     state: organisation.state ?? null,
     pinCode: organisation.pinCode ?? null,
     phone: organisation.phone ?? null,
-    email: organisation.email ?? null
+    email: organisation.email ?? null,
+    website: organisation.website ?? null,
+    actionStatus: organisation.actionStatus ?? null,
+    remark: organisation.remark ?? null,
+    academicYear: organisation.academicYear ?? null,
+    strength: organisation.strength ?? null,
+    boardType: organisation.boardType ?? null,
+    sessionStartFrom: organisation.sessionStartFrom ?? null,
+    minorityType: organisation.minorityType ?? null,
+    saturdayStatus: organisation.saturdayStatus ?? null,
+    workingStatus: organisation.workingStatus ?? null
+  };
+}
+
+function toPrismaOrganisationData(
+  organisation: OrganisationSource
+): Prisma.OrganisationCreateManyInput {
+  return {
+    groupCode: normalizeText(organisation.groupCode),
+    ptCode: normalizeText(organisation.ptCode),
+    prCode: organisation.prCode.trim(),
+    organisationName: organisation.organisationName.trim(),
+    address: normalizeText(organisation.address),
+    district: normalizeText(organisation.district),
+    state: normalizeText(organisation.state),
+    pinCode: normalizeText(organisation.pinCode),
+    phone: normalizeText(organisation.phone),
+    email: normalizeText(organisation.email),
+    website: normalizeText(organisation.website),
+    actionStatus: normalizeText(organisation.actionStatus),
+    remark: normalizeText(organisation.remark),
+    academicYear: normalizeText(organisation.academicYear),
+    strength: organisation.strength,
+    boardType: normalizeText(organisation.boardType),
+    sessionStartFrom: organisation.sessionStartFrom,
+    minorityType: normalizeText(organisation.minorityType),
+    saturdayStatus: normalizeText(organisation.saturdayStatus),
+    workingStatus: organisation.workingStatus,
+    sourceSheetRow: null,
+    sourceHash: null,
+    syncedAt: new Date()
   };
 }
 
@@ -194,13 +248,23 @@ export async function replaceSchoolsWithImportedOrganisations(): Promise<SchoolS
       })
     ).values()
   );
+  const nextOrganisations = Array.from(
+    new Map(
+      organisations.map((organisation) => [
+        organisation.prCode.trim(),
+        toPrismaOrganisationData(organisation)
+      ])
+    ).values()
+  );
 
   const preservedLinks = collectPreservedVendorLinks(existingVendors, nextSchools);
 
   await prisma.$transaction(async (tx) => {
     await tx.vendorSchool.deleteMany();
     await tx.school.deleteMany();
+    await tx.organisation.deleteMany();
 
+    await tx.organisation.createMany({ data: nextOrganisations });
     await tx.school.createMany({
       data: nextSchools
     });
@@ -260,6 +324,7 @@ export async function replaceSchoolsWithImportedOrganisations(): Promise<SchoolS
 
   return {
     importedOrganisations: organisations.length,
+    replacedOrganisations: nextOrganisations.length,
     replacedSchools: nextSchools.length,
     preservedVendorLinks: preservedLinks.length
   };

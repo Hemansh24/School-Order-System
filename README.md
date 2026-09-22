@@ -71,7 +71,7 @@ npm run prisma:deploy
 npm run master-data:sync
 ```
 
-The import order is significant: schools must exist before bookseller-school mappings are created. The import commands replace the local school, vendor, and item master tables.
+The import order is significant: schools must exist before bookseller-school mappings are created. The import commands replace the local organisation, school, vendor, and item master tables. No Google Sheets credentials are required for this shared Firebase master-data import.
 
 `schools:sync` always imports the shared Firebase/Data Connect organisations and their PT codes. Local Organisation records are not used for this shared master-data import, so they cannot prevent bookseller-to-school mappings from being created.
 
