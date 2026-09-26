@@ -35,10 +35,11 @@ export default async function CreateOrderPage() {
     <>
       <PageHeader
         title="Create Order"
-        description="Step 1 creates Order Sheet 1, then the selected type opens either 2A or 2B1/2B2."
+        description="Create PT-code or GS-code orders. GS-code locations are available in the Billing To and Shipping To search fields."
       />
       <CreateOrderForm
         schools={toSchoolOptions(reference.schools)}
+        groups={reference.groupLocations.map((location) => ({ optionKey: `${location.schoolGroup.groupCode}-${location.subCode}`, schoolCode: `${location.schoolGroup.groupCode}-${location.subCode}`, schoolName: location.name, addressSummary: formatSchoolAddress(location) }))}
         vendors={reference.vendors.map((vendor) => ({
           vendorCode: vendor.vendorCode,
           vendorName: vendor.vendorName,

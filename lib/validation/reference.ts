@@ -126,7 +126,7 @@ export const createVendorSchema = z.object({
   contactPerson: optionalText,
   phone: optionalText,
   email: optionalText,
-  schoolIds: z.array(z.coerce.number().int().positive()).min(1, "Choose at least one school")
+  schoolIds: z.array(z.coerce.number().int().positive())
 });
 
 export const createItemSchema = z.object({

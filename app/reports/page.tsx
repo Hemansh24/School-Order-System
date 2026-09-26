@@ -29,9 +29,7 @@ export default async function ReportsPage({
 
       <Card className="mb-6 p-4">
         <form className="grid gap-3 md:grid-cols-4 xl:grid-cols-6">
-          <Input name="display_order_no" label="Display Order No" defaultValue={params.get("display_order_no") ?? ""} />
           <Input name="order_no" label="Order No" defaultValue={params.get("order_no") ?? ""} />
-          <Input name="sub_order_no" label="Sub-order No" defaultValue={params.get("sub_order_no") ?? ""} />
           <Select name="billing_to_type" label="Billing Type" defaultValue={params.get("billing_to_type") ?? ""}>
             <option value="">All</option>
             <option value="school">School</option>
@@ -43,11 +41,17 @@ export default async function ReportsPage({
             <option value="">All</option>
             <option value="descriptive">Descriptive</option>
             <option value="ambiguous">Ambiguous</option>
+            <option value="combined">Combined</option>
+          </Select>
+          <Select name="classification" label="Classification" defaultValue={params.get("classification") ?? ""}>
+            <option value="">All</option>
+            <option value="normal">Normal</option>
+            <option value="direct_group">Direct group</option>
+            <option value="group_parent">Group parent</option>
           </Select>
           <Select name="order_status" label="Order Status" defaultValue={params.get("order_status") ?? ""}>
             <option value="">All</option>
             <option value="draft">Draft</option>
-            <option value="revision_requested">Revision requested</option>
             <option value="pending_confirmation">Pending confirmation</option>
             <option value="locked">Locked</option>
             <option value="finalized">Finalized</option>
@@ -89,10 +93,11 @@ export default async function ReportsPage({
           <table className="w-full min-w-[980px] text-left text-sm">
             <thead className="bg-canvas text-xs uppercase text-muted">
               <tr>
-                <th className="px-4 py-3">Display No</th>
+                <th className="px-4 py-3">Order No</th>
                 <th className="px-4 py-3">Billing</th>
                 <th className="px-4 py-3">Shipping</th>
                 <th className="px-4 py-3">Type</th>
+                <th className="px-4 py-3">Classification</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Items</th>
                 <th className="px-4 py-3">Payment</th>
@@ -105,13 +110,15 @@ export default async function ReportsPage({
                 const itemNames =
                   order.orderType === "descriptive"
                     ? order.descriptiveRows.map((row) => row.itemName)
-                    : order.ambiguousItems.map((row) => row.itemName);
+                    : order.orderType === "ambiguous"
+                      ? order.ambiguousItems.map((row) => row.itemName)
+                      : order.combinedItems.map((row) => row.itemName);
                 const holdStates = order.finalRows.map((row) => row.cancelOrOnHoldStatus);
 
                 return (
                   <tr key={order.orderSheet1Id}>
                     <td className="px-4 py-3">
-                      <OrderNumber orderNo={order.orderNo} subOrderNo={order.subOrderNo} />
+                      <OrderNumber orderNo={order.orderNo} />
                     </td>
                     <td className="px-4 py-3">{order.billingToName}</td>
                     <td className="max-w-xs px-4 py-3 text-muted">
@@ -121,6 +128,7 @@ export default async function ReportsPage({
                     <td className="px-4 py-3">
                       <StatusPill value={order.orderType} />
                     </td>
+                    <td className="px-4 py-3"><StatusPill value={order.classification} /></td>
                     <td className="px-4 py-3">
                       <StatusPill value={order.orderStatus} />
                     </td>

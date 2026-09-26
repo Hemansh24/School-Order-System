@@ -14,6 +14,7 @@ const navItems = [
   { href: "/orders", label: "Orders", icon: ClipboardList },
   { href: "/orders/new", label: "Create Order", icon: PackagePlus },
   { href: "/organisations", label: "Organisations", icon: Building2 },
+  { href: "/groups", label: "Grouped Schools", icon: Building2 },
   { href: "/vendors", label: "Vendors", icon: Building2 },
   { href: "/items", label: "Items", icon: BookOpen },
   { href: "/reports", label: "Reports/Search", icon: FileSearch }

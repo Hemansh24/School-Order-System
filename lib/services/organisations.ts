@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { nextCompactCode } from "@/lib/reference-codes";
+import { nextCompactCode, nextSequentialCompactCode } from "@/lib/reference-codes";
 
 const ORGANISATIONS_PAGE_SIZE = 25;
 type Tx = Prisma.TransactionClient;
@@ -357,32 +357,7 @@ export async function ensureOrganisationForSchoolTx(
   });
 
   if (match) {
-    if (match.ptCode) {
-      return match;
-    }
-
-    return tx.organisation.update({
-      where: { id: match.id },
-      data: {
-        ptCode: nextCompactCode(
-          "PT",
-          organisations.flatMap((organisation) =>
-            organisation.ptCode ? [organisation.ptCode] : []
-          ),
-          4
-        )
-      },
-      select: {
-        id: true,
-        prCode: true,
-        ptCode: true,
-        organisationName: true,
-        address: true,
-        district: true,
-        state: true,
-        pinCode: true
-      }
-    });
+    return match;
   }
 
   return tx.organisation.create({
@@ -390,13 +365,6 @@ export async function ensureOrganisationForSchoolTx(
       prCode: nextCompactCode(
         "PR",
         organisations.map((organisation) => organisation.prCode)
-      ),
-      ptCode: nextCompactCode(
-        "PT",
-        organisations.flatMap((organisation) =>
-          organisation.ptCode ? [organisation.ptCode] : []
-        ),
-        4
       ),
       organisationName: school.schoolName.trim(),
       address: normalizeText(school.address),
@@ -456,6 +424,8 @@ export async function ensurePtCodesForSchoolCodesTx(tx: Tx, schoolCodes: string[
 
   for (const school of schools) {
     let organisation =
+      cache.find((candidate) => candidate.prCode === school.schoolCode) ??
+      cache.find((candidate) => candidate.ptCode === school.schoolCode) ??
       cache.find((candidate) =>
         sameOrganisationIdentity(candidate, {
           organisationName: school.schoolName,
@@ -469,10 +439,9 @@ export async function ensurePtCodesForSchoolCodesTx(tx: Tx, schoolCodes: string[
     if (!organisation) {
       organisation = await tx.organisation.create({
         data: {
-          prCode: nextCompactCode(
-            "PR",
-            cache.map((candidate) => candidate.prCode)
-          ),
+          prCode: /^PR\d+$/i.test(school.schoolCode)
+            ? school.schoolCode
+            : nextCompactCode("PR", cache.map((candidate) => candidate.prCode)),
           organisationName: school.schoolName.trim(),
           address: normalizeText(school.address),
           district: normalizeText(school.district),
@@ -499,7 +468,7 @@ export async function ensurePtCodesForSchoolCodesTx(tx: Tx, schoolCodes: string[
       const updated = await tx.organisation.update({
         where: { id: organisation.id },
         data: {
-          ptCode: nextCompactCode(
+          ptCode: nextSequentialCompactCode(
             "PT",
             cache.flatMap((candidate) => (candidate.ptCode ? [candidate.ptCode] : [])),
             4

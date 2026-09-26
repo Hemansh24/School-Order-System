@@ -27,12 +27,13 @@ export default async function OrderDetailsPage({
   return (
     <>
       <PageHeader
-        title={`Order ${order.subOrderNo > 0 ? `${order.orderNo}.${order.subOrderNo}` : order.orderNo}`}
+        title={`Order ${order.orderNo}`}
         description="Order details preserve the selected workflow and linked finalization rows."
         action={
           <OrderActionButtons
             orderSheet1Id={order.orderSheet1Id}
             status={order.orderStatus}
+            classification={order.classification}
             hasFinalRows={order.finalRows.length > 0}
             fulfillmentStatus={fulfillmentStatus}
           />
@@ -42,8 +43,8 @@ export default async function OrderDetailsPage({
       <div className="mb-6 grid gap-4 lg:grid-cols-3">
         <Card className="p-5 lg:col-span-2">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Info label="Display Order No">
-              <OrderNumber orderNo={order.orderNo} subOrderNo={order.subOrderNo} />
+            <Info label="Order No">
+              <OrderNumber orderNo={order.orderNo} />
             </Info>
             <Info label="Status">
               <StatusPill value={order.orderStatus} />
@@ -69,7 +70,9 @@ export default async function OrderDetailsPage({
             <Info label="Order Type">
               <span className="capitalize">{order.orderType}</span>
             </Info>
+            <Info label="Classification"><span className="capitalize">{order.classification.replaceAll("_", " ")}</span></Info>
             <Info label="Session Year">{order.sessionYear}</Info>
+            <Info label="Order Placed">{order.orderPlacedDate.toLocaleDateString()}</Info>
             <Info label="Order Received">{order.orderReceivedDate.toLocaleDateString()}</Info>
             <Info label="Expected Delivery">{order.expectedDeliveryDate.toLocaleDateString()}</Info>
           </div>
@@ -80,10 +83,15 @@ export default async function OrderDetailsPage({
             <FlowStep active label="Order Sheet 1" />
             {order.orderType === "descriptive" ? (
               <FlowStep active label="Order Sheet 2A" />
-            ) : (
+            ) : order.orderType === "ambiguous" ? (
               <>
                 <FlowStep active label="Order Sheet 2B1 schools" />
                 <FlowStep active label="Order Sheet 2B2 grouped items" />
+              </>
+            ) : (
+              <>
+                <FlowStep active label="Order Sheet 2C1 participating schools" />
+                <FlowStep active label="Order Sheet 2C2 pooled items" />
               </>
             )}
             <FlowStep active={order.finalRows.length > 0} label="Order Sheet 3" />
@@ -91,25 +99,38 @@ export default async function OrderDetailsPage({
         </Card>
       </div>
 
-      {order.orderType === "descriptive" ? (
+      {order.classification === "direct_group" ? (
+        <div className="mb-6 grid gap-4 xl:grid-cols-2"><GroupParticipants rows={order.groupParticipants}/><GroupItems rows={order.groupItems}/></div>
+      ) : order.classification === "group_parent" ? (
+        <Card className="mb-6"><TableTitle title="Linked PT Orders" subtitle="These orders retain their own destinations and fulfillment workflow." /><SimpleTable headers={["Order", "PT Code", "Shipping", "Status"]} rows={order.groupChildLinks.map((link) => [link.childOrder.orderNo, link.childOrder.billingToCode, link.childOrder.shippingToSummary, link.childOrder.orderStatus])}/></Card>
+      ) : order.orderType === "descriptive" ? (
         <Sheet2ATable rows={order.descriptiveRows} />
-      ) : (
+      ) : order.orderType === "ambiguous" ? (
         <div className="mb-6 grid gap-4 xl:grid-cols-2">
           <Sheet2B1Table rows={order.ambiguousSchools} />
           <Sheet2B2Table rows={order.ambiguousItems} />
+        </div>
+      ) : (
+        <div className="mb-6 grid gap-4 xl:grid-cols-2">
+          <Sheet2C1Table rows={order.combinedSchools} />
+          <Sheet2C2Table rows={order.combinedItems} />
         </div>
       )}
 
       <Sheet3Table rows={order.finalRows} />
 
       <div className="mt-6 flex flex-wrap gap-3 text-sm">
-        {order.orderType === "descriptive" ? (
+        {order.classification !== "normal" ? null : order.orderType === "descriptive" ? (
           <Link className="font-semibold text-brand-dark" href={`/orders/${order.orderSheet1Id}/descriptive`}>
             Open Descriptive Entry - Sheet 2A
           </Link>
-        ) : (
+        ) : order.orderType === "ambiguous" ? (
           <Link className="font-semibold text-brand-dark" href={`/orders/${order.orderSheet1Id}/ambiguous`}>
             Open Ambiguous Entry - Sheet 2B1 and 2B2
+          </Link>
+        ) : (
+          <Link className="font-semibold text-brand-dark" href={`/orders/${order.orderSheet1Id}/combined`}>
+            Open Combined Entry - Sheet 2C1 and 2C2
           </Link>
         )}
         <Link className="font-semibold text-brand-dark" href={`/orders/${order.orderSheet1Id}/finalization`}>
@@ -119,6 +140,9 @@ export default async function OrderDetailsPage({
     </>
   );
 }
+
+function GroupParticipants({ rows }: { rows: Array<{ ptCode: string; schoolName: string }> }) { return <Card><TableTitle title="Participating PT Schools" subtitle="Selected schools under this GS-code location" /><SimpleTable headers={["PT Code", "School"]} rows={rows.map((row) => [row.ptCode, row.schoolName])}/></Card>; }
+function GroupItems({ rows }: { rows: Array<{ itemCode: string; itemName: string; quantity: number }> }) { return <Card><TableTitle title="Pooled Group Items" subtitle="Combined quantity for all participating schools" /><SimpleTable headers={["Item", "Quantity"]} rows={rows.map((row) => [`${row.itemCode} - ${row.itemName}`, row.quantity])}/></Card>; }
 
 function Info({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -197,6 +221,35 @@ function Sheet2B2Table({
       <SimpleTable
         headers={["Item", "Grouped Quantity"]}
         rows={rows.map((row) => [`${row.itemCode} - ${row.itemName}`, row.groupedQuantity])}
+      />
+    </Card>
+  );
+}
+
+function Sheet2C1Table({
+  rows
+}: {
+  rows: Array<{ orderSheet2C1Id: number; schoolCode: string; schoolName: string }>;
+}) {
+  return (
+    <Card>
+      <TableTitle title="Order Sheet 2C1" subtitle="Schools participating in the combined order" />
+      <SimpleTable headers={["School"]} rows={rows.map((row) => [`${row.schoolCode} - ${row.schoolName}`])} />
+    </Card>
+  );
+}
+
+function Sheet2C2Table({
+  rows
+}: {
+  rows: Array<{ orderSheet2C2Id: number; itemCode: string; itemName: string; pooledQuantity: number }>;
+}) {
+  return (
+    <Card>
+      <TableTitle title="Order Sheet 2C2" subtitle="Pooled quantities shared by all participating schools" />
+      <SimpleTable
+        headers={["Item", "Pooled Quantity"]}
+        rows={rows.map((row) => [`${row.itemCode} - ${row.itemName}`, row.pooledQuantity])}
       />
     </Card>
   );

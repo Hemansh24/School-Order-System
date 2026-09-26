@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
-import { displayOrderNo } from "@/lib/order-number";
 
 export function PageHeader({
   title,
@@ -83,14 +82,8 @@ export function StatusPill({ value }: { value: string }) {
   );
 }
 
-export function OrderNumber({
-  orderNo,
-  subOrderNo
-}: {
-  orderNo: number;
-  subOrderNo: number;
-}) {
-  return <span className="font-semibold text-ink">{displayOrderNo(orderNo, subOrderNo)}</span>;
+export function OrderNumber({ orderNo }: { orderNo: number }) {
+  return <span className="font-semibold text-ink">{orderNo}</span>;
 }
 
 export function EmptyState({ children }: { children: ReactNode }) {

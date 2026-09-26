@@ -41,9 +41,9 @@ function createGoogleSheetsClient(): sheets_v4.Sheets {
   });
 }
 
-export async function readGoogleSheetRows(): Promise<GoogleSheetRow[]> {
-  const spreadsheetId = getRequiredEnv("GOOGLE_SHEETS_ID");
-  const range = getRequiredEnv("GOOGLE_SHEETS_RANGE");
+export async function readGoogleSheetRows(options?: { spreadsheetId?: string; range?: string }): Promise<GoogleSheetRow[]> {
+  const spreadsheetId = options?.spreadsheetId ?? getRequiredEnv("GOOGLE_SHEETS_ID");
+  const range = options?.range ?? getRequiredEnv("GOOGLE_SHEETS_RANGE");
 
   const sheets = createGoogleSheetsClient();
   const response = await sheets.spreadsheets.values.get({

@@ -12,8 +12,8 @@ export default async function OrdersPage() {
     <>
       <PageHeader
         title="Orders"
-        description="Order Sheet 1 records with separate parent and sub-order numbers."
-        action={<ButtonLink href="/orders/new">Create order</ButtonLink>}
+        description="Order Sheet 1 records retain the same order number until finalization."
+        action={<div className="flex gap-2"><ButtonLink href="/orders/new">Create order</ButtonLink><ButtonLink href="/orders/group/new" className="border border-line bg-white">Group PT orders</ButtonLink></div>}
       />
 
       <Card>
@@ -21,12 +21,11 @@ export default async function OrdersPage() {
           <table className="w-full min-w-[900px] text-left text-sm">
             <thead className="bg-canvas text-xs uppercase text-muted">
               <tr>
-                <th className="px-4 py-3">Display No</th>
                 <th className="px-4 py-3">Order No</th>
-                <th className="px-4 py-3">Sub-order No</th>
                 <th className="px-4 py-3">Billing To</th>
                 <th className="px-4 py-3">Shipping To</th>
                 <th className="px-4 py-3">Type</th>
+                <th className="px-4 py-3">Classification</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Payment</th>
                 <th className="px-4 py-3">Open</th>
@@ -35,11 +34,7 @@ export default async function OrdersPage() {
             <tbody className="divide-y divide-line">
               {orders.map((order) => (
                 <tr key={order.orderSheet1Id}>
-                  <td className="px-4 py-3">
-                    <OrderNumber orderNo={order.orderNo} subOrderNo={order.subOrderNo} />
-                  </td>
-                  <td className="px-4 py-3">{order.orderNo}</td>
-                  <td className="px-4 py-3">{order.subOrderNo}</td>
+                  <td className="px-4 py-3"><OrderNumber orderNo={order.orderNo} /></td>
                   <td className="px-4 py-3">
                     <div className="font-medium text-ink">{order.billingToName}</div>
                     <div className="text-xs text-muted">{order.billingToCode}</div>
@@ -49,6 +44,7 @@ export default async function OrdersPage() {
                     <div className="truncate text-xs">{order.shippingToSummary}</div>
                   </td>
                   <td className="px-4 py-3 capitalize">{order.orderType}</td>
+                  <td className="px-4 py-3 capitalize">{order.classification.replaceAll("_", " ")}</td>
                   <td className="px-4 py-3">
                     <StatusPill value={order.orderStatus} />
                   </td>

@@ -4,7 +4,6 @@ import { useActionState } from "react";
 import {
   cancelHeldOrderAction,
   cancelOrderAction,
-  createRevisionAction,
   finalizeOrderAction,
   lockOrderAction,
   markPaymentReceivedAction,
@@ -18,16 +17,17 @@ const initialState: OrderMutationState = { ok: false };
 export function OrderActionButtons({
   orderSheet1Id,
   status,
+  classification = "normal",
   hasFinalRows,
   fulfillmentStatus
 }: {
   orderSheet1Id: number;
   status: string;
+  classification?: string;
   hasFinalRows: boolean;
   fulfillmentStatus?: "active" | "on_hold" | "cancelled";
 }) {
-  const canEdit =
-    status === "draft" || status === "revision_requested" || status === "pending_confirmation";
+  const canEdit = status !== "finalized" && status !== "cancelled" && classification === "normal";
   const canChangeStatus = status !== "finalized" && status !== "cancelled";
   const isOnHold = fulfillmentStatus === "on_hold";
   const isFulfillmentCancelled = fulfillmentStatus === "cancelled";
@@ -40,15 +40,12 @@ export function OrderActionButtons({
             Edit Draft
           </ButtonLink>
         ) : null}
-        <OrderActionForm action={createRevisionAction.bind(null, orderSheet1Id)} variant="secondary">
-          Create Sub-order / Revision
-        </OrderActionForm>
         {canEdit ? (
           <OrderActionForm action={lockOrderAction.bind(null, orderSheet1Id)} variant="secondary">
             Lock Order
           </OrderActionForm>
         ) : null}
-        {status === "locked" ? (
+        {status === "locked" && classification !== "group_parent" ? (
           <OrderActionForm action={finalizeOrderAction.bind(null, orderSheet1Id)}>
             Finalize Order
           </OrderActionForm>

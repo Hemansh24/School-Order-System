@@ -8,14 +8,21 @@ import {
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { ensurePtCodesForSchoolCodesTx } from "@/lib/services/organisations";
+import { ensureBsCodesForVendorCodesTx } from "@/lib/services/pre-booksellers";
 import { formatSchoolAddress, formatVendorAddress } from "@/lib/shipping";
 import { createOrderSchema, type CreateOrderInput } from "@/lib/validation/orders";
-import { parseDisplayOrderNo } from "@/lib/order-number";
 
 const orderInclude = {
   descriptiveRows: true,
   ambiguousSchools: true,
   ambiguousItems: true,
+  combinedSchools: true,
+  combinedItems: true,
+  groupParticipants: true,
+  groupItems: true,
+  groupChildLinks: { include: { childOrder: true } },
+  schoolGroup: true,
+  schoolGroupLocation: true,
   finalRows: true
 } satisfies Prisma.OrderSheet1Include;
 
@@ -24,38 +31,10 @@ type SearchOrder = Prisma.OrderSheet1GetPayload<{
   include: {
     descriptiveRows: true;
     ambiguousItems: true;
+    combinedItems: true;
     finalRows: true;
   };
 }>;
-
-async function currentOrderWhere(): Promise<Prisma.OrderSheet1WhereInput> {
-  const [latestOrders, latestActiveOrders] = await Promise.all([
-    prisma.orderSheet1.groupBy({
-      by: ["orderNo"],
-      _max: { subOrderNo: true }
-    }),
-    prisma.orderSheet1.groupBy({
-      by: ["orderNo"],
-      where: { orderStatus: { not: "cancelled" } },
-      _max: { subOrderNo: true }
-    })
-  ]);
-
-  if (latestOrders.length === 0) {
-    return { orderSheet1Id: -1 };
-  }
-
-  const activeByOrderNo = new Map(
-    latestActiveOrders.map((order) => [order.orderNo, order._max.subOrderNo ?? 0])
-  );
-
-  return {
-    OR: latestOrders.map((order) => ({
-      orderNo: order.orderNo,
-      subOrderNo: activeByOrderNo.get(order.orderNo) ?? order._max.subOrderNo ?? 0
-    }))
-  };
-}
 
 function toDate(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
@@ -66,71 +45,19 @@ async function nextParentOrderNo(tx: Tx): Promise<number> {
   return (current._max.orderNo ?? 0) + 1;
 }
 
-async function nextSubOrderNo(tx: Tx, orderNo: number): Promise<number> {
-  const current = await tx.orderSheet1.aggregate({
-    where: { orderNo },
-    _max: { subOrderNo: true }
-  });
-  return (current._max.subOrderNo ?? -1) + 1;
-}
-
-async function assertVendorHasSchool(tx: Tx, input: CreateOrderInput): Promise<void> {
-  if (input.sheet1.billingToType !== "vendor") {
-    return;
-  }
-
-  const vendor = await tx.vendor.findUnique({
-    where: { vendorCode: input.sheet1.billingToCode },
-    include: {
-      vendorSchools: {
-        include: {
-          school: {
-            select: {
-              schoolCode: true
-            }
-          }
-        }
-      }
-    }
-  });
-
-  if (!vendor || vendor.vendorSchools.length === 0) {
-    throw new Error("Billing vendor must exist and be linked to at least one school.");
-  }
-
-  const mappedSchoolCodes = new Set(
-    vendor.vendorSchools.map((row) => row.school.schoolCode)
-  );
-  const orderSchoolCodes =
-    input.sheet1.orderType === "descriptive"
-      ? input.descriptiveRows.map((row) => row.schoolCode)
-      : input.ambiguousSchools.map((row) => row.schoolCode);
-  const unmappedSchoolCode = orderSchoolCodes.find(
-    (schoolCode) => !mappedSchoolCodes.has(schoolCode)
-  );
-
-  if (unmappedSchoolCode) {
-    throw new Error(
-      `School ${unmappedSchoolCode} is not linked to billing vendor ${input.sheet1.billingToCode}.`
-    );
-  }
-}
-
 async function assertShippingDestinationExists(tx: Tx, input: CreateOrderInput): Promise<void> {
   if (input.sheet1.shippingToType === "school") {
     const school = await tx.school.findUnique({
       where: { schoolCode: input.sheet1.shippingToCode }
     });
 
-    if (!school) {
-      throw new Error("Shipping school must exist.");
-    }
+    if (!school && !(await findGroupLocationByCode(tx, input.sheet1.shippingToCode))) throw new Error("Shipping school or GS-code location must exist.");
 
     return;
   }
 
-  const vendor = await tx.vendor.findUnique({
-    where: { vendorCode: input.sheet1.shippingToCode }
+  const vendor = await tx.vendor.findFirst({
+    where: { OR: [{ vendorCode: input.sheet1.shippingToCode }, { booksellerCode: input.sheet1.shippingToCode }] }
   });
 
   if (!vendor) {
@@ -144,15 +71,14 @@ async function resolveShippingSummary(tx: Tx, input: CreateOrderInput) {
       where: { schoolCode: input.sheet1.shippingToCode }
     });
 
-    if (!school) {
-      throw new Error("Shipping school must exist.");
-    }
-
-    return formatSchoolAddress(school);
+    if (school) return formatSchoolAddress(school);
+    const groupLocation = await findGroupLocationByCode(tx, input.sheet1.shippingToCode);
+    if (groupLocation) return formatSchoolAddress(groupLocation);
+    throw new Error("Shipping school or GS-code location must exist.");
   }
 
-  const vendor = await tx.vendor.findUnique({
-    where: { vendorCode: input.sheet1.shippingToCode }
+  const vendor = await tx.vendor.findFirst({
+    where: { OR: [{ vendorCode: input.sheet1.shippingToCode }, { booksellerCode: input.sheet1.shippingToCode }] }
   });
 
   if (!vendor) {
@@ -160,6 +86,16 @@ async function resolveShippingSummary(tx: Tx, input: CreateOrderInput) {
   }
 
   return formatVendorAddress(vendor.address);
+}
+
+async function findGroupLocationByCode(tx: Tx, code: string) {
+  const match = code.trim().match(/^(GS\d+)-(\d+)$/i);
+  if (!match) return null;
+  const [, groupCode, subCode] = match;
+  return tx.schoolGroupLocation.findFirst({
+    where: { subCode, schoolGroup: { groupCode: { equals: groupCode, mode: "insensitive" } } },
+    select: { address: true, district: true, state: true, pincode: true }
+  });
 }
 
 function schoolCodesTouchedByOrder(input: CreateOrderInput) {
@@ -178,6 +114,10 @@ function schoolCodesTouchedByOrder(input: CreateOrderInput) {
   }
 
   for (const row of input.ambiguousSchools) {
+    schoolCodes.add(row.schoolCode);
+  }
+
+  for (const row of input.combinedSchools) {
     schoolCodes.add(row.schoolCode);
   }
 
@@ -212,12 +152,35 @@ function applyPtCodesToOrder(
       ...row,
       schoolCode: mappedCode(row.schoolCode)
     })),
-    ambiguousItems: input.ambiguousItems
+    ambiguousItems: input.ambiguousItems,
+    combinedSchools: input.combinedSchools.map((row) => ({
+      ...row,
+      schoolCode: mappedCode(row.schoolCode)
+    })),
+    combinedItems: input.combinedItems
+  };
+}
+
+function vendorCodesTouchedByOrder(input: CreateOrderInput) {
+  return [
+    input.sheet1.billingToType === "vendor" ? input.sheet1.billingToCode : null,
+    input.sheet1.shippingToType === "vendor" ? input.sheet1.shippingToCode : null
+  ].filter((code): code is string => Boolean(code));
+}
+
+function applyBsCodesToOrder(input: CreateOrderInput, bsCodeByOriginalCode: Map<string, string>): CreateOrderInput {
+  const mappedCode = (code: string) => bsCodeByOriginalCode.get(code) ?? code;
+  return {
+    ...input,
+    sheet1: {
+      ...input.sheet1,
+      billingToCode: input.sheet1.billingToType === "vendor" ? mappedCode(input.sheet1.billingToCode) : input.sheet1.billingToCode,
+      shippingToCode: input.sheet1.shippingToType === "vendor" ? mappedCode(input.sheet1.shippingToCode) : input.sheet1.shippingToCode
+    }
   };
 }
 
 export async function getDashboardData() {
-  const currentWhere = await currentOrderWhere();
   const [
     totalOrders,
     draftOrders,
@@ -227,26 +190,27 @@ export async function getDashboardData() {
     cancelledOrders,
     descriptiveOrders,
     ambiguousOrders,
+    combinedOrders,
     pendingPayments,
     onHoldOrders,
     recentOrders
   ] = await Promise.all([
-    prisma.orderSheet1.count({ where: currentWhere }),
-    prisma.orderSheet1.count({ where: { AND: [currentWhere, { orderStatus: "draft" }] } }),
+    prisma.orderSheet1.count(),
+    prisma.orderSheet1.count({ where: { orderStatus: "draft" } }),
     prisma.orderSheet1.count({
-      where: { AND: [currentWhere, { orderStatus: "pending_confirmation" }] }
+      where: { orderStatus: "pending_confirmation" }
     }),
-    prisma.orderSheet1.count({ where: { AND: [currentWhere, { orderStatus: "locked" }] } }),
-    prisma.orderSheet1.count({ where: { AND: [currentWhere, { orderStatus: "finalized" }] } }),
-    prisma.orderSheet1.count({ where: { AND: [currentWhere, { orderStatus: "cancelled" }] } }),
-    prisma.orderSheet1.count({ where: { AND: [currentWhere, { orderType: "descriptive" }] } }),
-    prisma.orderSheet1.count({ where: { AND: [currentWhere, { orderType: "ambiguous" }] } }),
-    prisma.orderSheet1.count({ where: { AND: [currentWhere, { pendingPayment: true }] } }),
+    prisma.orderSheet1.count({ where: { orderStatus: "locked" } }),
+    prisma.orderSheet1.count({ where: { orderStatus: "finalized" } }),
+    prisma.orderSheet1.count({ where: { orderStatus: "cancelled" } }),
+    prisma.orderSheet1.count({ where: { orderType: "descriptive" } }),
+    prisma.orderSheet1.count({ where: { orderType: "ambiguous" } }),
+    prisma.orderSheet1.count({ where: { orderType: "combined" } }),
+    prisma.orderSheet1.count({ where: { pendingPayment: true } }),
     prisma.orderSheet3.count({
-      where: { cancelOrOnHoldStatus: "on_hold", order: currentWhere }
+      where: { cancelOrOnHoldStatus: "on_hold" }
     }),
     prisma.orderSheet1.findMany({
-      where: currentWhere,
       orderBy: [{ createdAt: "desc" }],
       take: 8
     })
@@ -262,6 +226,7 @@ export async function getDashboardData() {
       cancelledOrders,
       descriptiveOrders,
       ambiguousOrders,
+      combinedOrders,
       pendingPayments,
       onHoldOrders
     },
@@ -270,10 +235,8 @@ export async function getDashboardData() {
 }
 
 export async function listOrders() {
-  const currentWhere = await currentOrderWhere();
   return prisma.orderSheet1.findMany({
-    where: currentWhere,
-    orderBy: [{ orderNo: "desc" }, { subOrderNo: "desc" }],
+    orderBy: { orderNo: "desc" },
     take: 100
   });
 }
@@ -294,17 +257,17 @@ export async function createOrder(input: CreateOrderInput) {
       tx,
       schoolCodesTouchedByOrder(parsed)
     );
-    const orderInput = applyPtCodesToOrder(parsed, ptCodeByOriginalCode);
-    await assertVendorHasSchool(tx, orderInput);
+    const schoolCodeInput = applyPtCodesToOrder(parsed, ptCodeByOriginalCode);
+    const bsCodeByOriginalCode = await ensureBsCodesForVendorCodesTx(tx, vendorCodesTouchedByOrder(schoolCodeInput));
+    const orderInput = applyBsCodesToOrder(schoolCodeInput, bsCodeByOriginalCode);
     const orderNo = await nextParentOrderNo(tx);
-    const subOrderNo = 0;
     const shippingToSummary = await resolveShippingSummary(tx, orderInput);
 
     const order = await tx.orderSheet1.create({
       data: {
         orderNo,
-        subOrderNo,
         sessionYear: orderInput.sheet1.sessionYear,
+        orderPlacedDate: toDate(orderInput.sheet1.orderPlacedDate),
         orderReceivedDate: toDate(orderInput.sheet1.orderReceivedDate),
         expectedDeliveryDate: toDate(orderInput.sheet1.expectedDeliveryDate),
         billingToType: orderInput.sheet1.billingToType as BillingToType,
@@ -328,7 +291,6 @@ export async function createOrder(input: CreateOrderInput) {
         data: orderInput.descriptiveRows.map((row) => ({
           orderSheet1Id: order.orderSheet1Id,
           orderNo,
-          subOrderNo,
           schoolCode: row.schoolCode,
           schoolName: row.schoolName,
           itemCode: row.itemCode,
@@ -337,12 +299,11 @@ export async function createOrder(input: CreateOrderInput) {
           notes: row.notes || null
         }))
       });
-    } else {
+    } else if (orderInput.sheet1.orderType === "ambiguous") {
       await tx.orderSheet2B1.createMany({
         data: orderInput.ambiguousSchools.map((row) => ({
           orderSheet1Id: order.orderSheet1Id,
           orderNo,
-          subOrderNo,
           schoolCode: row.schoolCode,
           schoolName: row.schoolName,
           notes: row.notes || null
@@ -352,10 +313,29 @@ export async function createOrder(input: CreateOrderInput) {
         data: orderInput.ambiguousItems.map((row) => ({
           orderSheet1Id: order.orderSheet1Id,
           orderNo,
-          subOrderNo,
           itemCode: row.itemCode,
           itemName: row.itemName,
           groupedQuantity: row.groupedQuantity,
+          notes: row.notes || null
+        }))
+      });
+    } else {
+      await tx.orderSheet2C1.createMany({
+        data: orderInput.combinedSchools.map((row) => ({
+          orderSheet1Id: order.orderSheet1Id,
+          orderNo,
+          schoolCode: row.schoolCode,
+          schoolName: row.schoolName,
+          notes: row.notes || null
+        }))
+      });
+      await tx.orderSheet2C2.createMany({
+        data: orderInput.combinedItems.map((row) => ({
+          orderSheet1Id: order.orderSheet1Id,
+          orderNo,
+          itemCode: row.itemCode,
+          itemName: row.itemName,
+          pooledQuantity: row.pooledQuantity,
           notes: row.notes || null
         }))
       });
@@ -382,8 +362,9 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
       tx,
       schoolCodesTouchedByOrder(parsed)
     );
-    const orderInput = applyPtCodesToOrder(parsed, ptCodeByOriginalCode);
-    await assertVendorHasSchool(tx, orderInput);
+    const schoolCodeInput = applyPtCodesToOrder(parsed, ptCodeByOriginalCode);
+    const bsCodeByOriginalCode = await ensureBsCodesForVendorCodesTx(tx, vendorCodesTouchedByOrder(schoolCodeInput));
+    const orderInput = applyBsCodesToOrder(schoolCodeInput, bsCodeByOriginalCode);
 
     const existing = await tx.orderSheet1.findUnique({
       where: { orderSheet1Id },
@@ -394,18 +375,18 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
       throw new Error("Order not found.");
     }
     if (
-      existing.orderStatus !== "draft" &&
-      existing.orderStatus !== "revision_requested" &&
-      existing.orderStatus !== "pending_confirmation"
+      existing.orderStatus === "finalized" || existing.orderStatus === "cancelled"
     ) {
-      throw new Error("Only draft or revision-requested orders can be edited.");
+    throw new Error("Finalized and cancelled orders cannot be edited.");
     }
 
     await Promise.all([
       tx.orderSheet3.deleteMany({ where: { orderSheet1Id } }),
       tx.orderSheet2A.deleteMany({ where: { orderSheet1Id } }),
       tx.orderSheet2B1.deleteMany({ where: { orderSheet1Id } }),
-      tx.orderSheet2B2.deleteMany({ where: { orderSheet1Id } })
+      tx.orderSheet2B2.deleteMany({ where: { orderSheet1Id } }),
+      tx.orderSheet2C1.deleteMany({ where: { orderSheet1Id } }),
+      tx.orderSheet2C2.deleteMany({ where: { orderSheet1Id } })
     ]);
 
     const shippingToSummary = await resolveShippingSummary(tx, orderInput);
@@ -414,6 +395,7 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
       where: { orderSheet1Id },
       data: {
         sessionYear: orderInput.sheet1.sessionYear,
+        orderPlacedDate: toDate(orderInput.sheet1.orderPlacedDate),
         orderReceivedDate: toDate(orderInput.sheet1.orderReceivedDate),
         expectedDeliveryDate: toDate(orderInput.sheet1.expectedDeliveryDate),
         billingToType: orderInput.sheet1.billingToType as BillingToType,
@@ -436,7 +418,6 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
         data: orderInput.descriptiveRows.map((row) => ({
           orderSheet1Id,
           orderNo: existing.orderNo,
-          subOrderNo: existing.subOrderNo,
           schoolCode: row.schoolCode,
           schoolName: row.schoolName,
           itemCode: row.itemCode,
@@ -445,12 +426,11 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
           notes: row.notes || null
         }))
       });
-    } else {
+    } else if (orderInput.sheet1.orderType === "ambiguous") {
       await tx.orderSheet2B1.createMany({
         data: orderInput.ambiguousSchools.map((row) => ({
           orderSheet1Id,
           orderNo: existing.orderNo,
-          subOrderNo: existing.subOrderNo,
           schoolCode: row.schoolCode,
           schoolName: row.schoolName,
           notes: row.notes || null
@@ -460,10 +440,29 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
         data: orderInput.ambiguousItems.map((row) => ({
           orderSheet1Id,
           orderNo: existing.orderNo,
-          subOrderNo: existing.subOrderNo,
           itemCode: row.itemCode,
           itemName: row.itemName,
           groupedQuantity: row.groupedQuantity,
+          notes: row.notes || null
+        }))
+      });
+    } else {
+      await tx.orderSheet2C1.createMany({
+        data: orderInput.combinedSchools.map((row) => ({
+          orderSheet1Id,
+          orderNo: existing.orderNo,
+          schoolCode: row.schoolCode,
+          schoolName: row.schoolName,
+          notes: row.notes || null
+        }))
+      });
+      await tx.orderSheet2C2.createMany({
+        data: orderInput.combinedItems.map((row) => ({
+          orderSheet1Id,
+          orderNo: existing.orderNo,
+          itemCode: row.itemCode,
+          itemName: row.itemName,
+          pooledQuantity: row.pooledQuantity,
           notes: row.notes || null
         }))
       });
@@ -492,6 +491,10 @@ export async function lockOrder(orderSheet1Id: number) {
   if (!order) {
     throw new Error("Order not found.");
   }
+  if (order.classification === "group_parent") {
+    const updated = await prisma.orderSheet1.update({ where: { orderSheet1Id }, data: { orderStatus: "locked" } });
+    revalidatePath(`/orders/${orderSheet1Id}`); revalidatePath("/orders"); return updated;
+  }
   if (order.orderStatus === "finalized" || order.orderStatus === "cancelled") {
     throw new Error("Finalized or cancelled orders cannot be locked again.");
   }
@@ -503,6 +506,16 @@ export async function lockOrder(orderSheet1Id: number) {
     (order.ambiguousSchools.length === 0 || order.ambiguousItems.length === 0)
   ) {
     throw new Error("Ambiguous orders need Order Sheet 2B1 and 2B2 rows before locking.");
+  }
+  if (
+    order.classification !== "direct_group" &&
+    order.orderType === "combined" &&
+    (order.combinedSchools.length === 0 || order.combinedItems.length === 0)
+  ) {
+    throw new Error("Combined orders need participating schools and pooled items before locking.");
+  }
+  if (order.classification === "direct_group" && (order.groupParticipants.length === 0 || order.groupItems.length === 0)) {
+    throw new Error("Direct group orders need participating schools and pooled items before locking.");
   }
 
   const updated = await prisma.orderSheet1.update({
@@ -528,10 +541,27 @@ export async function finalizeOrder(orderSheet1Id: number) {
     if (order.orderStatus !== "locked") {
       throw new Error("Only locked orders can be finalized.");
     }
+    if (order.classification === "group_parent") {
+      throw new Error("Parent group orders are tracking containers and cannot be finalized.");
+    }
+
+    if (order.classification === "direct_group") {
+      if (order.groupParticipants.length === 0 || order.groupItems.length === 0) {
+        throw new Error("Direct group orders require participants and pooled items.");
+      }
+      for (const row of order.groupItems) {
+        await tx.orderSheet3.upsert({
+          where: { sourceType_sourceId: { sourceType: SourceType.GROUP, sourceId: row.orderGroupItemId } },
+          create: { orderSheet1Id, orderNo: order.orderNo, sourceType: SourceType.GROUP, sourceId: row.orderGroupItemId, itemCode: row.itemCode, itemName: row.itemName, quantity: row.quantity, paymentReceived: !order.pendingPayment },
+          update: {}
+        });
+      }
+      return tx.orderSheet1.update({ where: { orderSheet1Id }, data: { orderStatus: "finalized" }, include: orderInclude });
+    }
 
     if (order.orderType === "descriptive") {
-      if (order.ambiguousSchools.length > 0 || order.ambiguousItems.length > 0) {
-        throw new Error("Descriptive orders cannot finalize with ambiguous rows.");
+      if (order.ambiguousSchools.length > 0 || order.ambiguousItems.length > 0 || order.combinedSchools.length > 0 || order.combinedItems.length > 0) {
+        throw new Error("Descriptive orders cannot finalize with ambiguous or combined rows.");
       }
       if (order.descriptiveRows.length === 0) {
         throw new Error("Descriptive orders require Order Sheet 2A rows.");
@@ -548,7 +578,6 @@ export async function finalizeOrder(orderSheet1Id: number) {
           create: {
             orderSheet1Id,
             orderNo: order.orderNo,
-            subOrderNo: order.subOrderNo,
             sourceType: SourceType.TWO_A,
             sourceId: row.orderSheet2AId,
             itemCode: row.itemCode,
@@ -562,8 +591,8 @@ export async function finalizeOrder(orderSheet1Id: number) {
     }
 
     if (order.orderType === "ambiguous") {
-      if (order.descriptiveRows.length > 0) {
-        throw new Error("Ambiguous orders cannot finalize with Order Sheet 2A rows.");
+      if (order.descriptiveRows.length > 0 || order.combinedSchools.length > 0 || order.combinedItems.length > 0) {
+        throw new Error("Ambiguous orders cannot finalize with descriptive or combined rows.");
       }
       if (order.ambiguousSchools.length === 0 || order.ambiguousItems.length === 0) {
         throw new Error("Ambiguous orders require Order Sheet 2B1 and 2B2 rows.");
@@ -580,12 +609,42 @@ export async function finalizeOrder(orderSheet1Id: number) {
           create: {
             orderSheet1Id,
             orderNo: order.orderNo,
-            subOrderNo: order.subOrderNo,
             sourceType: SourceType.TWO_B2,
             sourceId: row.orderSheet2B2Id,
             itemCode: row.itemCode,
             itemName: row.itemName,
             quantity: row.groupedQuantity,
+            paymentReceived: !order.pendingPayment
+          },
+          update: {}
+        });
+      }
+    }
+
+    if (order.orderType === "combined") {
+      if (order.descriptiveRows.length > 0 || order.ambiguousSchools.length > 0 || order.ambiguousItems.length > 0) {
+        throw new Error("Combined orders cannot finalize with descriptive or ambiguous rows.");
+      }
+      if (order.combinedSchools.length === 0 || order.combinedItems.length === 0) {
+        throw new Error("Combined orders require participating schools and pooled items.");
+      }
+
+      for (const row of order.combinedItems) {
+        await tx.orderSheet3.upsert({
+          where: {
+            sourceType_sourceId: {
+              sourceType: SourceType.TWO_C2,
+              sourceId: row.orderSheet2C2Id
+            }
+          },
+          create: {
+            orderSheet1Id,
+            orderNo: order.orderNo,
+            sourceType: SourceType.TWO_C2,
+            sourceId: row.orderSheet2C2Id,
+            itemCode: row.itemCode,
+            itemName: row.itemName,
+            quantity: row.pooledQuantity,
             paymentReceived: !order.pendingPayment
           },
           update: {}
@@ -615,7 +674,7 @@ export async function updateOrderStatus(
     throw new Error("Order not found.");
   }
   if (order.orderStatus === "finalized") {
-    throw new Error("Finalized orders require a revision/sub-order for changes.");
+    throw new Error("Finalized orders cannot be changed.");
   }
 
   const updated = await prisma.orderSheet1.update({
@@ -708,97 +767,13 @@ export async function cancelHeldOrder(orderSheet1Id: number) {
   revalidatePath("/reports");
 }
 
-export async function createRevision(orderSheet1Id: number) {
-  const revision = await prisma.$transaction(async (tx) => {
-    const parent = await tx.orderSheet1.findUnique({
-      where: { orderSheet1Id },
-      include: orderInclude
-    });
-
-    if (!parent) {
-      throw new Error("Order not found.");
-    }
-
-    const subOrderNo = await nextSubOrderNo(tx, parent.orderNo);
-    const newOrder = await tx.orderSheet1.create({
-      data: {
-        orderNo: parent.orderNo,
-        subOrderNo,
-        sessionYear: parent.sessionYear,
-        orderReceivedDate: parent.orderReceivedDate,
-        expectedDeliveryDate: parent.expectedDeliveryDate,
-        billingToType: parent.billingToType,
-        billingToCode: parent.billingToCode,
-        billingToName: parent.billingToName,
-        shippingToType: parent.shippingToType,
-        shippingToCode: parent.shippingToCode,
-        shippingToName: parent.shippingToName,
-        shippingToSummary: parent.shippingToSummary,
-        orderType: parent.orderType,
-        orderStatus: "revision_requested",
-        booksellerType: parent.booksellerType,
-        booksellerRating: parent.booksellerRating,
-        pendingPayment: parent.pendingPayment,
-        notes: parent.notes
-      }
-    });
-
-    if (parent.orderType === "descriptive") {
-      await tx.orderSheet2A.createMany({
-        data: parent.descriptiveRows.map((row) => ({
-          orderSheet1Id: newOrder.orderSheet1Id,
-          orderNo: parent.orderNo,
-          subOrderNo,
-          orderModificationNo: row.orderModificationNo,
-          schoolCode: row.schoolCode,
-          schoolName: row.schoolName,
-          itemCode: row.itemCode,
-          itemName: row.itemName,
-          quantity: row.quantity,
-          notes: row.notes
-        }))
-      });
-    } else {
-      await tx.orderSheet2B1.createMany({
-        data: parent.ambiguousSchools.map((row) => ({
-          orderSheet1Id: newOrder.orderSheet1Id,
-          orderNo: parent.orderNo,
-          subOrderNo,
-          schoolCode: row.schoolCode,
-          schoolName: row.schoolName,
-          notes: row.notes
-        }))
-      });
-      await tx.orderSheet2B2.createMany({
-        data: parent.ambiguousItems.map((row) => ({
-          orderSheet1Id: newOrder.orderSheet1Id,
-          orderNo: parent.orderNo,
-          subOrderNo,
-          orderModificationNo: row.orderModificationNo,
-          itemCode: row.itemCode,
-          itemName: row.itemName,
-          groupedQuantity: row.groupedQuantity,
-          notes: row.notes
-        }))
-      });
-    }
-
-    return newOrder;
-  });
-
-  revalidatePath("/orders");
-  return revision;
-}
-
 export async function searchOrders(params: URLSearchParams): Promise<SearchOrder[]> {
-  const display = params.get("display_order_no");
-  const parsedDisplay = display ? parseDisplayOrderNo(display) : {};
   const orderNo = params.get("order_no");
-  const subOrderNo = params.get("sub_order_no");
   const billingToType = params.get("billing_to_type");
   const billing = params.get("billing");
   const shipping = params.get("shipping");
   const orderType = params.get("order_type");
+  const classification = params.get("classification");
   const orderStatus = params.get("order_status");
   const sessionYear = params.get("session_year");
   const paymentStatus = params.get("payment_status");
@@ -810,12 +785,6 @@ export async function searchOrders(params: URLSearchParams): Promise<SearchOrder
   const holdStatus = params.get("hold_status");
 
   const and: Prisma.OrderSheet1WhereInput[] = [];
-  const hasExactSubOrder = Boolean(subOrderNo) || Boolean(display && parsedDisplay.subOrderNo !== undefined);
-
-  if (!hasExactSubOrder) {
-    and.push(await currentOrderWhere());
-  }
-
   if (item) {
     and.push({
       OR: [
@@ -831,6 +800,16 @@ export async function searchOrders(params: URLSearchParams): Promise<SearchOrder
         },
         {
           ambiguousItems: {
+            some: {
+              OR: [
+                { itemCode: { contains: item, mode: "insensitive" } },
+                { itemName: { contains: item, mode: "insensitive" } }
+              ]
+            }
+          }
+        },
+        {
+          combinedItems: {
             some: {
               OR: [
                 { itemCode: { contains: item, mode: "insensitive" } },
@@ -873,10 +852,10 @@ export async function searchOrders(params: URLSearchParams): Promise<SearchOrder
   }
 
   const where: Prisma.OrderSheet1WhereInput = {
-    orderNo: orderNo ? Number(orderNo) : parsedDisplay.orderNo,
-    subOrderNo: subOrderNo ? Number(subOrderNo) : parsedDisplay.subOrderNo,
+    orderNo: orderNo ? Number(orderNo) : undefined,
     billingToType: billingToType ? (billingToType as BillingToType) : undefined,
     orderType: orderType ? (orderType as OrderType) : undefined,
+    classification: classification ? (classification as "normal" | "direct_group" | "group_parent") : undefined,
     orderStatus: orderStatus ? (orderStatus as OrderStatus) : undefined,
     sessionYear: sessionYear || undefined,
     expectedDeliveryDate:
@@ -906,9 +885,10 @@ export async function searchOrders(params: URLSearchParams): Promise<SearchOrder
     include: {
       descriptiveRows: true,
       ambiguousItems: true,
+      combinedItems: true,
       finalRows: true
     },
-    orderBy: [{ orderNo: "desc" }, { subOrderNo: "desc" }],
+    orderBy: { orderNo: "desc" },
     take: 100
   });
 }

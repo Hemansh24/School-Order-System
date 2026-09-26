@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Card, PageHeader } from "@/components/ui";
-import { deleteVendorAction, syncImportedBooksellersAction } from "@/app/vendors/actions";
+import { deleteVendorAction, syncImportedBooksellersAction, syncPreBooksellersAction } from "@/app/vendors/actions";
 import { InlineActionForm } from "@/components/inline-action-form";
 import { AddVendorForm } from "@/components/reference/reference-forms";
 import { prisma } from "@/lib/prisma";
@@ -22,12 +22,8 @@ export default async function VendorsPage() {
     <>
       <PageHeader
         title="Vendors"
-        description="Booksellers must remain linked to at least one school."
-        action={
-          <InlineActionForm action={syncImportedBooksellersAction}>
-            Replace With Imported Booksellers
-          </InlineActionForm>
-        }
+        description="PBS codes identify prospects; BS codes are assigned when a vendor is used on an order."
+        action={<div className="flex gap-2"><InlineActionForm action={syncPreBooksellersAction}>Import Pre-Bookseller Sheet</InlineActionForm><InlineActionForm action={syncImportedBooksellersAction}>Replace With Imported Booksellers</InlineActionForm></div>}
       />
       <AddVendorForm schools={schools} nextCode={vendorCode} />
       <Card>
@@ -35,7 +31,8 @@ export default async function VendorsPage() {
           <table className="w-full min-w-[860px] text-left text-sm">
             <thead className="bg-canvas text-xs uppercase text-muted">
               <tr>
-                <th className="px-4 py-3">Code</th>
+            <th className="px-4 py-3">PBS Code</th>
+            <th className="px-4 py-3">BS Code</th>
                 <th className="px-4 py-3">Name</th>
                 <th className="px-4 py-3">Type</th>
                 <th className="px-4 py-3">Rating</th>
@@ -47,7 +44,10 @@ export default async function VendorsPage() {
             <tbody className="divide-y divide-line">
               {vendors.map((vendor) => (
                 <tr key={vendor.vendorId}>
-                  <td className="px-4 py-3 font-semibold text-ink">{vendor.vendorCode}</td>
+                  <td className="px-4 py-3 font-semibold text-ink">{vendor.preVendorCode ?? "—"}</td>
+                  <td className="px-4 py-3 font-semibold text-ink">
+                    {vendor.booksellerCode ?? (vendor.preVendorCode ? "Awaiting order" : vendor.vendorCode)}
+                  </td>
                   <td className="px-4 py-3">{vendor.vendorName}</td>
                   <td className="px-4 py-3 text-muted">{vendor.vendorType}</td>
                   <td className="px-4 py-3 text-muted">{vendor.vendorRating}</td>

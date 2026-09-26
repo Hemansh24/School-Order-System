@@ -14,6 +14,7 @@ const statLabels: Record<string, string> = {
   cancelledOrders: "Cancelled orders",
   descriptiveOrders: "Descriptive orders",
   ambiguousOrders: "Ambiguous orders",
+  combinedOrders: "Combined orders",
   pendingPayments: "Pending payments",
   onHoldOrders: "On-hold orders"
 };
@@ -25,7 +26,7 @@ export default async function DashboardPage() {
     <>
       <PageHeader
         title="Operations Dashboard"
-        description="Track Order Sheet 1 through 2A or 2B1/2B2 and finalization into Order Sheet 3."
+        description="Track descriptive, ambiguous, and combined orders through finalization into Order Sheet 3."
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
@@ -58,7 +59,7 @@ export default async function DashboardPage() {
           <table className="w-full min-w-[880px] text-left text-sm">
             <thead className="bg-canvas text-xs uppercase text-muted">
               <tr>
-                <th className="px-4 py-3">Display Order No</th>
+                <th className="px-4 py-3">Order No</th>
                 <th className="px-4 py-3">Billing To</th>
                 <th className="px-4 py-3">Shipping To</th>
                 <th className="px-4 py-3">Order Type</th>
@@ -71,7 +72,7 @@ export default async function DashboardPage() {
               {recentOrders.map((order) => (
                 <tr key={order.orderSheet1Id}>
                   <td className="px-4 py-3">
-                    <OrderNumber orderNo={order.orderNo} subOrderNo={order.subOrderNo} />
+                    <OrderNumber orderNo={order.orderNo} />
                   </td>
                   <td className="px-4 py-3">
                     <div className="font-medium text-ink">{order.billingToName}</div>

@@ -12,14 +12,13 @@ Next.js App Router application for school-book order processing with the require
 
 ## Workflow Rules Implemented
 
-- Order numbers are stored as `order_no` and `sub_order_no`, never decimals.
-- UI display uses `displayOrderNo(order_no, sub_order_no)`.
+- Each order uses one stable `order_no`; editing it before finalization never changes that number.
 - Descriptive orders create only Order Sheet 2A rows.
 - Ambiguous orders create only Order Sheet 2B1 school rows and 2B2 grouped item rows.
 - Ambiguous quantities are not forced into school-wise allocations.
 - Finalization creates Order Sheet 3 rows from either 2A or 2B2.
 - Order Sheet 3 has its own `order_sheet_3_id`, plus `source_type` and `source_id`.
-- Finalized orders are protected from direct status edits; revisions create a new sub-order.
+- Finalized orders are protected from direct edits.
 
 ## Setup
 

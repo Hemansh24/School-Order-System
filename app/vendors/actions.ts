@@ -5,6 +5,7 @@ import { formatActionError } from "@/lib/action-errors";
 import { prisma } from "@/lib/prisma";
 import { nextVendorCode } from "@/lib/reference-codes";
 import { replaceVendorsWithImportedBooksellers } from "@/lib/syncBooksellers";
+import { syncPreBooksellers } from "@/lib/services/pre-booksellers";
 import { createVendorSchema } from "@/lib/validation/reference";
 
 export type ReferenceActionState = {
@@ -157,5 +158,19 @@ export async function syncImportedBooksellersAction(
         fallback: "Could not replace vendors from the imported booksellers table."
       })
     };
+  }
+}
+
+export async function syncPreBooksellersAction(
+  _previousState: ReferenceActionState,
+  _formData: FormData
+): Promise<ReferenceActionState> {
+  try {
+    const summary = await syncPreBooksellers();
+    revalidatePath("/vendors");
+    revalidatePath("/orders/new");
+    return { ok: true, message: `Imported ${summary.imported} pre-booksellers; ${summary.awaitingBsCode} are awaiting BS-code assignment.` };
+  } catch (error) {
+    return { ok: false, message: formatActionError(error, { fallback: "Could not import the pre-bookseller sheet." }) };
   }
 }

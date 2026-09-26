@@ -47,9 +47,7 @@ export default async function EditOrderPage({
   }
 
   if (
-    order.orderStatus !== "draft" &&
-    order.orderStatus !== "revision_requested" &&
-    order.orderStatus !== "pending_confirmation"
+    order.orderStatus === "finalized" || order.orderStatus === "cancelled"
   ) {
     redirect(`/orders/${order.orderSheet1Id}`);
   }
@@ -58,6 +56,7 @@ export default async function EditOrderPage({
   const initialValues: CreateOrderInput = {
     sheet1: {
       sessionYear: order.sessionYear,
+      orderPlacedDate: toInputDate(order.orderPlacedDate),
       orderReceivedDate: toInputDate(order.orderReceivedDate),
       expectedDeliveryDate: toInputDate(order.expectedDeliveryDate),
       billingToType: order.billingToType,
@@ -99,6 +98,23 @@ export default async function EditOrderPage({
             itemName: row.itemName,
             groupedQuantity: row.groupedQuantity,
             notes: row.notes ?? ""
+        }))
+        : [],
+    combinedSchools:
+      order.orderType === "combined"
+        ? order.combinedSchools.map((row) => ({
+            schoolCode: row.schoolCode,
+            schoolName: row.schoolName,
+            notes: row.notes ?? ""
+          }))
+        : [],
+    combinedItems:
+      order.orderType === "combined"
+        ? order.combinedItems.map((row) => ({
+            itemCode: row.itemCode,
+            itemName: row.itemName,
+            pooledQuantity: row.pooledQuantity,
+            notes: row.notes ?? ""
           }))
         : []
   };
@@ -106,11 +122,12 @@ export default async function EditOrderPage({
   return (
     <>
       <PageHeader
-        title={`Edit Order ${order.subOrderNo > 0 ? `${order.orderNo}.${order.subOrderNo}` : order.orderNo}`}
-        description="Update the draft or revision before locking it."
+        title={`Edit Order ${order.orderNo}`}
+        description="Update this order before finalization. Its order number remains unchanged."
       />
       <CreateOrderForm
         schools={toSchoolOptions(reference.schools)}
+        groups={reference.groupLocations.map((location) => ({ optionKey: `${location.schoolGroup.groupCode}-${location.subCode}`, schoolCode: `${location.schoolGroup.groupCode}-${location.subCode}`, schoolName: location.name, addressSummary: formatSchoolAddress(location) }))}
         vendors={reference.vendors.map((vendor) => ({
           vendorCode: vendor.vendorCode,
           vendorName: vendor.vendorName,

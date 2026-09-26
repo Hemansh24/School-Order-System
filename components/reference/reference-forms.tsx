@@ -185,7 +185,7 @@ export function AddVendorForm({
         selectedSchoolIds={selectedSchoolIds}
         onSelectionChange={setSelectedSchoolIds}
       />
-      <FormSubmit disabled={schools.length === 0 || selectedSchoolIds.length === 0}>
+      <FormSubmit>
         Add Vendor
       </FormSubmit>
     </ReferenceForm>
@@ -232,7 +232,7 @@ export function EditVendorForm({
         selectedSchoolIds={selectedSchoolIds}
         onSelectionChange={setSelectedSchoolIds}
       />
-      <FormSubmit disabled={schools.length === 0 || selectedSchoolIds.length === 0}>
+      <FormSubmit>
         Save Vendor
       </FormSubmit>
     </ReferenceForm>
@@ -442,6 +442,32 @@ function SchoolCheckboxes({
   selectedSchoolIds: number[];
   onSelectionChange?: (schoolIds: number[]) => void;
 }) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const matchingSchools = useMemo(() => {
+    const query = searchTerm.trim().toLocaleLowerCase();
+
+    if (!query) {
+      return schools;
+    }
+
+    return schools.filter((school) =>
+      `${school.schoolName} ${school.schoolCode}`.toLocaleLowerCase().includes(query)
+    );
+  }, [schools, searchTerm]);
+
+  useEffect(() => {
+    function closeOnOutsideClick(event: MouseEvent) {
+      if (!dropdownRef.current?.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    return () => document.removeEventListener("mousedown", closeOnOutsideClick);
+  }, []);
+
   function toggleSchool(schoolId: number, checked: boolean) {
     if (!onSelectionChange) {
       return;
@@ -455,31 +481,64 @@ function SchoolCheckboxes({
   }
 
   return (
-    <label className="block md:col-span-2 xl:col-span-3">
+    <div className="block md:col-span-2 xl:col-span-3">
       <span className={labelClass}>Linked Schools</span>
-      <div className="grid gap-2 rounded-md border border-line bg-white p-3 text-sm sm:grid-cols-2 xl:grid-cols-3">
-        {schools.map((school) => (
-          <label key={school.schoolId} className="flex items-center gap-2 text-ink">
-            <input
-              name="schoolIds"
-              type="checkbox"
-              value={school.schoolId}
-              className="h-4 w-4"
-              checked={selectedSchoolIds.includes(school.schoolId)}
-              onChange={(event) => toggleSchool(school.schoolId, event.target.checked)}
-            />
-            <span>
-              {school.schoolCode} - {school.schoolName}
-            </span>
-          </label>
-        ))}
+      <div ref={dropdownRef} className="relative text-sm">
+        <button
+          type="button"
+          onClick={() => setIsOpen((open) => !open)}
+          aria-expanded={isOpen}
+          aria-controls="linked-school-options"
+          className="focus-ring flex h-10 w-full items-center justify-between gap-3 rounded-md border border-line bg-white px-3 text-left text-ink"
+        >
+          <span className="truncate">
+            {selectedSchoolIds.length === 0
+              ? "No linked schools (optional)"
+              : `${selectedSchoolIds.length} school${selectedSchoolIds.length === 1 ? "" : "s"} selected`}
+          </span>
+          <span className={`text-xs text-muted transition-transform ${isOpen ? "rotate-180" : ""}`} aria-hidden="true">
+            ▼
+          </span>
+        </button>
+        {isOpen ? (
+          <div
+            id="linked-school-options"
+            className="absolute z-20 mt-1 w-full rounded-md border border-line bg-white p-3 shadow-lg"
+          >
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Search by school name or PR code"
+            aria-label="Search linked schools by name or PR code"
+            className={inputClass}
+          />
+          <div className="mt-3 grid max-h-60 gap-2 overflow-y-auto sm:grid-cols-2 xl:grid-cols-3">
+            {matchingSchools.map((school) => (
+              <label key={school.schoolId} className="flex items-center gap-2 rounded px-1 py-1 text-ink hover:bg-canvas">
+                <input
+                  name="schoolIds"
+                  type="checkbox"
+                  value={school.schoolId}
+                  className="h-4 w-4 shrink-0"
+                  checked={selectedSchoolIds.includes(school.schoolId)}
+                  onChange={(event) => toggleSchool(school.schoolId, event.target.checked)}
+                />
+                <span className="min-w-0">
+                  <span className="block truncate font-medium">{school.schoolName}</span>
+                  <span className="block truncate text-xs text-muted">PR code: {school.schoolCode}</span>
+                </span>
+              </label>
+            ))}
+            {matchingSchools.length === 0 ? (
+              <p className="text-sm text-muted sm:col-span-2 xl:col-span-3">No schools match that search.</p>
+            ) : null}
+          </div>
+          </div>
+        ) : null}
       </div>
-      {schools.length === 0 ? (
-        <span className="mt-1 block text-xs text-red-700">Add a school before creating vendors.</span>
-      ) : selectedSchoolIds.length === 0 ? (
-        <span className="mt-1 block text-xs text-red-700">Choose at least one school.</span>
-      ) : null}
-    </label>
+      <span className="mt-1 block text-xs text-muted">Optional. Vendors may place orders for themselves.</span>
+    </div>
   );
 }
 

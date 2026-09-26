@@ -34,6 +34,16 @@ export function nextCompactCode(prefix: string, existingCodes: string[], width =
   return `${prefix}${String(nextNumber).padStart(width, "0")}`;
 }
 
+export function nextSequentialCompactCode(prefix: string, existingCodes: string[], width = 4) {
+  const pattern = new RegExp(`^${prefix}-?(\\d+)$`, "i");
+  const highestNumber = existingCodes.reduce((highest, code) => {
+    const match = code.match(pattern);
+    return match ? Math.max(highest, Number(match[1])) : highest;
+  }, 0);
+
+  return `${prefix}${String(highestNumber + 1).padStart(width, "0")}`;
+}
+
 export async function nextVendorCode() {
   const vendors = await prisma.vendor.findMany({ select: { vendorCode: true } });
   return nextCode(
@@ -55,7 +65,7 @@ export async function nextOrganisationPtCode() {
     where: { ptCode: { not: null } },
     select: { ptCode: true }
   });
-  return nextCompactCode(
+  return nextSequentialCompactCode(
     "PT",
     organisations.flatMap((organisation) => (organisation.ptCode ? [organisation.ptCode] : [])),
     4

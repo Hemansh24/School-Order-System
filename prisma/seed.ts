@@ -226,8 +226,8 @@ async function main() {
   const descriptive = await prisma.orderSheet1.create({
     data: {
       orderNo: 1,
-      subOrderNo: 0,
       sessionYear: "2026-2027",
+      orderPlacedDate: date("2026-05-08"),
       orderReceivedDate: date("2026-05-10"),
       expectedDeliveryDate: date("2026-05-25"),
       billingToType: "school",
@@ -251,7 +251,6 @@ async function main() {
       data: {
         orderSheet1Id: descriptive.orderSheet1Id,
         orderNo: 1,
-        subOrderNo: 0,
         schoolCode: greenwood.schoolCode,
         schoolName: greenwood.schoolName,
         itemCode: "SW-01-ENG-01-10",
@@ -263,7 +262,6 @@ async function main() {
       data: {
         orderSheet1Id: descriptive.orderSheet1Id,
         orderNo: 1,
-        subOrderNo: 0,
         schoolCode: greenwood.schoolCode,
         schoolName: greenwood.schoolName,
         itemCode: "SW-02-ENG-01-10",
@@ -277,7 +275,6 @@ async function main() {
     data: descriptiveRows.map((row) => ({
       orderSheet1Id: descriptive.orderSheet1Id,
       orderNo: 1,
-      subOrderNo: 0,
       sourceType: SourceType.TWO_A,
       sourceId: row.orderSheet2AId,
       itemCode: row.itemCode,
@@ -296,8 +293,8 @@ async function main() {
   const ambiguous = await prisma.orderSheet1.create({
     data: {
       orderNo: 2,
-      subOrderNo: 0,
       sessionYear: "2026-2027",
+      orderPlacedDate: date("2026-05-09"),
       orderReceivedDate: date("2026-05-12"),
       expectedDeliveryDate: date("2026-05-30"),
       billingToType: "vendor",
@@ -323,14 +320,12 @@ async function main() {
       {
         orderSheet1Id: ambiguous.orderSheet1Id,
         orderNo: 2,
-        subOrderNo: 0,
         schoolCode: greenwood.schoolCode,
         schoolName: greenwood.schoolName
       },
       {
         orderSheet1Id: ambiguous.orderSheet1Id,
         orderNo: 2,
-        subOrderNo: 0,
         schoolCode: riverside.schoolCode,
         schoolName: riverside.schoolName
       }
@@ -342,7 +337,6 @@ async function main() {
       {
         orderSheet1Id: ambiguous.orderSheet1Id,
         orderNo: 2,
-        subOrderNo: 0,
         itemCode: "SW-01-ENG-01-10",
         itemName: "Safety Workbook Class 1",
         groupedQuantity: 120
@@ -350,7 +344,6 @@ async function main() {
       {
         orderSheet1Id: ambiguous.orderSheet1Id,
         orderNo: 2,
-        subOrderNo: 0,
         itemCode: "PB-01-ENG-00-01",
         itemName: "Picture Booklet Level 1",
         groupedQuantity: 300

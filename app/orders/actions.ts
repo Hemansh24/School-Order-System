@@ -1,11 +1,9 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { formatActionError } from "@/lib/action-errors";
 import {
   cancelHeldOrder,
   createOrder,
-  createRevision,
   finalizeOrder,
   lockOrder,
   markPaymentReceived,
@@ -162,24 +160,6 @@ export async function cancelHeldOrderAction(
       ok: false,
       message: formatActionError(error, {
         fallback: "Could not cancel this on-hold order. Please try again."
-      })
-    };
-  }
-}
-
-export async function createRevisionAction(
-  orderSheet1Id: number,
-  _previousState: OrderMutationState,
-  _formData: FormData
-): Promise<OrderMutationState> {
-  try {
-    const revision = await createRevision(orderSheet1Id);
-    redirect(`/orders/${revision.orderSheet1Id}`);
-  } catch (error) {
-    return {
-      ok: false,
-      message: formatActionError(error, {
-        fallback: "Could not create a revision for this order. Please try again."
       })
     };
   }

@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { createOrderAction, updateOrderAction } from "@/app/orders/actions";
 import { Card, SubmitButton } from "@/components/ui";
@@ -16,6 +16,7 @@ type SchoolRef = {
   schoolName: string;
   addressSummary: string;
 };
+type GroupRef = SchoolRef;
 type VendorRef = {
   vendorCode: string;
   vendorName: string;
@@ -39,6 +40,7 @@ type ItemRef = {
 
 type Props = {
   schools: SchoolRef[];
+  groups: GroupRef[];
   vendors: VendorRef[];
   items: ItemRef[];
   initialValues?: CreateOrderInput;
@@ -51,9 +53,28 @@ const inputClass =
 const textAreaClass =
   "focus-ring min-h-24 w-full rounded-md border border-line bg-white px-3 py-2 text-sm";
 const labelClass = "mb-1 block text-xs font-semibold uppercase text-muted";
+const ORDER_DRAFT_STORAGE_KEY = "school-book-order:create-order-draft";
+
+function isSavedOrderDraft(value: unknown): value is CreateOrderInput {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const draft = value as Partial<CreateOrderInput>;
+  return (
+    !!draft.sheet1 &&
+    typeof draft.sheet1 === "object" &&
+    Array.isArray(draft.descriptiveRows) &&
+    Array.isArray(draft.ambiguousSchools) &&
+    Array.isArray(draft.ambiguousItems) &&
+    Array.isArray(draft.combinedSchools) &&
+    Array.isArray(draft.combinedItems)
+  );
+}
 
 export function CreateOrderForm({
   schools,
+  groups,
   vendors,
   items,
   initialValues,
@@ -72,11 +93,42 @@ export function CreateOrderForm({
   const [isBillingDropdownOpen, setIsBillingDropdownOpen] = useState(false);
   const [isShippingDropdownOpen, setIsShippingDropdownOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const isNewOrder = orderSheet1Id === undefined && initialValues === undefined;
+  const [isDraftReady, setIsDraftReady] = useState(!isNewOrder);
 
   const today = new Date().toISOString().slice(0, 10);
   const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     .toISOString()
     .slice(0, 10);
+
+  const newOrderDefaults = useMemo<CreateOrderInput>(
+    () => ({
+      sheet1: {
+        sessionYear: "2026-2027",
+        orderPlacedDate: today,
+        orderReceivedDate: today,
+        expectedDeliveryDate: nextWeek,
+        billingToType: "school",
+        billingToCode: schools[0]?.schoolCode ?? "",
+        billingToName: schools[0]?.schoolName ?? "",
+        shippingToType: "school",
+        shippingToCode: schools[0]?.schoolCode ?? "",
+        shippingToName: schools[0]?.schoolName ?? "",
+        shippingToSummary: schools[0]?.addressSummary ?? "",
+        orderType: "descriptive",
+        booksellerType: "",
+        booksellerRating: "",
+        pendingPayment: false,
+        notes: ""
+      },
+      descriptiveRows: [],
+      ambiguousSchools: [],
+      ambiguousItems: [],
+      combinedSchools: [],
+      combinedItems: []
+    }),
+    [nextWeek, schools, today]
+  );
 
   function findSchoolOptionByStoredValue(
     options: SchoolRef[],
@@ -97,28 +149,7 @@ export function CreateOrderForm({
   const form = useForm<CreateOrderInput>({
     resolver: zodResolver(createOrderSchema),
     mode: "onChange",
-    defaultValues: initialValues ?? {
-      sheet1: {
-        sessionYear: "2026-2027",
-        orderReceivedDate: today,
-        expectedDeliveryDate: nextWeek,
-        billingToType: "school",
-        billingToCode: schools[0]?.schoolCode ?? "",
-        billingToName: schools[0]?.schoolName ?? "",
-        shippingToType: "school",
-        shippingToCode: schools[0]?.schoolCode ?? "",
-        shippingToName: schools[0]?.schoolName ?? "",
-        shippingToSummary: schools[0]?.addressSummary ?? "",
-        orderType: "descriptive",
-        booksellerType: "",
-        booksellerRating: "",
-        pendingPayment: false,
-        notes: ""
-      },
-      descriptiveRows: [],
-      ambiguousSchools: [],
-      ambiguousItems: []
-    }
+    defaultValues: initialValues ?? newOrderDefaults
   });
 
   const orderType = form.watch("sheet1.orderType");
@@ -128,29 +159,76 @@ export function CreateOrderForm({
   const shippingToCode = form.watch("sheet1.shippingToCode");
   const watchedDescriptiveRows = form.watch("descriptiveRows");
   const watchedAmbiguousItems = form.watch("ambiguousItems");
+  const watchedCombinedItems = form.watch("combinedItems");
 
   const descriptiveRows = useFieldArray({ control: form.control, name: "descriptiveRows" });
   const ambiguousSchools = useFieldArray({ control: form.control, name: "ambiguousSchools" });
   const ambiguousItems = useFieldArray({ control: form.control, name: "ambiguousItems" });
+  const combinedSchools = useFieldArray({ control: form.control, name: "combinedSchools" });
+  const combinedItems = useFieldArray({ control: form.control, name: "combinedItems" });
+
+  useEffect(() => {
+    if (!isNewOrder) {
+      return;
+    }
+
+    try {
+      const savedDraft = window.sessionStorage.getItem(ORDER_DRAFT_STORAGE_KEY);
+      if (savedDraft) {
+        const parsedDraft: unknown = JSON.parse(savedDraft);
+        if (isSavedOrderDraft(parsedDraft)) {
+          form.reset({
+            ...parsedDraft,
+            sheet1: {
+              ...parsedDraft.sheet1,
+              // Drafts saved before this field was introduced use their received date.
+              orderPlacedDate:
+                parsedDraft.sheet1.orderPlacedDate || parsedDraft.sheet1.orderReceivedDate
+            }
+          });
+        }
+      }
+    } catch {
+      window.sessionStorage.removeItem(ORDER_DRAFT_STORAGE_KEY);
+    } finally {
+      setIsDraftReady(true);
+    }
+  }, [form, isNewOrder]);
+
+  useEffect(() => {
+    if (!isNewOrder || !isDraftReady) {
+      return;
+    }
+
+    const subscription = form.watch((values) => {
+      window.sessionStorage.setItem(ORDER_DRAFT_STORAGE_KEY, JSON.stringify(values));
+    });
+
+    return () => subscription.unsubscribe();
+  }, [form, isDraftReady, isNewOrder]);
 
   const billingOptions = useMemo(
     () =>
       billingToType === "school"
-        ? schools.map((school) => ({
-            value: school.optionKey,
-            code: school.schoolCode,
-            name: school.schoolName,
-            type: "",
-            rating: ""
+        ? [...schools, ...groups].map((school) => ({
+          value: school.optionKey,
+          code: school.schoolCode,
+          name: school.schoolName,
+          type: "",
+          rating: "",
+          addressSummary: school.addressSummary,
+          isGroup: groups.some((group) => group.optionKey === school.optionKey)
           }))
         : vendors.map((vendor) => ({
             value: vendor.vendorCode,
             code: vendor.vendorCode,
             name: vendor.vendorName,
             type: vendor.vendorType ?? "",
-            rating: vendor.vendorRating ?? ""
+          rating: vendor.vendorRating ?? "",
+          addressSummary: vendor.addressSummary,
+          isGroup: false
           })),
-    [billingToType, schools, vendors]
+    [billingToType, schools, groups, vendors]
   );
   const selectedBillingOption = useMemo(
     () =>
@@ -162,20 +240,20 @@ export function CreateOrderForm({
   const filteredBillingOptions = useMemo(() => {
     const query = billingToCode.trim().toLowerCase();
 
-    if (!query) {
-      return billingOptions;
-    }
-
-    return billingOptions.filter(
-      (option) =>
-        option.code.toLowerCase().includes(query) || option.name.toLowerCase().includes(query)
-    );
+    return billingOptions
+      .filter(
+        (option) =>
+          !query ||
+          option.code.toLowerCase().includes(query) ||
+          option.name.toLowerCase().includes(query)
+      )
+      .slice(0, 50);
   }, [billingOptions, billingToCode]);
 
   const shippingOptions = useMemo(
     () =>
       shippingToType === "school"
-        ? schools.map((school) => ({
+        ? [...schools, ...groups].map((school) => ({
             value: school.optionKey,
             code: school.schoolCode,
             name: school.schoolName,
@@ -187,19 +265,19 @@ export function CreateOrderForm({
             name: vendor.vendorName,
             addressSummary: vendor.addressSummary
           })),
-    [shippingToType, schools, vendors]
+    [shippingToType, schools, groups, vendors]
   );
   const filteredShippingOptions = useMemo(() => {
     const query = shippingToCode.trim().toLowerCase();
 
-    if (!query) {
-      return shippingOptions;
-    }
-
-    return shippingOptions.filter(
-      (option) =>
-        option.code.toLowerCase().includes(query) || option.name.toLowerCase().includes(query)
-    );
+    return shippingOptions
+      .filter(
+        (option) =>
+          !query ||
+          option.code.toLowerCase().includes(query) ||
+          option.name.toLowerCase().includes(query)
+      )
+      .slice(0, 50);
   }, [shippingOptions, shippingToCode]);
 
   const selectedVendorSchools = useMemo(() => {
@@ -334,6 +412,15 @@ export function CreateOrderForm({
     form.setValue("sheet1.billingToName", selected?.name ?? "");
     form.setValue("sheet1.booksellerType", selected?.type ?? "");
     form.setValue("sheet1.booksellerRating", selected?.rating ?? "");
+    if (orderType === "combined") {
+      form.setValue("sheet1.shippingToType", "school");
+      form.setValue("sheet1.shippingToCode", selected?.code ?? "");
+      form.setValue("sheet1.shippingToName", selected?.name ?? "");
+      form.setValue("sheet1.shippingToSummary", selected?.addressSummary ?? "");
+    }
+    if (selected?.isGroup) {
+      switchOrderType("combined");
+    }
     if (billingToType === "vendor") {
       form.setValue("descriptiveRows", []);
       form.setValue("ambiguousSchools", []);
@@ -356,6 +443,17 @@ export function CreateOrderForm({
     form.setValue("sheet1.billingToName", selected?.name ?? "");
     form.setValue("sheet1.booksellerType", selected?.type ?? "");
     form.setValue("sheet1.booksellerRating", selected?.rating ?? "");
+
+    if (selected?.isGroup && orderType !== "combined") {
+      switchOrderType("combined");
+    }
+
+    if (orderType === "combined") {
+      form.setValue("sheet1.shippingToType", "school");
+      form.setValue("sheet1.shippingToCode", selected?.code ?? "");
+      form.setValue("sheet1.shippingToName", selected?.name ?? "");
+      form.setValue("sheet1.shippingToSummary", selected?.addressSummary ?? "");
+    }
 
     if (billingToType === "school") {
       if (selected) {
@@ -403,6 +501,21 @@ export function CreateOrderForm({
       schoolName: firstSchool?.schoolName ?? "",
       notes: ""
     });
+  }
+
+  function setCombinedSchool(index: number, optionKey: string) {
+    const selected = schools.find((school) => school.optionKey === optionKey);
+    form.setValue(`combinedSchools.${index}.schoolCode`, selected?.schoolCode ?? "");
+    form.setValue(`combinedSchools.${index}.schoolName`, selected?.schoolName ?? "");
+  }
+
+  function appendCombinedSchool() {
+    const selectedCodes = new Set(form.getValues("combinedSchools").map((school) => school.schoolCode));
+    const firstSchool = schools.find((school) => !selectedCodes.has(school.schoolCode));
+    if (!firstSchool) {
+      return;
+    }
+    combinedSchools.append({ schoolCode: firstSchool.schoolCode, schoolName: firstSchool.schoolName, notes: "" });
   }
 
   function setDescriptiveItemQuantity(item: ItemRef, rawQuantity: string) {
@@ -468,6 +581,26 @@ export function CreateOrderForm({
     }
   }
 
+  function setCombinedItemQuantity(item: ItemRef, rawQuantity: string) {
+    const rows = form.getValues("combinedItems");
+    const rowIndex = rows.findIndex((row) => row.itemCode === item.itemCode);
+    const pooledQuantity = Number(rawQuantity);
+
+    if (!rawQuantity || Number.isNaN(pooledQuantity) || pooledQuantity <= 0) {
+      if (rowIndex >= 0) {
+        combinedItems.remove(rowIndex);
+      }
+      return;
+    }
+
+    const nextRow = { itemCode: item.itemCode, itemName: item.itemName, pooledQuantity, notes: "" };
+    if (rowIndex >= 0) {
+      form.setValue(`combinedItems.${rowIndex}`, nextRow);
+    } else {
+      combinedItems.append(nextRow);
+    }
+  }
+
   function moveVendorSchool(direction: -1 | 1) {
     if (selectedVendorSchools.length === 0) {
       return;
@@ -484,11 +617,13 @@ export function CreateOrderForm({
     setSelectedVendorSchoolKey(selectedVendorSchools[nextIndex].optionKey);
   }
 
-  function switchOrderType(type: "descriptive" | "ambiguous") {
+  function switchOrderType(type: "descriptive" | "ambiguous" | "combined") {
     form.setValue("sheet1.orderType", type);
     if (type === "descriptive") {
       form.setValue("ambiguousSchools", []);
       form.setValue("ambiguousItems", []);
+      form.setValue("combinedSchools", []);
+      form.setValue("combinedItems", []);
       if (billingToType !== "vendor" && form.getValues("descriptiveRows").length === 0) {
         setSelectedDescriptiveSchoolKey(
           findSchoolOptionByStoredValue(
@@ -498,10 +633,40 @@ export function CreateOrderForm({
           )?.optionKey ?? schools[0]?.optionKey ?? ""
         );
       }
-    } else {
+    } else if (type === "ambiguous") {
       form.setValue("descriptiveRows", []);
+      form.setValue("combinedSchools", []);
+      form.setValue("combinedItems", []);
+      if (billingToType === "school") {
+        const firstVendor = vendors[0];
+        form.setValue("sheet1.billingToType", "vendor");
+        form.setValue("sheet1.billingToCode", firstVendor?.vendorCode ?? "");
+        form.setValue("sheet1.billingToName", firstVendor?.vendorName ?? "");
+        form.setValue("sheet1.booksellerType", firstVendor?.vendorType ?? "");
+        form.setValue("sheet1.booksellerRating", firstVendor?.vendorRating ?? "");
+        setSelectedDescriptiveSchoolKey("");
+        setSelectedVendorSchoolKey("");
+      }
       if (form.getValues("ambiguousSchools").length === 0) {
         appendAmbiguousSchool();
+      }
+    } else {
+      form.setValue("descriptiveRows", []);
+      form.setValue("ambiguousSchools", []);
+      form.setValue("ambiguousItems", []);
+      const selectedSchool =
+        billingToType === "school"
+          ? findSchoolOptionByStoredValue([...schools, ...groups], form.getValues("sheet1.billingToCode"), form.getValues("sheet1.billingToName"))
+          : schools[0];
+      form.setValue("sheet1.billingToType", "school");
+      form.setValue("sheet1.billingToCode", selectedSchool?.schoolCode ?? "");
+      form.setValue("sheet1.billingToName", selectedSchool?.schoolName ?? "");
+      form.setValue("sheet1.shippingToType", "school");
+      form.setValue("sheet1.shippingToCode", selectedSchool?.schoolCode ?? "");
+      form.setValue("sheet1.shippingToName", selectedSchool?.schoolName ?? "");
+      form.setValue("sheet1.shippingToSummary", selectedSchool?.addressSummary ?? "");
+      if (form.getValues("combinedSchools").length === 0) {
+        appendCombinedSchool();
       }
     }
   }
@@ -516,6 +681,9 @@ export function CreateOrderForm({
       if (!result.ok) {
         setServerError(result.message ?? "Could not create order.");
         return;
+      }
+      if (isNewOrder) {
+        window.sessionStorage.removeItem(ORDER_DRAFT_STORAGE_KEY);
       }
       router.push(`/orders/${result.orderSheet1Id}`);
       router.refresh();
@@ -533,13 +701,26 @@ export function CreateOrderForm({
     setStep((current) => Math.min(4, current + 1));
   }
 
+  function clearOrder() {
+    form.reset(newOrderDefaults);
+    setStep(1);
+    setServerError(null);
+    setSelectedVendorSchoolKey("");
+    setSelectedDescriptiveSchoolKey(schools[0]?.optionKey ?? "");
+    setSelectedCategoryCode(items[0]?.categoryCode ?? "");
+    setSelectedCustomisationCode(items[0]?.customisationCode ?? "");
+    setIsBillingDropdownOpen(false);
+    setIsShippingDropdownOpen(false);
+    window.sessionStorage.removeItem(ORDER_DRAFT_STORAGE_KEY);
+  }
+
   const errors = form.formState.errors;
   const canSubmit = step === 4 && form.formState.isValid && !isPending;
 
   return (
     <form onSubmit={form.handleSubmit(submit)} className="space-y-6">
       <div className="grid gap-3 sm:grid-cols-4">
-        {["Order Sheet 1", orderType === "descriptive" ? "Order Sheet 2A" : "Order Sheet 2B1 + 2B2", "Review", "Lock/Finalize"].map(
+        {["Order Sheet 1", orderType === "descriptive" ? "Order Sheet 2A" : orderType === "ambiguous" ? "Order Sheet 2B1 + 2B2" : "Order Sheet 2C1 + 2C2", "Review", "Lock/Finalize"].map(
           (label, index) => (
             <button
               key={label}
@@ -573,18 +754,34 @@ export function CreateOrderForm({
             <Field label="Session Year" error={errors.sheet1?.sessionYear?.message}>
               <input className={inputClass} {...form.register("sheet1.sessionYear")} />
             </Field>
+            <Field label="Order Placed Date" error={errors.sheet1?.orderPlacedDate?.message}>
+              <input type="date" className={inputClass} {...form.register("sheet1.orderPlacedDate")} />
+            </Field>
             <Field label="Order Received Date" error={errors.sheet1?.orderReceivedDate?.message}>
-              <input type="date" className={inputClass} {...form.register("sheet1.orderReceivedDate")} />
+              <input
+                type="date"
+                readOnly
+                className={inputClass}
+                {...form.register("sheet1.orderReceivedDate")}
+              />
             </Field>
             <Field label="Expected Delivery Date" error={errors.sheet1?.expectedDeliveryDate?.message}>
               <input type="date" className={inputClass} {...form.register("sheet1.expectedDeliveryDate")} />
             </Field>
-            <Field label="Billing To Type">
+            <Field label="Billing To Type" error={errors.sheet1?.billingToType?.message}>
               <select
                 className={inputClass}
                 {...form.register("sheet1.billingToType", {
                   onChange: (event) => {
                     const nextType = event.target.value as "school" | "vendor";
+                    if (nextType === "school" && orderType === "ambiguous") {
+                      form.setValue("sheet1.orderType", "descriptive");
+                      form.setValue("ambiguousSchools", []);
+                      form.setValue("ambiguousItems", []);
+                    }
+                    if (nextType === "vendor" && orderType === "combined") {
+                      return;
+                    }
                     const first =
                       nextType === "school"
                         ? schools[0]
@@ -603,8 +800,8 @@ export function CreateOrderForm({
                   }
                 })}
               >
-                <option value="school">School</option>
-                <option value="vendor">Vendor / Bookseller</option>
+                <option value="school" disabled={orderType === "ambiguous"}>School</option>
+                <option value="vendor" disabled={orderType === "combined"}>Vendor / Bookseller</option>
               </select>
             </Field>
             <Field label="Billing To Code/Name" error={errors.sheet1?.billingToCode?.message}>
@@ -666,6 +863,7 @@ export function CreateOrderForm({
                     form.setValue("sheet1.shippingToSummary", first?.addressSummary ?? "");
                   }
                 })}
+                disabled={orderType === "combined"}
               >
                 <option value="school">School</option>
                 <option value="vendor">Vendor / Bookseller</option>
@@ -678,6 +876,7 @@ export function CreateOrderForm({
                   value={form.watch("sheet1.shippingToCode")}
                   onChange={(event) => setShippingCode(event.target.value)}
                   onFocus={() => setIsShippingDropdownOpen(true)}
+                  disabled={orderType === "combined"}
                   onBlur={() => {
                     window.setTimeout(() => setIsShippingDropdownOpen(false), 150);
                   }}
@@ -711,11 +910,18 @@ export function CreateOrderForm({
               <select
                 className={inputClass}
                 value={orderType}
-                onChange={(event) => switchOrderType(event.target.value as "descriptive" | "ambiguous")}
+                onChange={(event) => switchOrderType(event.target.value as "descriptive" | "ambiguous" | "combined")}
               >
                 <option value="descriptive">Descriptive</option>
                 <option value="ambiguous">Ambiguous</option>
+                <option value="combined">Combined</option>
               </select>
+              {orderType === "ambiguous" ? (
+                <p className="mt-1 text-xs text-muted">Ambiguous orders are placed by vendors/booksellers only.</p>
+              ) : null}
+              {orderType === "combined" ? (
+                <p className="mt-1 text-xs text-muted">Combined orders are placed by a school and use shared item totals for all participating schools.</p>
+              ) : null}
             </Field>
             <Field label="Bookseller Type">
               <input className={inputClass} {...form.register("sheet1.booksellerType")} />
@@ -723,10 +929,17 @@ export function CreateOrderForm({
             <Field label="Bookseller Rating">
               <input className={inputClass} {...form.register("sheet1.booksellerRating")} />
             </Field>
-            <label className="mt-6 flex h-10 items-center gap-2 text-sm font-medium text-ink">
-              <input type="checkbox" className="h-4 w-4" {...form.register("sheet1.pendingPayment")} />
-              Pending payment
-            </label>
+            <div className="mt-6 flex h-10 items-center gap-4">
+              <label className="flex items-center gap-2 text-sm font-medium text-ink">
+                <input type="checkbox" className="h-4 w-4" {...form.register("sheet1.pendingPayment")} />
+                Pending payment
+              </label>
+              {isNewOrder ? (
+                <SubmitButton type="button" variant="secondary" onClick={clearOrder}>
+                  Clear order
+                </SubmitButton>
+              ) : null}
+            </div>
           </div>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <Field label="Shipping Address" error={errors.sheet1?.shippingToSummary?.message}>
@@ -792,17 +1005,11 @@ export function CreateOrderForm({
               </div>
             ) : (
               <Field label="School">
-                <select
-                  className={inputClass}
-                  value={activeDescriptiveSchoolKey}
-                  onChange={(event) => setSelectedDescriptiveSchoolKey(event.target.value)}
-                >
-                  {schools.map((school) => (
-                    <option key={school.optionKey} value={school.optionKey}>
-                      {school.schoolCode} - {school.schoolName}
-                    </option>
-                  ))}
-                </select>
+                <SchoolPicker
+                  schools={schools}
+                  selectedKey={activeDescriptiveSchoolKey}
+                  onChange={setSelectedDescriptiveSchoolKey}
+                />
               </Field>
             )}
             {billingToType === "vendor" && selectedVendorSchools.length === 0 ? (
@@ -913,6 +1120,57 @@ export function CreateOrderForm({
         </Card>
       ) : null}
 
+      {step === 2 && orderType === "combined" ? (
+        <Card className="p-5">
+          <h2 className="text-lg font-semibold text-ink">Combined Order Entry</h2>
+          <p className="mb-4 text-sm text-muted">
+            Add every participating school in Sheet 2C1. All listed schools share the pooled item totals in Sheet 2C2.
+          </p>
+          <div className="grid gap-6 xl:grid-cols-2">
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="font-semibold text-ink">Order Sheet 2C1 Participating Schools</h3>
+                <SubmitButton type="button" variant="secondary" onClick={appendCombinedSchool} disabled={combinedSchools.fields.length >= schools.length}>
+                  <Plus className="mr-2 h-4 w-4" /> Add school
+                </SubmitButton>
+              </div>
+              <div className="space-y-3">
+                {combinedSchools.fields.map((field, index) => (
+                  <LineRow key={field.id} onRemove={() => combinedSchools.remove(index)}>
+                    <SchoolPicker
+                      schools={schools.filter((school) => {
+                        const selectedCode = form.watch(`combinedSchools.${index}.schoolCode`);
+                        return school.schoolCode === selectedCode || !form.getValues("combinedSchools").some((row, rowIndex) => rowIndex !== index && row.schoolCode === school.schoolCode);
+                      })}
+                      selectedKey={findSchoolOptionByStoredValue(schools, form.watch(`combinedSchools.${index}.schoolCode`), form.watch(`combinedSchools.${index}.schoolName`))?.optionKey ?? ""}
+                      onChange={(optionKey) => setCombinedSchool(index, optionKey)}
+                    />
+                  </LineRow>
+                ))}
+              </div>
+            </div>
+            <div>
+              <h3 className="mb-3 font-semibold text-ink">Order Sheet 2C2 Pooled Items</h3>
+              <ItemSelectionFilters
+                categories={categoryOptions}
+                customisations={customisationOptions}
+                categoryCode={selectedCategoryCode}
+                customisationCode={selectedCustomisationCode}
+                onCategoryChange={setSelectedCategoryCode}
+                onCustomisationChange={setSelectedCustomisationCode}
+              />
+              <div className="mt-4">
+                <ItemQuantityTable
+                  items={latestSelectionItems}
+                  quantityForItem={(item) => watchedCombinedItems.find((entry) => entry.itemCode === item.itemCode)?.pooledQuantity}
+                  onQuantityChange={setCombinedItemQuantity}
+                />
+              </div>
+            </div>
+          </div>
+        </Card>
+      ) : null}
+
       {step === 3 ? (
         <Card className="p-5">
           <h2 className="mb-3 text-lg font-semibold text-ink">Review</h2>
@@ -925,8 +1183,8 @@ export function CreateOrderForm({
           <h2 className="text-lg font-semibold text-ink">Lock/Finalize</h2>
           <p className="mt-2 max-w-3xl text-sm text-muted">
             Creating this order saves it as a draft with the correct sheet rows. Open the order
-            details page to lock it, then finalize it into Order Sheet 3. Finalized orders are
-            handled through the sub-order/revision workflow.
+            details page to lock it, then finalize it into Order Sheet 3. You can update the
+            order freely until it is finalized, while keeping the same order number.
           </p>
           {!form.formState.isValid ? (
             <div className="mt-4 rounded-md border border-danger bg-red-50 p-3 text-sm text-red-900">
@@ -1022,6 +1280,93 @@ function ItemSelectionFilters({
   );
 }
 
+function SchoolPicker({
+  schools,
+  selectedKey,
+  onChange
+}: {
+  schools: SchoolRef[];
+  selectedKey: string;
+  onChange: (optionKey: string) => void;
+}) {
+  const selectedSchool = useMemo(
+    () => schools.find((school) => school.optionKey === selectedKey),
+    [schools, selectedKey]
+  );
+  const [query, setQuery] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+  const normalizedQuery = query.trim().toLowerCase();
+  const matches = useMemo(() => {
+    if (!normalizedQuery) {
+      return schools.slice(0, 50);
+    }
+
+    return schools
+      .filter(
+        (school) =>
+          school.schoolCode.toLowerCase().includes(normalizedQuery) ||
+          school.schoolName.toLowerCase().includes(normalizedQuery)
+      )
+      .slice(0, 50);
+  }, [normalizedQuery, schools]);
+  const displayValue = isOpen ? query : selectedSchool ? `${selectedSchool.schoolCode} - ${selectedSchool.schoolName}` : "";
+
+  return (
+    <div className="relative">
+      <input
+        className={inputClass}
+        value={displayValue}
+        onChange={(event) => {
+          setQuery(event.target.value);
+          setIsOpen(true);
+        }}
+        onFocus={() => {
+          setQuery("");
+          setIsOpen(true);
+        }}
+        onBlur={() => window.setTimeout(() => setIsOpen(false), 150)}
+        placeholder="Search school code or name"
+        role="combobox"
+        aria-expanded={isOpen}
+        aria-controls="descriptive-school-options"
+        aria-autocomplete="list"
+      />
+      {isOpen ? (
+        <div
+          id="descriptive-school-options"
+          role="listbox"
+          className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-white shadow-lg"
+        >
+          {matches.length > 0 ? (
+            matches.map((school) => (
+              <button
+                key={school.optionKey}
+                type="button"
+                role="option"
+                aria-selected={school.optionKey === selectedKey}
+                className={`block w-full px-3 py-2 text-left text-sm hover:bg-canvas ${
+                  school.optionKey === selectedKey ? "bg-canvas" : ""
+                }`}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  onChange(school.optionKey);
+                  setQuery("");
+                  setIsOpen(false);
+                }}
+              >
+                <span className="font-medium text-ink">{school.schoolCode}</span>
+                <span className="ml-2 text-muted">{school.schoolName}</span>
+              </button>
+            ))
+          ) : (
+            <div className="px-3 py-2 text-sm text-muted">No schools match that search.</div>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function ItemQuantityTable({
   items,
   quantityForItem,
@@ -1031,6 +1376,25 @@ function ItemQuantityTable({
   quantityForItem: (item: ItemRef) => number | undefined;
   onQuantityChange: (item: ItemRef, rawQuantity: string) => void;
 }) {
+  const quantityTableRef = useRef<HTMLDivElement>(null);
+
+  function focusNextQuantity(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    event.preventDefault();
+    const quantityInputs = quantityTableRef.current?.querySelectorAll<HTMLInputElement>(
+      'input[type="number"]'
+    );
+    if (!quantityInputs) {
+      return;
+    }
+
+    const currentIndex = Array.from(quantityInputs).indexOf(event.currentTarget);
+    quantityInputs[currentIndex + 1]?.focus();
+  }
+
   if (items.length === 0) {
     return (
       <div className="rounded-md border border-line bg-canvas p-3 text-sm text-muted">
@@ -1040,7 +1404,7 @@ function ItemQuantityTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-md border border-line">
+    <div ref={quantityTableRef} className="overflow-x-auto rounded-md border border-line">
       <table className="w-full min-w-[920px] text-left text-sm">
         <thead className="bg-canvas text-xs uppercase text-muted">
           <tr>
@@ -1082,6 +1446,7 @@ function ItemQuantityTable({
                   className={inputClass}
                   value={quantityForItem(item) ?? ""}
                   onChange={(event) => onQuantityChange(item, event.target.value)}
+                  onKeyDown={focusNextQuantity}
                 />
               </td>
             </tr>
@@ -1139,6 +1504,8 @@ function ReviewBlock({ values }: { values: CreateOrderInput }) {
         <p className="font-semibold text-ink">Sheet 1</p>
         <p className="mt-2 text-muted">Billing: {values.sheet1.billingToName}</p>
         <p className="text-muted">Shipping: {values.sheet1.shippingToName}</p>
+        <p className="text-muted">Placed: {values.sheet1.orderPlacedDate}</p>
+        <p className="text-muted">Received: {values.sheet1.orderReceivedDate}</p>
         <p className="text-muted">Address: {values.sheet1.shippingToSummary}</p>
         <p className="text-muted">Type: {values.sheet1.orderType}</p>
       </div>
@@ -1171,7 +1538,7 @@ function ReviewBlock({ values }: { values: CreateOrderInput }) {
               </tbody>
             </table>
           </div>
-        ) : (
+        ) : values.sheet1.orderType === "ambiguous" ? (
           <div className="mt-3 grid gap-4 lg:grid-cols-2">
             <div>
               <p className="text-xs font-semibold uppercase text-muted">Sheet 2B1 Schools</p>
@@ -1197,6 +1564,31 @@ function ReviewBlock({ values }: { values: CreateOrderInput }) {
                       <span className="block text-muted">{row.itemName}</span>
                     </span>
                     <span className="font-semibold text-ink">{row.groupedQuantity}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-3 grid gap-4 lg:grid-cols-2">
+            <div>
+              <p className="text-xs font-semibold uppercase text-muted">Sheet 2C1 Participating Schools</p>
+              <div className="mt-2 space-y-2">
+                {values.combinedSchools.map((row, index) => (
+                  <div key={`${row.schoolCode}-${index}`} className="rounded-md border border-line bg-white px-3 py-2">
+                    <span className="font-medium text-ink">{row.schoolCode}</span>
+                    <span className="ml-2 text-muted">{row.schoolName}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase text-muted">Sheet 2C2 Pooled Items</p>
+              <div className="mt-2 space-y-2">
+                {values.combinedItems.map((row, index) => (
+                  <div key={`${row.itemCode}-${index}`} className="flex items-center justify-between gap-3 rounded-md border border-line bg-white px-3 py-2">
+                    <span><span className="font-medium text-ink">{row.itemCode}</span><span className="block text-muted">{row.itemName}</span></span>
+                    <span className="font-semibold text-ink">{row.pooledQuantity}</span>
                   </div>
                 ))}
               </div>
