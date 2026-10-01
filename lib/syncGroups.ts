@@ -1,61 +1,79 @@
-import { createHash } from "node:crypto";
+import {
+  listSharedSchoolGroupLocations,
+  listSharedSchoolGroups,
+  type ListSharedSchoolGroupLocationsData,
+  type ListSharedSchoolGroupsData
+} from "@dataconnect/generated";
+import { getApp, getApps, initializeApp } from "firebase/app";
 import { prisma } from "@/lib/prisma";
-import { readGoogleSheetRows, type GoogleSheetCell } from "@/lib/googleSheets";
 
-const GROUP_SHEET_ID = "1IVrJWu0wPmvTp-BjCGuWivnm8R3N2VRYEUzouTAgoGs";
-const GROUP_RANGE = "'Group Sheet'!A1:M1000";
+const FIREBASE_PROJECT_ID =
+  process.env.FIREBASE_PROJECT_ID ??
+  process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ??
+  "system-order-34c0a";
+const PAGE_SIZE = 500;
 
-function text(value: GoogleSheetCell) {
-  const normalized = String(value ?? "").trim();
-  return normalized || null;
+function ensureFirebaseApp() {
+  if (getApps().length > 0) {
+    return getApp();
+  }
+
+  return initializeApp({ projectId: FIREBASE_PROJECT_ID });
 }
 
-function digest(value: unknown) {
-  return createHash("sha256").update(JSON.stringify(value)).digest("hex");
+async function listAllGroups() {
+  const groups: ListSharedSchoolGroupsData["sharedSchoolGroups"] = [];
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    const { data } = await listSharedSchoolGroups({ limit: PAGE_SIZE, offset });
+    groups.push(...data.sharedSchoolGroups);
+    if (data.sharedSchoolGroups.length < PAGE_SIZE) return groups;
+  }
+}
+
+async function listAllLocations() {
+  const locations: ListSharedSchoolGroupLocationsData["sharedSchoolGroupLocations"] = [];
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    const { data } = await listSharedSchoolGroupLocations({ limit: PAGE_SIZE, offset });
+    locations.push(...data.sharedSchoolGroupLocations);
+    if (data.sharedSchoolGroupLocations.length < PAGE_SIZE) return locations;
+  }
 }
 
 export async function syncGroups() {
-  const spreadsheetId = process.env.GROUP_SHEETS_ID ?? GROUP_SHEET_ID;
+  ensureFirebaseApp();
+  const [sharedGroups, sharedLocations] = await Promise.all([listAllGroups(), listAllLocations()]);
+  if (sharedGroups.length === 0) {
+    throw new Error("No shared group rows were returned from Data Connect. Ask an administrator to publish the Group Sheet.");
+  }
 
-  const rows = await readGoogleSheetRows({ spreadsheetId, range: GROUP_RANGE });
-  const activeCodes = new Set<string>();
-  let locations = 0;
+  const groupsByCode = new Map(sharedGroups.map((group) => [group.groupCode, group]));
+  const locationsByGroupCode = new Map<string, typeof sharedLocations>();
+  for (const location of sharedLocations) {
+    const rows = locationsByGroupCode.get(location.groupCode) ?? [];
+    rows.push(location);
+    locationsByGroupCode.set(location.groupCode, rows);
+  }
 
-  for (const row of rows.slice(1)) {
-    const [groupCodeValue, subCodeValue, nameValue, , , , , addressValue, districtValue, stateValue, pincodeValue, centralizedValue] = row.values;
-    const groupCode = text(groupCodeValue);
-    const subCode = text(subCodeValue);
-    const name = text(nameValue);
-    if (!groupCode || !subCode || !name) continue;
-
-    activeCodes.add(groupCode);
+  for (const [groupCode, sharedGroup] of groupsByCode) {
     const group = await prisma.schoolGroup.upsert({
       where: { groupCode },
-      create: { groupCode, groupName: name, sourceHash: digest({ groupCode, name }), syncedAt: new Date() },
-      update: { groupName: name, sourceHash: digest({ groupCode, name }), syncedAt: new Date() }
+      create: { groupCode, groupName: sharedGroup.groupName, syncedAt: new Date() },
+      update: { groupName: sharedGroup.groupName, syncedAt: new Date() }
     });
-    const data = {
-      name,
-      address: text(addressValue),
-      district: text(districtValue),
-      state: text(stateValue),
-      pincode: text(pincodeValue),
-      centralizedDecision: text(centralizedValue),
-      sourceHash: digest(row.values),
-      syncedAt: new Date()
-    };
-    await prisma.schoolGroupLocation.upsert({
-      where: { schoolGroupId_subCode: { schoolGroupId: group.schoolGroupId, subCode } },
-      create: { schoolGroupId: group.schoolGroupId, subCode, ...data },
-      update: data
-    });
-    locations += 1;
+    for (const location of locationsByGroupCode.get(groupCode) ?? []) {
+      const data = { name: location.name, address: location.address ?? null, district: location.district ?? null, state: location.state ?? null, pincode: location.pincode ?? null, centralizedDecision: location.centralizedDecision ?? null, syncedAt: new Date() };
+      await prisma.schoolGroupLocation.upsert({
+        where: { schoolGroupId_subCode: { schoolGroupId: group.schoolGroupId, subCode: location.subCode } },
+        create: { schoolGroupId: group.schoolGroupId, subCode: location.subCode, ...data },
+        update: data
+      });
+    }
   }
 
   const groups = await prisma.schoolGroup.findMany({ include: { locations: true } });
   const locationsByCode = new Map(groups.map((group) => [group.groupCode, group.locations]));
   const organisations = await prisma.organisation.findMany({
-    where: { groupCode: { in: [...activeCodes] }, ptCode: { not: null } },
+    where: { groupCode: { in: [...groupsByCode.keys()] }, ptCode: { not: null } },
     select: { groupCode: true, ptCode: true, pinCode: true }
   });
 
@@ -76,5 +94,5 @@ export async function syncGroups() {
     if (suggestedLocationId) suggestions += 1;
   }
 
-  return { groups: activeCodes.size, locations, suggestions };
+  return { groups: sharedGroups.length, locations: sharedLocations.length, suggestions };
 }

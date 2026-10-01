@@ -18,6 +18,8 @@ This README will guide you through the process of using the generated JavaScript
   - [*ListItems*](#listitems)
   - [*GetItemByCode*](#getitembycode)
   - [*ListBooksellerSchoolMapping*](#listbooksellerschoolmapping)
+  - [*ListSharedSchoolGroups*](#listsharedschoolgroups)
+  - [*ListSharedSchoolGroupLocations*](#listsharedschoolgrouplocations)
 - [**Mutations**](#mutations)
 
 # Accessing the connector
@@ -1110,6 +1112,252 @@ console.log(data.booksellerSchoolMappings);
 executeQuery(ref).then((response) => {
   const data = response.data;
   console.log(data.booksellerSchoolMappings);
+});
+```
+
+## ListSharedSchoolGroups
+You can execute the `ListSharedSchoolGroups` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+listSharedSchoolGroups(vars?: ListSharedSchoolGroupsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedSchoolGroupsData, ListSharedSchoolGroupsVariables>;
+
+interface ListSharedSchoolGroupsRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: ListSharedSchoolGroupsVariables): QueryRef<ListSharedSchoolGroupsData, ListSharedSchoolGroupsVariables>;
+}
+export const listSharedSchoolGroupsRef: ListSharedSchoolGroupsRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+listSharedSchoolGroups(dc: DataConnect, vars?: ListSharedSchoolGroupsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedSchoolGroupsData, ListSharedSchoolGroupsVariables>;
+
+interface ListSharedSchoolGroupsRef {
+  ...
+  (dc: DataConnect, vars?: ListSharedSchoolGroupsVariables): QueryRef<ListSharedSchoolGroupsData, ListSharedSchoolGroupsVariables>;
+}
+export const listSharedSchoolGroupsRef: ListSharedSchoolGroupsRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listSharedSchoolGroupsRef:
+```typescript
+const name = listSharedSchoolGroupsRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ListSharedSchoolGroups` query has an optional argument of type `ListSharedSchoolGroupsVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface ListSharedSchoolGroupsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+```
+### Return Type
+Recall that executing the `ListSharedSchoolGroups` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ListSharedSchoolGroupsData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ListSharedSchoolGroupsData {
+  sharedSchoolGroups: ({
+    groupCode: string;
+    groupName: string;
+    syncedAt: TimestampString;
+  })[];
+}
+```
+### Using `ListSharedSchoolGroups`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, listSharedSchoolGroups, ListSharedSchoolGroupsVariables } from '@dataconnect/generated';
+
+// The `ListSharedSchoolGroups` query has an optional argument of type `ListSharedSchoolGroupsVariables`:
+const listSharedSchoolGroupsVars: ListSharedSchoolGroupsVariables = {
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listSharedSchoolGroups()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await listSharedSchoolGroups(listSharedSchoolGroupsVars);
+// Variables can be defined inline as well.
+const { data } = await listSharedSchoolGroups({ limit: ..., offset: ..., });
+// Since all variables are optional for this query, you can omit the `ListSharedSchoolGroupsVariables` argument.
+const { data } = await listSharedSchoolGroups();
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await listSharedSchoolGroups(dataConnect, listSharedSchoolGroupsVars);
+
+console.log(data.sharedSchoolGroups);
+
+// Or, you can use the `Promise` API.
+listSharedSchoolGroups(listSharedSchoolGroupsVars).then((response) => {
+  const data = response.data;
+  console.log(data.sharedSchoolGroups);
+});
+```
+
+### Using `ListSharedSchoolGroups`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, listSharedSchoolGroupsRef, ListSharedSchoolGroupsVariables } from '@dataconnect/generated';
+
+// The `ListSharedSchoolGroups` query has an optional argument of type `ListSharedSchoolGroupsVariables`:
+const listSharedSchoolGroupsVars: ListSharedSchoolGroupsVariables = {
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listSharedSchoolGroupsRef()` function to get a reference to the query.
+const ref = listSharedSchoolGroupsRef(listSharedSchoolGroupsVars);
+// Variables can be defined inline as well.
+const ref = listSharedSchoolGroupsRef({ limit: ..., offset: ..., });
+// Since all variables are optional for this query, you can omit the `ListSharedSchoolGroupsVariables` argument.
+const ref = listSharedSchoolGroupsRef();
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = listSharedSchoolGroupsRef(dataConnect, listSharedSchoolGroupsVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.sharedSchoolGroups);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.sharedSchoolGroups);
+});
+```
+
+## ListSharedSchoolGroupLocations
+You can execute the `ListSharedSchoolGroupLocations` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+listSharedSchoolGroupLocations(vars?: ListSharedSchoolGroupLocationsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedSchoolGroupLocationsData, ListSharedSchoolGroupLocationsVariables>;
+
+interface ListSharedSchoolGroupLocationsRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: ListSharedSchoolGroupLocationsVariables): QueryRef<ListSharedSchoolGroupLocationsData, ListSharedSchoolGroupLocationsVariables>;
+}
+export const listSharedSchoolGroupLocationsRef: ListSharedSchoolGroupLocationsRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+listSharedSchoolGroupLocations(dc: DataConnect, vars?: ListSharedSchoolGroupLocationsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedSchoolGroupLocationsData, ListSharedSchoolGroupLocationsVariables>;
+
+interface ListSharedSchoolGroupLocationsRef {
+  ...
+  (dc: DataConnect, vars?: ListSharedSchoolGroupLocationsVariables): QueryRef<ListSharedSchoolGroupLocationsData, ListSharedSchoolGroupLocationsVariables>;
+}
+export const listSharedSchoolGroupLocationsRef: ListSharedSchoolGroupLocationsRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listSharedSchoolGroupLocationsRef:
+```typescript
+const name = listSharedSchoolGroupLocationsRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ListSharedSchoolGroupLocations` query has an optional argument of type `ListSharedSchoolGroupLocationsVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface ListSharedSchoolGroupLocationsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+```
+### Return Type
+Recall that executing the `ListSharedSchoolGroupLocations` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ListSharedSchoolGroupLocationsData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ListSharedSchoolGroupLocationsData {
+  sharedSchoolGroupLocations: ({
+    groupCode: string;
+    subCode: string;
+    name: string;
+    address?: string | null;
+    district?: string | null;
+    state?: string | null;
+    pincode?: string | null;
+    centralizedDecision?: string | null;
+    syncedAt: TimestampString;
+  })[];
+}
+```
+### Using `ListSharedSchoolGroupLocations`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, listSharedSchoolGroupLocations, ListSharedSchoolGroupLocationsVariables } from '@dataconnect/generated';
+
+// The `ListSharedSchoolGroupLocations` query has an optional argument of type `ListSharedSchoolGroupLocationsVariables`:
+const listSharedSchoolGroupLocationsVars: ListSharedSchoolGroupLocationsVariables = {
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listSharedSchoolGroupLocations()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await listSharedSchoolGroupLocations(listSharedSchoolGroupLocationsVars);
+// Variables can be defined inline as well.
+const { data } = await listSharedSchoolGroupLocations({ limit: ..., offset: ..., });
+// Since all variables are optional for this query, you can omit the `ListSharedSchoolGroupLocationsVariables` argument.
+const { data } = await listSharedSchoolGroupLocations();
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await listSharedSchoolGroupLocations(dataConnect, listSharedSchoolGroupLocationsVars);
+
+console.log(data.sharedSchoolGroupLocations);
+
+// Or, you can use the `Promise` API.
+listSharedSchoolGroupLocations(listSharedSchoolGroupLocationsVars).then((response) => {
+  const data = response.data;
+  console.log(data.sharedSchoolGroupLocations);
+});
+```
+
+### Using `ListSharedSchoolGroupLocations`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, listSharedSchoolGroupLocationsRef, ListSharedSchoolGroupLocationsVariables } from '@dataconnect/generated';
+
+// The `ListSharedSchoolGroupLocations` query has an optional argument of type `ListSharedSchoolGroupLocationsVariables`:
+const listSharedSchoolGroupLocationsVars: ListSharedSchoolGroupLocationsVariables = {
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listSharedSchoolGroupLocationsRef()` function to get a reference to the query.
+const ref = listSharedSchoolGroupLocationsRef(listSharedSchoolGroupLocationsVars);
+// Variables can be defined inline as well.
+const ref = listSharedSchoolGroupLocationsRef({ limit: ..., offset: ..., });
+// Since all variables are optional for this query, you can omit the `ListSharedSchoolGroupLocationsVariables` argument.
+const ref = listSharedSchoolGroupLocationsRef();
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = listSharedSchoolGroupLocationsRef(dataConnect, listSharedSchoolGroupLocationsVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.sharedSchoolGroupLocations);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.sharedSchoolGroupLocations);
 });
 ```
 

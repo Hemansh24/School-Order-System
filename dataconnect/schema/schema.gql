@@ -123,3 +123,26 @@ type BooksellerSchoolMapping
   updatedAt: Timestamp!
     @col(name: "updated_at")
 }
+
+type SharedSchoolGroup
+@table(name: "shared_school_groups") {
+  id: Int64!
+  groupCode: String! @col(name: "group_code") @unique
+  groupName: String! @col(name: "group_name")
+  syncedAt: Timestamp! @col(name: "synced_at")
+}
+
+type SharedSchoolGroupLocation
+@table(name: "shared_school_group_locations")
+@unique(fields: ["groupCode", "subCode"]) {
+  id: Int64!
+  groupCode: String! @col(name: "group_code")
+  subCode: String! @col(name: "sub_code")
+  name: String!
+  address: String
+  district: String
+  state: String
+  pincode: String
+  centralizedDecision: String @col(name: "centralized_decision")
+  syncedAt: Timestamp! @col(name: "synced_at")
+}

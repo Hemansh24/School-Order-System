@@ -1,11 +1,13 @@
 import {
   listBooksellerSchoolMapping,
   listBooksellers,
+  connectorConfig,
   type ListBooksellerSchoolMappingData,
   type ListBooksellersData
 } from "@dataconnect/generated";
 import type { Prisma } from "@prisma/client";
 import { getApp, getApps, initializeApp } from "firebase/app";
+import { getDataConnect } from "firebase/data-connect";
 import { prisma } from "@/lib/prisma";
 
 export type BooksellerSyncSummary = {
@@ -67,11 +69,11 @@ function booksellerKey(input: {
   return `${input.booksellerCode.trim()}|${normalizeText(input.booksellerSubCode) ?? ""}`;
 }
 
-async function listAllBooksellers() {
+async function listAllBooksellers(dataConnect: ReturnType<typeof getDataConnect>) {
   const booksellers: ImportedBookseller[] = [];
 
   for (let offset = 0; ; offset += PAGE_SIZE) {
-    const { data } = await listBooksellers({ limit: PAGE_SIZE, offset });
+    const { data } = await listBooksellers(dataConnect, { limit: PAGE_SIZE, offset });
     booksellers.push(...data.booksellers);
 
     if (data.booksellers.length < PAGE_SIZE) {
@@ -80,11 +82,11 @@ async function listAllBooksellers() {
   }
 }
 
-async function listAllBooksellerSchoolMappings() {
+async function listAllBooksellerSchoolMappings(dataConnect: ReturnType<typeof getDataConnect>) {
   const mappings: ImportedBooksellerSchoolMapping[] = [];
 
   for (let offset = 0; ; offset += PAGE_SIZE) {
-    const { data } = await listBooksellerSchoolMapping({ limit: PAGE_SIZE, offset });
+    const { data } = await listBooksellerSchoolMapping(dataConnect, { limit: PAGE_SIZE, offset });
     mappings.push(...data.booksellerSchoolMappings);
 
     if (data.booksellerSchoolMappings.length < PAGE_SIZE) {
@@ -94,11 +96,11 @@ async function listAllBooksellerSchoolMappings() {
 }
 
 export async function replaceVendorsWithImportedBooksellers(): Promise<BooksellerSyncSummary> {
-  ensureFirebaseApp();
+  const dataConnect = getDataConnect(ensureFirebaseApp(), connectorConfig);
 
   const [importedBooksellers, mappingRows, existingVendors] = await Promise.all([
-    listAllBooksellers(),
-    listAllBooksellerSchoolMappings(),
+    listAllBooksellers(dataConnect),
+    listAllBooksellerSchoolMappings(dataConnect),
     prisma.vendor.findMany({
       include: {
         vendorSchools: true

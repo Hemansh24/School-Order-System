@@ -12,7 +12,7 @@ For each operation, there is a wrapper hook that can be used to call the operati
 
 Here are all of the hooks that get generated:
 ```ts
-import { useListOrganisations, useSearchOrganisations, useGetOrganisationByPrCode, useListBooksellers, useGetBooksellerByCode, useListItems, useGetItemByCode, useListBooksellerSchoolMapping } from '@dataconnect/generated/react';
+import { useListOrganisations, useSearchOrganisations, useGetOrganisationByPrCode, useListBooksellers, useGetBooksellerByCode, useListItems, useGetItemByCode, useListBooksellerSchoolMapping, useListSharedSchoolGroups, useListSharedSchoolGroupLocations } from '@dataconnect/generated/react';
 // The types of these hooks are available in react/index.d.ts
 
 const { data, isPending, isSuccess, isError, error } = useListOrganisations(listOrganisationsVars);
@@ -30,6 +30,10 @@ const { data, isPending, isSuccess, isError, error } = useListItems(listItemsVar
 const { data, isPending, isSuccess, isError, error } = useGetItemByCode(getItemByCodeVars);
 
 const { data, isPending, isSuccess, isError, error } = useListBooksellerSchoolMapping(listBooksellerSchoolMappingVars);
+
+const { data, isPending, isSuccess, isError, error } = useListSharedSchoolGroups(listSharedSchoolGroupsVars);
+
+const { data, isPending, isSuccess, isError, error } = useListSharedSchoolGroupLocations(listSharedSchoolGroupLocationsVars);
 
 ```
 
@@ -68,7 +72,7 @@ If a user is not using a supported framework, they can use the generated SDK dir
 Here's an example of how to use it with the first 5 operations:
 
 ```js
-import { listOrganisations, searchOrganisations, getOrganisationByPrCode, listBooksellers, getBooksellerByCode, listItems, getItemByCode, listBooksellerSchoolMapping } from '@dataconnect/generated';
+import { listOrganisations, searchOrganisations, getOrganisationByPrCode, listBooksellers, getBooksellerByCode, listItems, getItemByCode, listBooksellerSchoolMapping, listSharedSchoolGroups, listSharedSchoolGroupLocations } from '@dataconnect/generated';
 
 
 // Operation ListOrganisations:  For variables, look at type ListOrganisationsVars in ../index.d.ts
@@ -94,6 +98,12 @@ const { data } = await GetItemByCode(dataConnect, getItemByCodeVars);
 
 // Operation ListBooksellerSchoolMapping:  For variables, look at type ListBooksellerSchoolMappingVars in ../index.d.ts
 const { data } = await ListBooksellerSchoolMapping(dataConnect, listBooksellerSchoolMappingVars);
+
+// Operation ListSharedSchoolGroups:  For variables, look at type ListSharedSchoolGroupsVars in ../index.d.ts
+const { data } = await ListSharedSchoolGroups(dataConnect, listSharedSchoolGroupsVars);
+
+// Operation ListSharedSchoolGroupLocations:  For variables, look at type ListSharedSchoolGroupLocationsVars in ../index.d.ts
+const { data } = await ListSharedSchoolGroupLocations(dataConnect, listSharedSchoolGroupLocationsVars);
 
 
 ```

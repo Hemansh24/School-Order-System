@@ -25,6 +25,8 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*ListItems*](#listitems)
   - [*GetItemByCode*](#getitembycode)
   - [*ListBooksellerSchoolMapping*](#listbooksellerschoolmapping)
+  - [*ListSharedSchoolGroups*](#listsharedschoolgroups)
+  - [*ListSharedSchoolGroupLocations*](#listsharedschoolgrouplocations)
 - [**Mutations**](#mutations)
 
 # TanStack Query Firebase & TanStack React Query
@@ -943,6 +945,200 @@ export default function ListBooksellerSchoolMappingComponent() {
   // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
   if (query.isSuccess) {
     console.log(query.data.booksellerSchoolMappings);
+  }
+  return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## ListSharedSchoolGroups
+You can execute the `ListSharedSchoolGroups` Query using the following Query hook function, which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts):
+
+```javascript
+useListSharedSchoolGroups(dc: DataConnect, vars?: ListSharedSchoolGroupsVariables, options?: useDataConnectQueryOptions<ListSharedSchoolGroupsData>): UseDataConnectQueryResult<ListSharedSchoolGroupsData, ListSharedSchoolGroupsVariables>;
+```
+You can also pass in a `DataConnect` instance to the Query hook function.
+```javascript
+useListSharedSchoolGroups(vars?: ListSharedSchoolGroupsVariables, options?: useDataConnectQueryOptions<ListSharedSchoolGroupsData>): UseDataConnectQueryResult<ListSharedSchoolGroupsData, ListSharedSchoolGroupsVariables>;
+```
+
+### Variables
+The `ListSharedSchoolGroups` Query has an optional argument of type `ListSharedSchoolGroupsVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface ListSharedSchoolGroupsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+```
+### Return Type
+Recall that calling the `ListSharedSchoolGroups` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
+
+To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
+
+To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListSharedSchoolGroups` Query is of type `ListSharedSchoolGroupsData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface ListSharedSchoolGroupsData {
+  sharedSchoolGroups: ({
+    groupCode: string;
+    groupName: string;
+    syncedAt: TimestampString;
+  })[];
+}
+```
+
+To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
+
+### Using `ListSharedSchoolGroups`'s Query hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, ListSharedSchoolGroupsVariables } from '@dataconnect/generated';
+import { useListSharedSchoolGroups } from '@dataconnect/generated/react'
+
+export default function ListSharedSchoolGroupsComponent() {
+  // The `useListSharedSchoolGroups` Query hook has an optional argument of type `ListSharedSchoolGroupsVariables`:
+  const listSharedSchoolGroupsVars: ListSharedSchoolGroupsVariables = {
+    limit: ..., // optional
+    offset: ..., // optional
+  };
+
+  // You don't have to do anything to "execute" the Query.
+  // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
+  const query = useListSharedSchoolGroups(listSharedSchoolGroupsVars);
+  // Variables can be defined inline as well.
+  const query = useListSharedSchoolGroups({ limit: ..., offset: ..., });
+  // Since all variables are optional for this Query, you can omit the `ListSharedSchoolGroupsVariables` argument.
+  // (as long as you don't want to provide any `options`!)
+  const query = useListSharedSchoolGroups();
+
+  // You can also pass in a `DataConnect` instance to the Query hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const query = useListSharedSchoolGroups(dataConnect, listSharedSchoolGroupsVars);
+
+  // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
+  const options = { staleTime: 5 * 1000 };
+  const query = useListSharedSchoolGroups(listSharedSchoolGroupsVars, options);
+  // If you'd like to provide options without providing any variables, you must
+  // pass `undefined` where you would normally pass the variables.
+  const query = useListSharedSchoolGroups(undefined, options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = { staleTime: 5 * 1000 };
+  const query = useListSharedSchoolGroups(dataConnect, listSharedSchoolGroupsVars /** or undefined */, options);
+
+  // Then, you can render your component dynamically based on the status of the Query.
+  if (query.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (query.isError) {
+    return <div>Error: {query.error.message}</div>;
+  }
+
+  // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
+  if (query.isSuccess) {
+    console.log(query.data.sharedSchoolGroups);
+  }
+  return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## ListSharedSchoolGroupLocations
+You can execute the `ListSharedSchoolGroupLocations` Query using the following Query hook function, which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts):
+
+```javascript
+useListSharedSchoolGroupLocations(dc: DataConnect, vars?: ListSharedSchoolGroupLocationsVariables, options?: useDataConnectQueryOptions<ListSharedSchoolGroupLocationsData>): UseDataConnectQueryResult<ListSharedSchoolGroupLocationsData, ListSharedSchoolGroupLocationsVariables>;
+```
+You can also pass in a `DataConnect` instance to the Query hook function.
+```javascript
+useListSharedSchoolGroupLocations(vars?: ListSharedSchoolGroupLocationsVariables, options?: useDataConnectQueryOptions<ListSharedSchoolGroupLocationsData>): UseDataConnectQueryResult<ListSharedSchoolGroupLocationsData, ListSharedSchoolGroupLocationsVariables>;
+```
+
+### Variables
+The `ListSharedSchoolGroupLocations` Query has an optional argument of type `ListSharedSchoolGroupLocationsVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface ListSharedSchoolGroupLocationsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+```
+### Return Type
+Recall that calling the `ListSharedSchoolGroupLocations` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
+
+To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
+
+To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListSharedSchoolGroupLocations` Query is of type `ListSharedSchoolGroupLocationsData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface ListSharedSchoolGroupLocationsData {
+  sharedSchoolGroupLocations: ({
+    groupCode: string;
+    subCode: string;
+    name: string;
+    address?: string | null;
+    district?: string | null;
+    state?: string | null;
+    pincode?: string | null;
+    centralizedDecision?: string | null;
+    syncedAt: TimestampString;
+  })[];
+}
+```
+
+To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
+
+### Using `ListSharedSchoolGroupLocations`'s Query hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, ListSharedSchoolGroupLocationsVariables } from '@dataconnect/generated';
+import { useListSharedSchoolGroupLocations } from '@dataconnect/generated/react'
+
+export default function ListSharedSchoolGroupLocationsComponent() {
+  // The `useListSharedSchoolGroupLocations` Query hook has an optional argument of type `ListSharedSchoolGroupLocationsVariables`:
+  const listSharedSchoolGroupLocationsVars: ListSharedSchoolGroupLocationsVariables = {
+    limit: ..., // optional
+    offset: ..., // optional
+  };
+
+  // You don't have to do anything to "execute" the Query.
+  // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
+  const query = useListSharedSchoolGroupLocations(listSharedSchoolGroupLocationsVars);
+  // Variables can be defined inline as well.
+  const query = useListSharedSchoolGroupLocations({ limit: ..., offset: ..., });
+  // Since all variables are optional for this Query, you can omit the `ListSharedSchoolGroupLocationsVariables` argument.
+  // (as long as you don't want to provide any `options`!)
+  const query = useListSharedSchoolGroupLocations();
+
+  // You can also pass in a `DataConnect` instance to the Query hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const query = useListSharedSchoolGroupLocations(dataConnect, listSharedSchoolGroupLocationsVars);
+
+  // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
+  const options = { staleTime: 5 * 1000 };
+  const query = useListSharedSchoolGroupLocations(listSharedSchoolGroupLocationsVars, options);
+  // If you'd like to provide options without providing any variables, you must
+  // pass `undefined` where you would normally pass the variables.
+  const query = useListSharedSchoolGroupLocations(undefined, options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = { staleTime: 5 * 1000 };
+  const query = useListSharedSchoolGroupLocations(dataConnect, listSharedSchoolGroupLocationsVars /** or undefined */, options);
+
+  // Then, you can render your component dynamically based on the status of the Query.
+  if (query.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (query.isError) {
+    return <div>Error: {query.error.message}</div>;
+  }
+
+  // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
+  if (query.isSuccess) {
+    console.log(query.data.sharedSchoolGroupLocations);
   }
   return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
 }

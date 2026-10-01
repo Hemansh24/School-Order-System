@@ -197,6 +197,38 @@ export interface ListOrganisationsVariables {
   offset?: number | null;
 }
 
+export interface ListSharedSchoolGroupLocationsData {
+  sharedSchoolGroupLocations: ({
+    groupCode: string;
+    subCode: string;
+    name: string;
+    address?: string | null;
+    district?: string | null;
+    state?: string | null;
+    pincode?: string | null;
+    centralizedDecision?: string | null;
+    syncedAt: TimestampString;
+  })[];
+}
+
+export interface ListSharedSchoolGroupLocationsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+
+export interface ListSharedSchoolGroupsData {
+  sharedSchoolGroups: ({
+    groupCode: string;
+    groupName: string;
+    syncedAt: TimestampString;
+  })[];
+}
+
+export interface ListSharedSchoolGroupsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+
 export interface Organisation_Key {
   id: Int64String;
   __typename?: 'Organisation_Key';
@@ -227,6 +259,16 @@ export interface SearchOrganisationsVariables {
   workingStatus?: boolean | null;
   limit?: number | null;
   offset?: number | null;
+}
+
+export interface SharedSchoolGroupLocation_Key {
+  id: Int64String;
+  __typename?: 'SharedSchoolGroupLocation_Key';
+}
+
+export interface SharedSchoolGroup_Key {
+  id: Int64String;
+  __typename?: 'SharedSchoolGroup_Key';
 }
 
 interface ListOrganisationsRef {
@@ -324,4 +366,28 @@ export const listBooksellerSchoolMappingRef: ListBooksellerSchoolMappingRef;
 
 export function listBooksellerSchoolMapping(vars?: ListBooksellerSchoolMappingVariables, options?: ExecuteQueryOptions): QueryPromise<ListBooksellerSchoolMappingData, ListBooksellerSchoolMappingVariables>;
 export function listBooksellerSchoolMapping(dc: DataConnect, vars?: ListBooksellerSchoolMappingVariables, options?: ExecuteQueryOptions): QueryPromise<ListBooksellerSchoolMappingData, ListBooksellerSchoolMappingVariables>;
+
+interface ListSharedSchoolGroupsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: ListSharedSchoolGroupsVariables): QueryRef<ListSharedSchoolGroupsData, ListSharedSchoolGroupsVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars?: ListSharedSchoolGroupsVariables): QueryRef<ListSharedSchoolGroupsData, ListSharedSchoolGroupsVariables>;
+  operationName: string;
+}
+export const listSharedSchoolGroupsRef: ListSharedSchoolGroupsRef;
+
+export function listSharedSchoolGroups(vars?: ListSharedSchoolGroupsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedSchoolGroupsData, ListSharedSchoolGroupsVariables>;
+export function listSharedSchoolGroups(dc: DataConnect, vars?: ListSharedSchoolGroupsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedSchoolGroupsData, ListSharedSchoolGroupsVariables>;
+
+interface ListSharedSchoolGroupLocationsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: ListSharedSchoolGroupLocationsVariables): QueryRef<ListSharedSchoolGroupLocationsData, ListSharedSchoolGroupLocationsVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars?: ListSharedSchoolGroupLocationsVariables): QueryRef<ListSharedSchoolGroupLocationsData, ListSharedSchoolGroupLocationsVariables>;
+  operationName: string;
+}
+export const listSharedSchoolGroupLocationsRef: ListSharedSchoolGroupLocationsRef;
+
+export function listSharedSchoolGroupLocations(vars?: ListSharedSchoolGroupLocationsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedSchoolGroupLocationsData, ListSharedSchoolGroupLocationsVariables>;
+export function listSharedSchoolGroupLocations(dc: DataConnect, vars?: ListSharedSchoolGroupLocationsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedSchoolGroupLocationsData, ListSharedSchoolGroupLocationsVariables>;
 

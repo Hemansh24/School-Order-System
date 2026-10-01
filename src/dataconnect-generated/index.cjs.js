@@ -132,3 +132,33 @@ exports.listBooksellerSchoolMapping = function listBooksellerSchoolMapping(dcOrV
   return executeQuery(listBooksellerSchoolMappingRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
+
+const listSharedSchoolGroupsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListSharedSchoolGroups', inputVars);
+}
+listSharedSchoolGroupsRef.operationName = 'ListSharedSchoolGroups';
+exports.listSharedSchoolGroupsRef = listSharedSchoolGroupsRef;
+
+exports.listSharedSchoolGroups = function listSharedSchoolGroups(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  return executeQuery(listSharedSchoolGroupsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listSharedSchoolGroupLocationsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListSharedSchoolGroupLocations', inputVars);
+}
+listSharedSchoolGroupLocationsRef.operationName = 'ListSharedSchoolGroupLocations';
+exports.listSharedSchoolGroupLocationsRef = listSharedSchoolGroupLocationsRef;
+
+exports.listSharedSchoolGroupLocations = function listSharedSchoolGroupLocations(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  return executeQuery(listSharedSchoolGroupLocationsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;

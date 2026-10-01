@@ -17,13 +17,14 @@
     "schools:sync": "tsx -e \"import { replaceSchoolsWithImportedOrganisations } from './lib/syncSchoolsFromOrganisations'; replaceSchoolsWithImportedOrganisations().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",
     "booksellers:sync": "tsx -e \"import { replaceVendorsWithImportedBooksellers } from './lib/syncBooksellers'; replaceVendorsWithImportedBooksellers().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",
     "items:sync": "tsx -e \"import { replaceItemsWithImportedItems } from './lib/syncItems'; replaceItemsWithImportedItems().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",
-    "master-data:sync": "npm run schools:sync && npm run booksellers:sync && npm run items:sync"
+    "master-data:sync": "npm run schools:sync && npm run booksellers:sync && npm run items:sync && npm run groups:sync"
   },
   "dependencies": {
     "@dataconnect/generated": "file:src/dataconnect-generated",
     "@hookform/resolvers": "^3.9.1",
     "@nestjs/schedule": "^6.1.3",
     "@prisma/client": "^5.22.0",
+    "firebase-admin": "^14.5.0",
     "googleapis": "^173.0.0",
     "lucide-react": "^0.468.0",
     "next": "^15.0.3",

@@ -1,4 +1,4 @@
-import { ListOrganisationsData, ListOrganisationsVariables, SearchOrganisationsData, SearchOrganisationsVariables, GetOrganisationByPrCodeData, GetOrganisationByPrCodeVariables, ListBooksellersData, ListBooksellersVariables, GetBooksellerByCodeData, GetBooksellerByCodeVariables, ListItemsData, ListItemsVariables, GetItemByCodeData, GetItemByCodeVariables, ListBooksellerSchoolMappingData, ListBooksellerSchoolMappingVariables } from '../';
+import { ListOrganisationsData, ListOrganisationsVariables, SearchOrganisationsData, SearchOrganisationsVariables, GetOrganisationByPrCodeData, GetOrganisationByPrCodeVariables, ListBooksellersData, ListBooksellersVariables, GetBooksellerByCodeData, GetBooksellerByCodeVariables, ListItemsData, ListItemsVariables, GetItemByCodeData, GetItemByCodeVariables, ListBooksellerSchoolMappingData, ListBooksellerSchoolMappingVariables, ListSharedSchoolGroupsData, ListSharedSchoolGroupsVariables, ListSharedSchoolGroupLocationsData, ListSharedSchoolGroupLocationsVariables } from '../';
 import { UseDataConnectQueryResult, useDataConnectQueryOptions} from '@tanstack-query-firebase/react/data-connect';
 import { UseQueryResult} from '@tanstack/react-query';
 import { DataConnect } from 'firebase/data-connect';
@@ -28,3 +28,9 @@ export function useGetItemByCode(dc: DataConnect, vars: GetItemByCodeVariables, 
 
 export function useListBooksellerSchoolMapping(vars?: ListBooksellerSchoolMappingVariables, options?: useDataConnectQueryOptions<ListBooksellerSchoolMappingData>): UseDataConnectQueryResult<ListBooksellerSchoolMappingData, ListBooksellerSchoolMappingVariables>;
 export function useListBooksellerSchoolMapping(dc: DataConnect, vars?: ListBooksellerSchoolMappingVariables, options?: useDataConnectQueryOptions<ListBooksellerSchoolMappingData>): UseDataConnectQueryResult<ListBooksellerSchoolMappingData, ListBooksellerSchoolMappingVariables>;
+
+export function useListSharedSchoolGroups(vars?: ListSharedSchoolGroupsVariables, options?: useDataConnectQueryOptions<ListSharedSchoolGroupsData>): UseDataConnectQueryResult<ListSharedSchoolGroupsData, ListSharedSchoolGroupsVariables>;
+export function useListSharedSchoolGroups(dc: DataConnect, vars?: ListSharedSchoolGroupsVariables, options?: useDataConnectQueryOptions<ListSharedSchoolGroupsData>): UseDataConnectQueryResult<ListSharedSchoolGroupsData, ListSharedSchoolGroupsVariables>;
+
+export function useListSharedSchoolGroupLocations(vars?: ListSharedSchoolGroupLocationsVariables, options?: useDataConnectQueryOptions<ListSharedSchoolGroupLocationsData>): UseDataConnectQueryResult<ListSharedSchoolGroupLocationsData, ListSharedSchoolGroupLocationsVariables>;
+export function useListSharedSchoolGroupLocations(dc: DataConnect, vars?: ListSharedSchoolGroupLocationsVariables, options?: useDataConnectQueryOptions<ListSharedSchoolGroupLocationsData>): UseDataConnectQueryResult<ListSharedSchoolGroupLocationsData, ListSharedSchoolGroupLocationsVariables>;

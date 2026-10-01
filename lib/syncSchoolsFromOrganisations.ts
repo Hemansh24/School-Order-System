@@ -1,9 +1,11 @@
 import {
   listOrganisations,
+  connectorConfig,
   type ListOrganisationsData
 } from "@dataconnect/generated";
 import type { Prisma } from "@prisma/client";
 import { getApp, getApps, initializeApp } from "firebase/app";
+import { getDataConnect } from "firebase/data-connect";
 import { prisma } from "@/lib/prisma";
 
 export type SchoolSyncSummary = {
@@ -173,13 +175,13 @@ function toPrismaOrganisationData(
 }
 
 async function loadImportedOrganisationsFromDataConnect(): Promise<OrganisationSource[]> {
-  ensureFirebaseApp();
+  const dataConnect = getDataConnect(ensureFirebaseApp(), connectorConfig);
 
   const pageSize = 500;
   const organisations: ImportedOrganisation[] = [];
 
   for (let offset = 0; ; offset += pageSize) {
-    const { data } = await listOrganisations({ limit: pageSize, offset });
+    const { data } = await listOrganisations(dataConnect, { limit: pageSize, offset });
     organisations.push(...data.organisations);
 
     if (data.organisations.length < pageSize) {

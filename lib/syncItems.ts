@@ -1,5 +1,6 @@
-import { listItems, type ListItemsData } from "@dataconnect/generated";
+import { connectorConfig, listItems, type ListItemsData } from "@dataconnect/generated";
 import { getApp, getApps, initializeApp } from "firebase/app";
+import { getDataConnect } from "firebase/data-connect";
 import { DEFAULT_LANGUAGE_CODE, generateItemCode } from "@/lib/item-code";
 import { prisma } from "@/lib/prisma";
 
@@ -80,12 +81,12 @@ function toPrismaItemData(item: ImportedItem) {
 }
 
 export async function replaceItemsWithImportedItems(): Promise<ItemSyncSummary> {
-  ensureFirebaseApp();
+  const dataConnect = getDataConnect(ensureFirebaseApp(), connectorConfig);
 
   const importedItems: ImportedItem[] = [];
 
   for (let offset = 0; ; offset += PAGE_SIZE) {
-    const { data } = await listItems({ limit: PAGE_SIZE, offset });
+    const { data } = await listItems(dataConnect, { limit: PAGE_SIZE, offset });
     importedItems.push(...data.items);
 
     if (data.items.length < PAGE_SIZE) {

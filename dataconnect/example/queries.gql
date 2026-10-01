@@ -224,3 +224,27 @@ query ListBooksellerSchoolMapping(
   }
 
 }
+
+query ListSharedSchoolGroups($limit: Int = 500, $offset: Int = 0)
+@auth(level: PUBLIC) {
+  sharedSchoolGroups(orderBy: [{ groupCode: ASC }], limit: $limit, offset: $offset) {
+    groupCode
+    groupName
+    syncedAt
+  }
+}
+
+query ListSharedSchoolGroupLocations($limit: Int = 500, $offset: Int = 0)
+@auth(level: PUBLIC) {
+  sharedSchoolGroupLocations(orderBy: [{ groupCode: ASC }, { subCode: ASC }], limit: $limit, offset: $offset) {
+    groupCode
+    subCode
+    name
+    address
+    district
+    state
+    pincode
+    centralizedDecision
+    syncedAt
+  }
+}
