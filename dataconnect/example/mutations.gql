@@ -1,1 +1,52 @@
+mutation UpsertChristianGroup(
+  $groupCode: String!
+  $organisationName: String!
+  $religionDenomination: String
+  $category: String
+  $geographyType: String
+  $operationalAreas: String
+  $locationDistrict: String
+  $locationState: String
+  $pinCode: String
+  $address: String
+  $phoneEmail: String
+  $runsSchools: String
+  $totalSchools: String
+  $totalStudents: String
+  $centralizedDecision: String
+  $website: String
+  $active: Boolean!
+  $sourceSheetRow: Int
+  $sourceHash: String
+) @auth(level: NO_ACCESS) {
+  sharedChristianGroup_upsert(data: {
+    groupCode: $groupCode
+    organisationName: $organisationName
+    religionDenomination: $religionDenomination
+    category: $category
+    geographyType: $geographyType
+    operationalAreas: $operationalAreas
+    locationDistrict: $locationDistrict
+    locationState: $locationState
+    pinCode: $pinCode
+    address: $address
+    phoneEmail: $phoneEmail
+    runsSchools: $runsSchools
+    totalSchools: $totalSchools
+    totalStudents: $totalStudents
+    centralizedDecision: $centralizedDecision
+    website: $website
+    active: $active
+    sourceSheetRow: $sourceSheetRow
+    sourceHash: $sourceHash
+    syncedAt_expr: "request.time"
+  })
+}
 
+mutation SetChristianGroupActive($groupCode: String!, $active: Boolean!)
+@auth(level: NO_ACCESS) {
+  sharedChristianGroup_update(
+    key: { groupCode: $groupCode }
+    data: { active: $active, syncedAt_expr: "request.time" }
+  )
+}

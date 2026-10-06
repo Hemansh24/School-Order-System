@@ -127,7 +127,10 @@ export default async function EditOrderPage({
       />
       <CreateOrderForm
         schools={toSchoolOptions(reference.schools)}
-        groups={reference.groupLocations.map((location) => ({ optionKey: `${location.schoolGroup.groupCode}-${location.subCode}`, schoolCode: `${location.schoolGroup.groupCode}-${location.subCode}`, schoolName: location.name, addressSummary: formatSchoolAddress(location) }))}
+        groups={[
+          ...reference.groupLocations.map((location) => ({ optionKey: `${location.schoolGroup.groupCode}-${location.subCode}`, schoolCode: `${location.schoolGroup.groupCode}-${location.subCode}`, schoolName: location.name, addressSummary: formatSchoolAddress(location), groupType: "GS" as const })),
+          ...reference.christianGroups.map((group) => ({ optionKey: group.groupCode, schoolCode: group.groupCode, schoolName: group.groupName, addressSummary: formatSchoolAddress(group), groupType: "Christian" as const }))
+        ]}
         vendors={reference.vendors.map((vendor) => ({
           vendorCode: vendor.vendorCode,
           vendorName: vendor.vendorName,

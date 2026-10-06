@@ -248,3 +248,29 @@ query ListSharedSchoolGroupLocations($limit: Int = 500, $offset: Int = 0)
     syncedAt
   }
 }
+
+query ListSharedChristianGroups($limit: Int = 500, $offset: Int = 0)
+@auth(level: PUBLIC) {
+  sharedChristianGroups(orderBy: [{ groupCode: ASC }], limit: $limit, offset: $offset) {
+    groupCode
+    organisationName
+    religionDenomination
+    category
+    geographyType
+    operationalAreas
+    locationDistrict
+    locationState
+    pinCode
+    address
+    phoneEmail
+    runsSchools
+    totalSchools
+    totalStudents
+    centralizedDecision
+    website
+    active
+    sourceSheetRow
+    sourceHash
+    syncedAt
+  }
+}

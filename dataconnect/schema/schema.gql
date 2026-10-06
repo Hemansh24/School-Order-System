@@ -146,3 +146,27 @@ type SharedSchoolGroupLocation
   centralizedDecision: String @col(name: "centralized_decision")
   syncedAt: Timestamp! @col(name: "synced_at")
 }
+
+type SharedChristianGroup
+@table(name: "shared_christian_groups", key: ["groupCode"]) {
+  groupCode: String! @col(name: "group_code")
+  organisationName: String! @col(name: "organisation_name")
+  religionDenomination: String @col(name: "religion_denomination")
+  category: String
+  geographyType: String @col(name: "geography_type")
+  operationalAreas: String @col(name: "operational_areas")
+  locationDistrict: String @col(name: "location_district")
+  locationState: String @col(name: "location_state")
+  pinCode: String @col(name: "pin_code")
+  address: String
+  phoneEmail: String @col(name: "phone_email")
+  runsSchools: String @col(name: "runs_schools")
+  totalSchools: String @col(name: "total_schools")
+  totalStudents: String @col(name: "total_students")
+  centralizedDecision: String @col(name: "centralized_decision")
+  website: String
+  active: Boolean! @default(value: true)
+  sourceSheetRow: Int @col(name: "source_sheet_row")
+  sourceHash: String @col(name: "source_hash")
+  syncedAt: Timestamp! @col(name: "synced_at")
+}

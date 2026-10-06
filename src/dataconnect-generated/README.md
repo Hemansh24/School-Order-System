@@ -20,7 +20,10 @@ This README will guide you through the process of using the generated JavaScript
   - [*ListBooksellerSchoolMapping*](#listbooksellerschoolmapping)
   - [*ListSharedSchoolGroups*](#listsharedschoolgroups)
   - [*ListSharedSchoolGroupLocations*](#listsharedschoolgrouplocations)
+  - [*ListSharedChristianGroups*](#listsharedchristiangroups)
 - [**Mutations**](#mutations)
+  - [*UpsertChristianGroup*](#upsertchristiangroup)
+  - [*SetChristianGroupActive*](#setchristiangroupactive)
 
 # Accessing the connector
 A connector is a collection of Queries and Mutations. One SDK is generated for each connector - this SDK is generated for the connector `example`. You can find more information about connectors in the [Data Connect documentation](https://firebase.google.com/docs/data-connect#how-does).
@@ -1361,9 +1364,430 @@ executeQuery(ref).then((response) => {
 });
 ```
 
+## ListSharedChristianGroups
+You can execute the `ListSharedChristianGroups` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+listSharedChristianGroups(vars?: ListSharedChristianGroupsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedChristianGroupsData, ListSharedChristianGroupsVariables>;
+
+interface ListSharedChristianGroupsRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: ListSharedChristianGroupsVariables): QueryRef<ListSharedChristianGroupsData, ListSharedChristianGroupsVariables>;
+}
+export const listSharedChristianGroupsRef: ListSharedChristianGroupsRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+listSharedChristianGroups(dc: DataConnect, vars?: ListSharedChristianGroupsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedChristianGroupsData, ListSharedChristianGroupsVariables>;
+
+interface ListSharedChristianGroupsRef {
+  ...
+  (dc: DataConnect, vars?: ListSharedChristianGroupsVariables): QueryRef<ListSharedChristianGroupsData, ListSharedChristianGroupsVariables>;
+}
+export const listSharedChristianGroupsRef: ListSharedChristianGroupsRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listSharedChristianGroupsRef:
+```typescript
+const name = listSharedChristianGroupsRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ListSharedChristianGroups` query has an optional argument of type `ListSharedChristianGroupsVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface ListSharedChristianGroupsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+```
+### Return Type
+Recall that executing the `ListSharedChristianGroups` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ListSharedChristianGroupsData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ListSharedChristianGroupsData {
+  sharedChristianGroups: ({
+    groupCode: string;
+    organisationName: string;
+    religionDenomination?: string | null;
+    category?: string | null;
+    geographyType?: string | null;
+    operationalAreas?: string | null;
+    locationDistrict?: string | null;
+    locationState?: string | null;
+    pinCode?: string | null;
+    address?: string | null;
+    phoneEmail?: string | null;
+    runsSchools?: string | null;
+    totalSchools?: string | null;
+    totalStudents?: string | null;
+    centralizedDecision?: string | null;
+    website?: string | null;
+    active: boolean;
+    sourceSheetRow?: number | null;
+    sourceHash?: string | null;
+    syncedAt: TimestampString;
+  } & SharedChristianGroup_Key)[];
+}
+```
+### Using `ListSharedChristianGroups`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, listSharedChristianGroups, ListSharedChristianGroupsVariables } from '@dataconnect/generated';
+
+// The `ListSharedChristianGroups` query has an optional argument of type `ListSharedChristianGroupsVariables`:
+const listSharedChristianGroupsVars: ListSharedChristianGroupsVariables = {
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listSharedChristianGroups()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await listSharedChristianGroups(listSharedChristianGroupsVars);
+// Variables can be defined inline as well.
+const { data } = await listSharedChristianGroups({ limit: ..., offset: ..., });
+// Since all variables are optional for this query, you can omit the `ListSharedChristianGroupsVariables` argument.
+const { data } = await listSharedChristianGroups();
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await listSharedChristianGroups(dataConnect, listSharedChristianGroupsVars);
+
+console.log(data.sharedChristianGroups);
+
+// Or, you can use the `Promise` API.
+listSharedChristianGroups(listSharedChristianGroupsVars).then((response) => {
+  const data = response.data;
+  console.log(data.sharedChristianGroups);
+});
+```
+
+### Using `ListSharedChristianGroups`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, listSharedChristianGroupsRef, ListSharedChristianGroupsVariables } from '@dataconnect/generated';
+
+// The `ListSharedChristianGroups` query has an optional argument of type `ListSharedChristianGroupsVariables`:
+const listSharedChristianGroupsVars: ListSharedChristianGroupsVariables = {
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listSharedChristianGroupsRef()` function to get a reference to the query.
+const ref = listSharedChristianGroupsRef(listSharedChristianGroupsVars);
+// Variables can be defined inline as well.
+const ref = listSharedChristianGroupsRef({ limit: ..., offset: ..., });
+// Since all variables are optional for this query, you can omit the `ListSharedChristianGroupsVariables` argument.
+const ref = listSharedChristianGroupsRef();
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = listSharedChristianGroupsRef(dataConnect, listSharedChristianGroupsVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.sharedChristianGroups);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.sharedChristianGroups);
+});
+```
+
 # Mutations
 
-No mutations were generated for the `example` connector.
+There are two ways to execute a Data Connect Mutation using the generated Web SDK:
+- Using a Mutation Reference function, which returns a `MutationRef`
+  - The `MutationRef` can be used as an argument to `executeMutation()`, which will execute the Mutation and return a `MutationPromise`
+- Using an action shortcut function, which returns a `MutationPromise`
+  - Calling the action shortcut function will execute the Mutation and return a `MutationPromise`
 
-If you want to learn more about how to use mutations in Data Connect, you can follow the examples from the [Data Connect documentation](https://firebase.google.com/docs/data-connect/web-sdk#using-mutations).
+The following is true for both the action shortcut function and the `MutationRef` function:
+- The `MutationPromise` returned will resolve to the result of the Mutation once it has finished executing
+- If the Mutation accepts arguments, both the action shortcut function and the `MutationRef` function accept a single argument: an object that contains all the required variables (and the optional variables) for the Mutation
+- Both functions can be called with or without passing in a `DataConnect` instance as an argument. If no `DataConnect` argument is passed in, then the generated SDK will call `getDataConnect(connectorConfig)` behind the scenes for you.
+
+Below are examples of how to use the `example` connector's generated functions to execute each mutation. You can also follow the examples from the [Data Connect documentation](https://firebase.google.com/docs/data-connect/web-sdk#using-mutations).
+
+## UpsertChristianGroup
+You can execute the `UpsertChristianGroup` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+upsertChristianGroup(vars: UpsertChristianGroupVariables): MutationPromise<UpsertChristianGroupData, UpsertChristianGroupVariables>;
+
+interface UpsertChristianGroupRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertChristianGroupVariables): MutationRef<UpsertChristianGroupData, UpsertChristianGroupVariables>;
+}
+export const upsertChristianGroupRef: UpsertChristianGroupRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+upsertChristianGroup(dc: DataConnect, vars: UpsertChristianGroupVariables): MutationPromise<UpsertChristianGroupData, UpsertChristianGroupVariables>;
+
+interface UpsertChristianGroupRef {
+  ...
+  (dc: DataConnect, vars: UpsertChristianGroupVariables): MutationRef<UpsertChristianGroupData, UpsertChristianGroupVariables>;
+}
+export const upsertChristianGroupRef: UpsertChristianGroupRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the upsertChristianGroupRef:
+```typescript
+const name = upsertChristianGroupRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `UpsertChristianGroup` mutation requires an argument of type `UpsertChristianGroupVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface UpsertChristianGroupVariables {
+  groupCode: string;
+  organisationName: string;
+  religionDenomination?: string | null;
+  category?: string | null;
+  geographyType?: string | null;
+  operationalAreas?: string | null;
+  locationDistrict?: string | null;
+  locationState?: string | null;
+  pinCode?: string | null;
+  address?: string | null;
+  phoneEmail?: string | null;
+  runsSchools?: string | null;
+  totalSchools?: string | null;
+  totalStudents?: string | null;
+  centralizedDecision?: string | null;
+  website?: string | null;
+  active: boolean;
+  sourceSheetRow?: number | null;
+  sourceHash?: string | null;
+}
+```
+### Return Type
+Recall that executing the `UpsertChristianGroup` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `UpsertChristianGroupData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface UpsertChristianGroupData {
+  sharedChristianGroup_upsert: SharedChristianGroup_Key;
+}
+```
+### Using `UpsertChristianGroup`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, upsertChristianGroup, UpsertChristianGroupVariables } from '@dataconnect/generated';
+
+// The `UpsertChristianGroup` mutation requires an argument of type `UpsertChristianGroupVariables`:
+const upsertChristianGroupVars: UpsertChristianGroupVariables = {
+  groupCode: ..., 
+  organisationName: ..., 
+  religionDenomination: ..., // optional
+  category: ..., // optional
+  geographyType: ..., // optional
+  operationalAreas: ..., // optional
+  locationDistrict: ..., // optional
+  locationState: ..., // optional
+  pinCode: ..., // optional
+  address: ..., // optional
+  phoneEmail: ..., // optional
+  runsSchools: ..., // optional
+  totalSchools: ..., // optional
+  totalStudents: ..., // optional
+  centralizedDecision: ..., // optional
+  website: ..., // optional
+  active: ..., 
+  sourceSheetRow: ..., // optional
+  sourceHash: ..., // optional
+};
+
+// Call the `upsertChristianGroup()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await upsertChristianGroup(upsertChristianGroupVars);
+// Variables can be defined inline as well.
+const { data } = await upsertChristianGroup({ groupCode: ..., organisationName: ..., religionDenomination: ..., category: ..., geographyType: ..., operationalAreas: ..., locationDistrict: ..., locationState: ..., pinCode: ..., address: ..., phoneEmail: ..., runsSchools: ..., totalSchools: ..., totalStudents: ..., centralizedDecision: ..., website: ..., active: ..., sourceSheetRow: ..., sourceHash: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await upsertChristianGroup(dataConnect, upsertChristianGroupVars);
+
+console.log(data.sharedChristianGroup_upsert);
+
+// Or, you can use the `Promise` API.
+upsertChristianGroup(upsertChristianGroupVars).then((response) => {
+  const data = response.data;
+  console.log(data.sharedChristianGroup_upsert);
+});
+```
+
+### Using `UpsertChristianGroup`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, upsertChristianGroupRef, UpsertChristianGroupVariables } from '@dataconnect/generated';
+
+// The `UpsertChristianGroup` mutation requires an argument of type `UpsertChristianGroupVariables`:
+const upsertChristianGroupVars: UpsertChristianGroupVariables = {
+  groupCode: ..., 
+  organisationName: ..., 
+  religionDenomination: ..., // optional
+  category: ..., // optional
+  geographyType: ..., // optional
+  operationalAreas: ..., // optional
+  locationDistrict: ..., // optional
+  locationState: ..., // optional
+  pinCode: ..., // optional
+  address: ..., // optional
+  phoneEmail: ..., // optional
+  runsSchools: ..., // optional
+  totalSchools: ..., // optional
+  totalStudents: ..., // optional
+  centralizedDecision: ..., // optional
+  website: ..., // optional
+  active: ..., 
+  sourceSheetRow: ..., // optional
+  sourceHash: ..., // optional
+};
+
+// Call the `upsertChristianGroupRef()` function to get a reference to the mutation.
+const ref = upsertChristianGroupRef(upsertChristianGroupVars);
+// Variables can be defined inline as well.
+const ref = upsertChristianGroupRef({ groupCode: ..., organisationName: ..., religionDenomination: ..., category: ..., geographyType: ..., operationalAreas: ..., locationDistrict: ..., locationState: ..., pinCode: ..., address: ..., phoneEmail: ..., runsSchools: ..., totalSchools: ..., totalStudents: ..., centralizedDecision: ..., website: ..., active: ..., sourceSheetRow: ..., sourceHash: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = upsertChristianGroupRef(dataConnect, upsertChristianGroupVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.sharedChristianGroup_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.sharedChristianGroup_upsert);
+});
+```
+
+## SetChristianGroupActive
+You can execute the `SetChristianGroupActive` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+setChristianGroupActive(vars: SetChristianGroupActiveVariables): MutationPromise<SetChristianGroupActiveData, SetChristianGroupActiveVariables>;
+
+interface SetChristianGroupActiveRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SetChristianGroupActiveVariables): MutationRef<SetChristianGroupActiveData, SetChristianGroupActiveVariables>;
+}
+export const setChristianGroupActiveRef: SetChristianGroupActiveRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+setChristianGroupActive(dc: DataConnect, vars: SetChristianGroupActiveVariables): MutationPromise<SetChristianGroupActiveData, SetChristianGroupActiveVariables>;
+
+interface SetChristianGroupActiveRef {
+  ...
+  (dc: DataConnect, vars: SetChristianGroupActiveVariables): MutationRef<SetChristianGroupActiveData, SetChristianGroupActiveVariables>;
+}
+export const setChristianGroupActiveRef: SetChristianGroupActiveRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the setChristianGroupActiveRef:
+```typescript
+const name = setChristianGroupActiveRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `SetChristianGroupActive` mutation requires an argument of type `SetChristianGroupActiveVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface SetChristianGroupActiveVariables {
+  groupCode: string;
+  active: boolean;
+}
+```
+### Return Type
+Recall that executing the `SetChristianGroupActive` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `SetChristianGroupActiveData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface SetChristianGroupActiveData {
+  sharedChristianGroup_update?: SharedChristianGroup_Key | null;
+}
+```
+### Using `SetChristianGroupActive`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, setChristianGroupActive, SetChristianGroupActiveVariables } from '@dataconnect/generated';
+
+// The `SetChristianGroupActive` mutation requires an argument of type `SetChristianGroupActiveVariables`:
+const setChristianGroupActiveVars: SetChristianGroupActiveVariables = {
+  groupCode: ..., 
+  active: ..., 
+};
+
+// Call the `setChristianGroupActive()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await setChristianGroupActive(setChristianGroupActiveVars);
+// Variables can be defined inline as well.
+const { data } = await setChristianGroupActive({ groupCode: ..., active: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await setChristianGroupActive(dataConnect, setChristianGroupActiveVars);
+
+console.log(data.sharedChristianGroup_update);
+
+// Or, you can use the `Promise` API.
+setChristianGroupActive(setChristianGroupActiveVars).then((response) => {
+  const data = response.data;
+  console.log(data.sharedChristianGroup_update);
+});
+```
+
+### Using `SetChristianGroupActive`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, setChristianGroupActiveRef, SetChristianGroupActiveVariables } from '@dataconnect/generated';
+
+// The `SetChristianGroupActive` mutation requires an argument of type `SetChristianGroupActiveVariables`:
+const setChristianGroupActiveVars: SetChristianGroupActiveVariables = {
+  groupCode: ..., 
+  active: ..., 
+};
+
+// Call the `setChristianGroupActiveRef()` function to get a reference to the mutation.
+const ref = setChristianGroupActiveRef(setChristianGroupActiveVars);
+// Variables can be defined inline as well.
+const ref = setChristianGroupActiveRef({ groupCode: ..., active: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = setChristianGroupActiveRef(dataConnect, setChristianGroupActiveVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.sharedChristianGroup_update);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.sharedChristianGroup_update);
+});
+```
 

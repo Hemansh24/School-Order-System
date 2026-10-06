@@ -51,7 +51,7 @@ async function assertShippingDestinationExists(tx: Tx, input: CreateOrderInput):
       where: { schoolCode: input.sheet1.shippingToCode }
     });
 
-    if (!school && !(await findGroupLocationByCode(tx, input.sheet1.shippingToCode))) throw new Error("Shipping school or GS-code location must exist.");
+    if (!school && !(await findGroupLocationByCode(tx, input.sheet1.shippingToCode)) && !(await findChristianGroupByCode(tx, input.sheet1.shippingToCode))) throw new Error("Shipping school, GS-code location, or Christian group must exist.");
 
     return;
   }
@@ -74,7 +74,9 @@ async function resolveShippingSummary(tx: Tx, input: CreateOrderInput) {
     if (school) return formatSchoolAddress(school);
     const groupLocation = await findGroupLocationByCode(tx, input.sheet1.shippingToCode);
     if (groupLocation) return formatSchoolAddress(groupLocation);
-    throw new Error("Shipping school or GS-code location must exist.");
+    const christianGroup = await findChristianGroupByCode(tx, input.sheet1.shippingToCode);
+    if (christianGroup) return formatSchoolAddress(christianGroup);
+    throw new Error("Shipping school, GS-code location, or Christian group must exist.");
   }
 
   const vendor = await tx.vendor.findFirst({
@@ -94,6 +96,16 @@ async function findGroupLocationByCode(tx: Tx, code: string) {
   const [, groupCode, subCode] = match;
   return tx.schoolGroupLocation.findFirst({
     where: { subCode, schoolGroup: { groupCode: { equals: groupCode, mode: "insensitive" } } },
+    select: { address: true, district: true, state: true, pincode: true }
+  });
+}
+
+async function findChristianGroupByCode(tx: Tx, code: string) {
+  return tx.schoolGroup.findFirst({
+    where: {
+      groupCode: { equals: code.trim(), mode: "insensitive" },
+      sourceType: "CHRISTIAN"
+    },
     select: { address: true, district: true, state: true, pincode: true }
   });
 }

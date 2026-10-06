@@ -1,4 +1,4 @@
-import { ConnectorConfig, DataConnect, QueryRef, QueryPromise, ExecuteQueryOptions, DataConnectSettings } from 'firebase/data-connect';
+import { ConnectorConfig, DataConnect, QueryRef, QueryPromise, ExecuteQueryOptions, MutationRef, MutationPromise, DataConnectSettings } from 'firebase/data-connect';
 
 export const connectorConfig: ConnectorConfig;
 export const dataConnectSettings: DataConnectSettings;
@@ -197,6 +197,36 @@ export interface ListOrganisationsVariables {
   offset?: number | null;
 }
 
+export interface ListSharedChristianGroupsData {
+  sharedChristianGroups: ({
+    groupCode: string;
+    organisationName: string;
+    religionDenomination?: string | null;
+    category?: string | null;
+    geographyType?: string | null;
+    operationalAreas?: string | null;
+    locationDistrict?: string | null;
+    locationState?: string | null;
+    pinCode?: string | null;
+    address?: string | null;
+    phoneEmail?: string | null;
+    runsSchools?: string | null;
+    totalSchools?: string | null;
+    totalStudents?: string | null;
+    centralizedDecision?: string | null;
+    website?: string | null;
+    active: boolean;
+    sourceSheetRow?: number | null;
+    sourceHash?: string | null;
+    syncedAt: TimestampString;
+  } & SharedChristianGroup_Key)[];
+}
+
+export interface ListSharedChristianGroupsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+
 export interface ListSharedSchoolGroupLocationsData {
   sharedSchoolGroupLocations: ({
     groupCode: string;
@@ -261,6 +291,20 @@ export interface SearchOrganisationsVariables {
   offset?: number | null;
 }
 
+export interface SetChristianGroupActiveData {
+  sharedChristianGroup_update?: SharedChristianGroup_Key | null;
+}
+
+export interface SetChristianGroupActiveVariables {
+  groupCode: string;
+  active: boolean;
+}
+
+export interface SharedChristianGroup_Key {
+  groupCode: string;
+  __typename?: 'SharedChristianGroup_Key';
+}
+
 export interface SharedSchoolGroupLocation_Key {
   id: Int64String;
   __typename?: 'SharedSchoolGroupLocation_Key';
@@ -270,6 +314,56 @@ export interface SharedSchoolGroup_Key {
   id: Int64String;
   __typename?: 'SharedSchoolGroup_Key';
 }
+
+export interface UpsertChristianGroupData {
+  sharedChristianGroup_upsert: SharedChristianGroup_Key;
+}
+
+export interface UpsertChristianGroupVariables {
+  groupCode: string;
+  organisationName: string;
+  religionDenomination?: string | null;
+  category?: string | null;
+  geographyType?: string | null;
+  operationalAreas?: string | null;
+  locationDistrict?: string | null;
+  locationState?: string | null;
+  pinCode?: string | null;
+  address?: string | null;
+  phoneEmail?: string | null;
+  runsSchools?: string | null;
+  totalSchools?: string | null;
+  totalStudents?: string | null;
+  centralizedDecision?: string | null;
+  website?: string | null;
+  active: boolean;
+  sourceSheetRow?: number | null;
+  sourceHash?: string | null;
+}
+
+interface UpsertChristianGroupRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertChristianGroupVariables): MutationRef<UpsertChristianGroupData, UpsertChristianGroupVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpsertChristianGroupVariables): MutationRef<UpsertChristianGroupData, UpsertChristianGroupVariables>;
+  operationName: string;
+}
+export const upsertChristianGroupRef: UpsertChristianGroupRef;
+
+export function upsertChristianGroup(vars: UpsertChristianGroupVariables): MutationPromise<UpsertChristianGroupData, UpsertChristianGroupVariables>;
+export function upsertChristianGroup(dc: DataConnect, vars: UpsertChristianGroupVariables): MutationPromise<UpsertChristianGroupData, UpsertChristianGroupVariables>;
+
+interface SetChristianGroupActiveRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SetChristianGroupActiveVariables): MutationRef<SetChristianGroupActiveData, SetChristianGroupActiveVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SetChristianGroupActiveVariables): MutationRef<SetChristianGroupActiveData, SetChristianGroupActiveVariables>;
+  operationName: string;
+}
+export const setChristianGroupActiveRef: SetChristianGroupActiveRef;
+
+export function setChristianGroupActive(vars: SetChristianGroupActiveVariables): MutationPromise<SetChristianGroupActiveData, SetChristianGroupActiveVariables>;
+export function setChristianGroupActive(dc: DataConnect, vars: SetChristianGroupActiveVariables): MutationPromise<SetChristianGroupActiveData, SetChristianGroupActiveVariables>;
 
 interface ListOrganisationsRef {
   /* Allow users to create refs without passing in DataConnect */
@@ -390,4 +484,16 @@ export const listSharedSchoolGroupLocationsRef: ListSharedSchoolGroupLocationsRe
 
 export function listSharedSchoolGroupLocations(vars?: ListSharedSchoolGroupLocationsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedSchoolGroupLocationsData, ListSharedSchoolGroupLocationsVariables>;
 export function listSharedSchoolGroupLocations(dc: DataConnect, vars?: ListSharedSchoolGroupLocationsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedSchoolGroupLocationsData, ListSharedSchoolGroupLocationsVariables>;
+
+interface ListSharedChristianGroupsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: ListSharedChristianGroupsVariables): QueryRef<ListSharedChristianGroupsData, ListSharedChristianGroupsVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars?: ListSharedChristianGroupsVariables): QueryRef<ListSharedChristianGroupsData, ListSharedChristianGroupsVariables>;
+  operationName: string;
+}
+export const listSharedChristianGroupsRef: ListSharedChristianGroupsRef;
+
+export function listSharedChristianGroups(vars?: ListSharedChristianGroupsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedChristianGroupsData, ListSharedChristianGroupsVariables>;
+export function listSharedChristianGroups(dc: DataConnect, vars?: ListSharedChristianGroupsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedChristianGroupsData, ListSharedChristianGroupsVariables>;
 

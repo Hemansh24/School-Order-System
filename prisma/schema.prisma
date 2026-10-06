@@ -106,6 +106,15 @@ model SchoolGroup {
   schoolGroupId Int      @id @default(autoincrement()) @map("school_group_id")
   groupCode     String   @unique @map("group_code")
   groupName     String   @map("group_name")
+  sourceType    String   @default("GS") @map("source_type")
+  active        Boolean  @default(true)
+  address       String?
+  district      String?
+  state         String?
+  pincode       String?
+  phoneEmail    String?  @map("phone_email")
+  website       String?
+  metadata      Json?
   sourceHash    String?  @map("source_hash")
   syncedAt      DateTime? @map("synced_at") @db.Timestamptz(6)
   createdAt     DateTime @default(now()) @map("created_at")

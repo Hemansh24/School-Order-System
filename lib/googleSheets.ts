@@ -32,7 +32,10 @@ function getRangeStartRow(range: string) {
 
 function createGoogleSheetsClient(): sheets_v4.Sheets {
   const auth = new google.auth.GoogleAuth({
-    scopes: GOOGLE_SHEETS_SCOPES
+    scopes: GOOGLE_SHEETS_SCOPES,
+    ...(process.env.GOOGLE_SHEETS_SERVICE_ACCOUNT_FILE
+      ? { keyFile: process.env.GOOGLE_SHEETS_SERVICE_ACCOUNT_FILE }
+      : {})
   });
 
   return google.sheets({

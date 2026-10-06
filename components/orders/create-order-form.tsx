@@ -16,7 +16,7 @@ type SchoolRef = {
   schoolName: string;
   addressSummary: string;
 };
-type GroupRef = SchoolRef;
+type GroupRef = SchoolRef & { groupType: "GS" | "Christian" };
 type VendorRef = {
   vendorCode: string;
   vendorName: string;
@@ -84,7 +84,6 @@ export function CreateOrderForm({
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [serverError, setServerError] = useState<string | null>(null);
-  const [selectedVendorSchoolKey, setSelectedVendorSchoolKey] = useState("");
   const [selectedDescriptiveSchoolKey, setSelectedDescriptiveSchoolKey] = useState("");
   const [selectedCategoryCode, setSelectedCategoryCode] = useState(items[0]?.categoryCode ?? "");
   const [selectedCustomisationCode, setSelectedCustomisationCode] = useState(
@@ -217,7 +216,8 @@ export function CreateOrderForm({
           type: "",
           rating: "",
           addressSummary: school.addressSummary,
-          isGroup: groups.some((group) => group.optionKey === school.optionKey)
+          isGroup: groups.some((group) => group.optionKey === school.optionKey),
+          groupType: groups.find((group) => group.optionKey === school.optionKey)?.groupType
           }))
         : vendors.map((vendor) => ({
             value: vendor.vendorCode,
@@ -226,7 +226,8 @@ export function CreateOrderForm({
             type: vendor.vendorType ?? "",
           rating: vendor.vendorRating ?? "",
           addressSummary: vendor.addressSummary,
-          isGroup: false
+          isGroup: false,
+          groupType: undefined
           })),
     [billingToType, schools, groups, vendors]
   );
@@ -280,32 +281,18 @@ export function CreateOrderForm({
       .slice(0, 50);
   }, [shippingOptions, shippingToCode]);
 
-  const selectedVendorSchools = useMemo(() => {
-    if (billingToType !== "vendor") {
-      return [];
-    }
-
-    return vendors.find((vendor) => vendor.vendorCode === billingToCode)?.schools ?? [];
-  }, [billingToCode, billingToType, vendors]);
-
-  const activeVendorSchoolKey = selectedVendorSchoolKey || selectedVendorSchools[0]?.optionKey || "";
-  const activeVendorSchool = selectedVendorSchools.find(
-    (school) => school.optionKey === activeVendorSchoolKey
-  );
   const selectedBillingSchool =
     billingToType === "school"
       ? findSchoolOptionByStoredValue(schools, billingToCode, form.watch("sheet1.billingToName"))
       : undefined;
   const activeDescriptiveSchoolKey =
-    billingToType === "vendor"
-      ? activeVendorSchoolKey
-      : selectedDescriptiveSchoolKey || selectedBillingSchool?.optionKey || schools[0]?.optionKey || "";
-  const activeDescriptiveSchool =
-    billingToType === "vendor"
-      ? activeVendorSchool
-      : schools.find((school) => school.optionKey === activeDescriptiveSchoolKey);
-  const ambiguousSchoolOptions =
-    billingToType === "vendor" ? selectedVendorSchools : schools;
+    selectedDescriptiveSchoolKey || selectedBillingSchool?.optionKey || schools[0]?.optionKey || "";
+  const activeDescriptiveSchool = schools.find(
+    (school) => school.optionKey === activeDescriptiveSchoolKey
+  );
+  // The schools recorded on an ambiguous order are independent of its billing
+  // party. Always use the complete school reference list here.
+  const ambiguousSchoolOptions = schools;
 
   useEffect(() => {
     if (billingToType === "school" && !selectedDescriptiveSchoolKey) {
@@ -321,17 +308,18 @@ export function CreateOrderForm({
   }, [billingToType, schools, selectedDescriptiveSchoolKey, form]);
 
   useEffect(() => {
-    if (billingToType === "vendor" && !selectedVendorSchoolKey && selectedVendorSchools.length > 0) {
-      const descriptiveRow = form.getValues("descriptiveRows")[0];
-      const ambiguousSchool = form.getValues("ambiguousSchools")[0];
-      const current = findSchoolOptionByStoredValue(
-        selectedVendorSchools,
-        descriptiveRow?.schoolCode ?? ambiguousSchool?.schoolCode,
-        descriptiveRow?.schoolName ?? ambiguousSchool?.schoolName
-      );
-      setSelectedVendorSchoolKey(current?.optionKey ?? selectedVendorSchools[0].optionKey);
+    if (billingToType !== "vendor" || selectedDescriptiveSchoolKey || schools.length === 0) {
+      return;
     }
-  }, [billingToType, selectedVendorSchoolKey, selectedVendorSchools, form]);
+
+    const descriptiveRow = form.getValues("descriptiveRows")[0];
+    const current = findSchoolOptionByStoredValue(
+      schools,
+      descriptiveRow?.schoolCode,
+      descriptiveRow?.schoolName
+    );
+    setSelectedDescriptiveSchoolKey(current?.optionKey ?? schools[0].optionKey);
+  }, [billingToType, selectedDescriptiveSchoolKey, schools, form]);
 
   const categoryOptions = useMemo(
     () =>
@@ -424,7 +412,6 @@ export function CreateOrderForm({
     if (billingToType === "vendor") {
       form.setValue("descriptiveRows", []);
       form.setValue("ambiguousSchools", []);
-      setSelectedVendorSchoolKey("");
     }
     if (billingToType === "school") {
       setSelectedDescriptiveSchoolKey(value);
@@ -464,7 +451,6 @@ export function CreateOrderForm({
     if (billingToType === "vendor") {
       form.setValue("descriptiveRows", []);
       form.setValue("ambiguousSchools", []);
-      setSelectedVendorSchoolKey("");
     }
   }
 
@@ -601,22 +587,6 @@ export function CreateOrderForm({
     }
   }
 
-  function moveVendorSchool(direction: -1 | 1) {
-    if (selectedVendorSchools.length === 0) {
-      return;
-    }
-
-    const currentIndex = Math.max(
-      0,
-      selectedVendorSchools.findIndex((school) => school.optionKey === activeVendorSchoolKey)
-    );
-    const nextIndex = Math.min(
-      selectedVendorSchools.length - 1,
-      Math.max(0, currentIndex + direction)
-    );
-    setSelectedVendorSchoolKey(selectedVendorSchools[nextIndex].optionKey);
-  }
-
   function switchOrderType(type: "descriptive" | "ambiguous" | "combined") {
     form.setValue("sheet1.orderType", type);
     if (type === "descriptive") {
@@ -645,7 +615,6 @@ export function CreateOrderForm({
         form.setValue("sheet1.booksellerType", firstVendor?.vendorType ?? "");
         form.setValue("sheet1.booksellerRating", firstVendor?.vendorRating ?? "");
         setSelectedDescriptiveSchoolKey("");
-        setSelectedVendorSchoolKey("");
       }
       if (form.getValues("ambiguousSchools").length === 0) {
         appendAmbiguousSchool();
@@ -705,7 +674,6 @@ export function CreateOrderForm({
     form.reset(newOrderDefaults);
     setStep(1);
     setServerError(null);
-    setSelectedVendorSchoolKey("");
     setSelectedDescriptiveSchoolKey(schools[0]?.optionKey ?? "");
     setSelectedCategoryCode(items[0]?.categoryCode ?? "");
     setSelectedCustomisationCode(items[0]?.customisationCode ?? "");
@@ -795,7 +763,6 @@ export function CreateOrderForm({
                     } else {
                       form.setValue("ambiguousSchools", []);
                     }
-                    setSelectedVendorSchoolKey("");
                     setSelectedDescriptiveSchoolKey(nextType === "school" ? schools[0]?.optionKey ?? "" : "");
                   }
                 })}
@@ -833,6 +800,7 @@ export function CreateOrderForm({
                         >
                           <span className="font-medium text-ink">{option.code}</span>
                           <span className="ml-2 text-muted">{option.name}</span>
+                          {option.groupType ? <span className="ml-2 text-xs text-muted">{option.groupType}</span> : null}
                         </button>
                       ))
                     ) : (
@@ -961,85 +929,33 @@ export function CreateOrderForm({
             </div>
           </div>
           <div className="space-y-4">
-            {billingToType === "vendor" ? (
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-                <Field label="School">
-                  <select
-                    className={inputClass}
-                    value={activeVendorSchoolKey}
-                    onChange={(event) => setSelectedVendorSchoolKey(event.target.value)}
-                  >
-                    {selectedVendorSchools.map((school) => (
-                      <option key={school.optionKey} value={school.optionKey}>
-                        {school.schoolCode} - {school.schoolName}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <div className="flex flex-wrap gap-2">
-                  <SubmitButton
-                    type="button"
-                    variant="secondary"
-                    onClick={() => moveVendorSchool(-1)}
-                    disabled={
-                      selectedVendorSchools.findIndex(
-                        (school) => school.optionKey === activeVendorSchoolKey
-                      ) <= 0
-                    }
-                  >
-                    Previous School
-                  </SubmitButton>
-                  <SubmitButton
-                    type="button"
-                    variant="secondary"
-                    onClick={() => moveVendorSchool(1)}
-                    disabled={
-                      selectedVendorSchools.findIndex(
-                        (school) => school.optionKey === activeVendorSchoolKey
-                      ) >= selectedVendorSchools.length - 1
-                    }
-                  >
-                    Next School
-                  </SubmitButton>
-                </div>
-              </div>
-            ) : (
-              <Field label="School">
-                <SchoolPicker
-                  schools={schools}
-                  selectedKey={activeDescriptiveSchoolKey}
-                  onChange={setSelectedDescriptiveSchoolKey}
-                />
-              </Field>
-            )}
-            {billingToType === "vendor" && selectedVendorSchools.length === 0 ? (
-              <div className="rounded-md border border-danger bg-red-50 p-3 text-sm text-red-900">
-                This vendor is not linked to any schools yet.
-              </div>
-            ) : (
-              <>
-                <ItemSelectionFilters
-                  categories={categoryOptions}
-                  customisations={customisationOptions}
-                  categoryCode={selectedCategoryCode}
-                  customisationCode={selectedCustomisationCode}
-                  onCategoryChange={setSelectedCategoryCode}
-                  onCustomisationChange={setSelectedCustomisationCode}
-                />
-                <ItemQuantityTable
-                  items={latestSelectionItems}
-                  quantityForItem={(item) =>
-                    watchedDescriptiveRows.find(
-                      (entry) =>
-                        entry.schoolCode === activeDescriptiveSchool?.schoolCode &&
-                        entry.schoolName === activeDescriptiveSchool?.schoolName &&
-                        entry.itemCode === item.itemCode
-                    )?.quantity
-                  }
-                  onQuantityChange={setDescriptiveItemQuantity}
-                />
-              </>
-            )}
+            <Field label="School">
+              <SchoolPicker
+                schools={schools}
+                selectedKey={activeDescriptiveSchoolKey}
+                onChange={setSelectedDescriptiveSchoolKey}
+              />
+            </Field>
+            <ItemSelectionFilters
+              categories={categoryOptions}
+              customisations={customisationOptions}
+              categoryCode={selectedCategoryCode}
+              customisationCode={selectedCustomisationCode}
+              onCategoryChange={setSelectedCategoryCode}
+              onCustomisationChange={setSelectedCustomisationCode}
+            />
+            <ItemQuantityTable
+              items={latestSelectionItems}
+              quantityForItem={(item) =>
+                watchedDescriptiveRows.find(
+                  (entry) =>
+                    entry.schoolCode === activeDescriptiveSchool?.schoolCode &&
+                    entry.schoolName === activeDescriptiveSchool?.schoolName &&
+                    entry.itemCode === item.itemCode
+                )?.quantity
+              }
+              onQuantityChange={setDescriptiveItemQuantity}
+            />
           </div>
         </Card>
       ) : null}
@@ -1063,35 +979,23 @@ export function CreateOrderForm({
                   <Plus className="mr-2 h-4 w-4" /> Add school
                 </SubmitButton>
               </div>
-              {billingToType === "vendor" && selectedVendorSchools.length === 0 ? (
-                <div className="rounded-md border border-danger bg-red-50 p-3 text-sm text-red-900">
-                  This vendor is not linked to any schools yet.
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {ambiguousSchools.fields.map((field, index) => (
-                    <LineRow key={field.id} onRemove={() => ambiguousSchools.remove(index)}>
-                      <select
-                        className={inputClass}
-                        value={
-                          findSchoolOptionByStoredValue(
-                            ambiguousSchoolOptions,
-                            form.watch(`ambiguousSchools.${index}.schoolCode`),
-                            form.watch(`ambiguousSchools.${index}.schoolName`)
-                          )?.optionKey ?? ambiguousSchoolOptions[0]?.optionKey ?? ""
-                        }
-                        onChange={(event) => setAmbiguousSchool(index, event.target.value)}
-                      >
-                        {ambiguousSchoolOptions.map((school) => (
-                          <option key={school.optionKey} value={school.optionKey}>
-                            {school.schoolCode} - {school.schoolName}
-                          </option>
-                        ))}
-                      </select>
-                    </LineRow>
-                  ))}
-                </div>
-              )}
+              <div className="space-y-3">
+                {ambiguousSchools.fields.map((field, index) => (
+                  <LineRow key={field.id} onRemove={() => ambiguousSchools.remove(index)}>
+                    <SchoolPicker
+                      schools={ambiguousSchoolOptions}
+                      selectedKey={
+                        findSchoolOptionByStoredValue(
+                          ambiguousSchoolOptions,
+                          form.watch(`ambiguousSchools.${index}.schoolCode`),
+                          form.watch(`ambiguousSchools.${index}.schoolName`)
+                        )?.optionKey ?? ""
+                      }
+                      onChange={(optionKey) => setAmbiguousSchool(index, optionKey)}
+                    />
+                  </LineRow>
+                ))}
+              </div>
             </div>
             <div>
               <div className="mb-3">

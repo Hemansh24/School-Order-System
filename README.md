@@ -74,6 +74,16 @@ The import order is significant: schools must exist before bookseller-school map
 
 `schools:sync` always imports the shared Firebase/Data Connect organisations and their PT codes. Local Organisation records are not used for this shared master-data import, so they cannot prevent bookseller-to-school mappings from being created.
 
+### Christian group master data
+
+Christian C1 groups follow the same Firebase-first pattern as schools, vendors, and items. A trusted publisher environment reads the `Christian-Group Sheet` and writes its canonical copy to Firebase:
+
+```bash
+npm run christian-groups:publish
+```
+
+Configure `CHRISTIAN_GROUPS_SHEET_ID`, `CHRISTIAN_GROUPS_SHEET_RANGE`, and `GOOGLE_SHEETS_SERVICE_ACCOUNT_FILE` for a Google service account that has Viewer access to that sheet. Set `FIREBASE_ADMIN_SERVICE_ACCOUNT_FILE` as well when the publisher machine does not already have Firebase Application Default Credentials. End-user dashboards never access Google Sheets: they receive C1 groups through `npm run master-data:sync` or the Grouped Schools page's **Sync Group Master Data** button.
+
 7. Start the development server:
 
 ```bash

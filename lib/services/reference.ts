@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { compareEditionCodes, DEFAULT_LANGUAGE_CODE } from "@/lib/item-code";
 
 export async function getReferenceData() {
-  const [schools, vendors, items, groupLocations] = await Promise.all([
+  const [schools, vendors, items, groupLocations, christianGroups] = await Promise.all([
     prisma.school.findMany({
       orderBy: { schoolName: "asc" }
     }),
@@ -20,10 +20,14 @@ export async function getReferenceData() {
       where: { active: true, obsolete: false },
       orderBy: [{ categoryCode: "asc" }, { subCategoryCode: "asc" }, { itemName: "asc" }]
     }),
-    prisma.schoolGroupLocation.findMany({ include: { schoolGroup: true }, orderBy: [{ schoolGroup: { groupCode: "asc" } }, { subCode: "asc" }] })
+    prisma.schoolGroupLocation.findMany({ include: { schoolGroup: true }, orderBy: [{ schoolGroup: { groupCode: "asc" } }, { subCode: "asc" }] }),
+    prisma.schoolGroup.findMany({
+      where: { sourceType: "CHRISTIAN", active: true },
+      orderBy: { groupCode: "asc" }
+    })
   ]);
 
-  return { schools, vendors, items, groupLocations };
+  return { schools, vendors, items, groupLocations, christianGroups };
 }
 
 export async function getItemCategories() {
