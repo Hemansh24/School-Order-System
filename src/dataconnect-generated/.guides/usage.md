@@ -12,12 +12,14 @@ For each operation, there is a wrapper hook that can be used to call the operati
 
 Here are all of the hooks that get generated:
 ```ts
-import { useUpsertChristianGroup, useSetChristianGroupActive, useListOrganisations, useSearchOrganisations, useGetOrganisationByPrCode, useListBooksellers, useGetBooksellerByCode, useListItems, useGetItemByCode, useListBooksellerSchoolMapping } from '@dataconnect/generated/react';
+import { useUpsertChristianGroup, useSetChristianGroupActive, useUpsertPreBookseller, useListOrganisations, useSearchOrganisations, useGetOrganisationByPrCode, useListBooksellers, useGetBooksellerByCode, useListItems, useGetItemByCode } from '@dataconnect/generated/react';
 // The types of these hooks are available in react/index.d.ts
 
 const { data, isPending, isSuccess, isError, error } = useUpsertChristianGroup(upsertChristianGroupVars);
 
 const { data, isPending, isSuccess, isError, error } = useSetChristianGroupActive(setChristianGroupActiveVars);
+
+const { data, isPending, isSuccess, isError, error } = useUpsertPreBookseller(upsertPreBooksellerVars);
 
 const { data, isPending, isSuccess, isError, error } = useListOrganisations(listOrganisationsVars);
 
@@ -32,8 +34,6 @@ const { data, isPending, isSuccess, isError, error } = useGetBooksellerByCode(ge
 const { data, isPending, isSuccess, isError, error } = useListItems(listItemsVars);
 
 const { data, isPending, isSuccess, isError, error } = useGetItemByCode(getItemByCodeVars);
-
-const { data, isPending, isSuccess, isError, error } = useListBooksellerSchoolMapping(listBooksellerSchoolMappingVars);
 
 ```
 
@@ -72,7 +72,7 @@ If a user is not using a supported framework, they can use the generated SDK dir
 Here's an example of how to use it with the first 5 operations:
 
 ```js
-import { upsertChristianGroup, setChristianGroupActive, listOrganisations, searchOrganisations, getOrganisationByPrCode, listBooksellers, getBooksellerByCode, listItems, getItemByCode, listBooksellerSchoolMapping } from '@dataconnect/generated';
+import { upsertChristianGroup, setChristianGroupActive, upsertPreBookseller, listOrganisations, searchOrganisations, getOrganisationByPrCode, listBooksellers, getBooksellerByCode, listItems, getItemByCode } from '@dataconnect/generated';
 
 
 // Operation UpsertChristianGroup:  For variables, look at type UpsertChristianGroupVars in ../index.d.ts
@@ -80,6 +80,9 @@ const { data } = await UpsertChristianGroup(dataConnect, upsertChristianGroupVar
 
 // Operation SetChristianGroupActive:  For variables, look at type SetChristianGroupActiveVars in ../index.d.ts
 const { data } = await SetChristianGroupActive(dataConnect, setChristianGroupActiveVars);
+
+// Operation UpsertPreBookseller:  For variables, look at type UpsertPreBooksellerVars in ../index.d.ts
+const { data } = await UpsertPreBookseller(dataConnect, upsertPreBooksellerVars);
 
 // Operation ListOrganisations:  For variables, look at type ListOrganisationsVars in ../index.d.ts
 const { data } = await ListOrganisations(dataConnect, listOrganisationsVars);
@@ -101,9 +104,6 @@ const { data } = await ListItems(dataConnect, listItemsVars);
 
 // Operation GetItemByCode:  For variables, look at type GetItemByCodeVars in ../index.d.ts
 const { data } = await GetItemByCode(dataConnect, getItemByCodeVars);
-
-// Operation ListBooksellerSchoolMapping:  For variables, look at type ListBooksellerSchoolMappingVars in ../index.d.ts
-const { data } = await ListBooksellerSchoolMapping(dataConnect, listBooksellerSchoolMappingVars);
 
 
 ```

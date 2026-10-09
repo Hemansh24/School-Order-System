@@ -18,6 +18,12 @@ export function setChristianGroupActive(dcOrVarsOrOptions, varsOrOptions, option
   return dcInstance.executeMutation('SetChristianGroupActive', inputVars, inputOpts);
 }
 
+export function upsertPreBookseller(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('UpsertPreBookseller', inputVars, inputOpts);
+}
+
 export function listOrganisations(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, false);
   dcInstance.useGen(true);
@@ -82,5 +88,11 @@ export function listSharedChristianGroups(dcOrVarsOrOptions, varsOrOptions, opti
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, false);
   dcInstance.useGen(true);
   return dcInstance.executeQuery('ListSharedChristianGroups', inputVars, inputOpts);
+}
+
+export function listSharedPreBooksellers(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, false);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('ListSharedPreBooksellers', inputVars, inputOpts);
 }
 

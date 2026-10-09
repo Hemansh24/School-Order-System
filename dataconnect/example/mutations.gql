@@ -50,3 +50,52 @@ mutation SetChristianGroupActive($groupCode: String!, $active: Boolean!)
     data: { active: $active, syncedAt_expr: "request.time" }
   )
 }
+
+mutation UpsertPreBookseller(
+  $pbsCode: String!
+  $sourceBsCode: String
+  $vendorName: String!
+  $address: String
+  $district: String
+  $state: String
+  $pinCode: String
+  $contactPerson: String
+  $email: String
+  $taxId: String
+  $schoolDealCount: String
+  $approximateStrength: String
+  $groupSchoolCount: String
+  $committedDiscount: String
+  $transportCollaboration: String
+  $bookingStation: String
+  $vendorType: String
+  $paymentStatus: String
+  $conversionStatus: String!
+  $assignedBsCode: String
+  $convertedAt: Timestamp
+) @auth(level: NO_ACCESS) {
+  sharedPreBookseller_upsert(data: {
+    pbsCode: $pbsCode
+    sourceBsCode: $sourceBsCode
+    vendorName: $vendorName
+    address: $address
+    district: $district
+    state: $state
+    pinCode: $pinCode
+    contactPerson: $contactPerson
+    email: $email
+    taxId: $taxId
+    schoolDealCount: $schoolDealCount
+    approximateStrength: $approximateStrength
+    groupSchoolCount: $groupSchoolCount
+    committedDiscount: $committedDiscount
+    transportCollaboration: $transportCollaboration
+    bookingStation: $bookingStation
+    vendorType: $vendorType
+    paymentStatus: $paymentStatus
+    conversionStatus: $conversionStatus
+    assignedBsCode: $assignedBsCode
+    convertedAt: $convertedAt
+    syncedAt_expr: "request.time"
+  })
+}

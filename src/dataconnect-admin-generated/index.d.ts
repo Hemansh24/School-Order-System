@@ -224,6 +224,38 @@ export interface ListSharedChristianGroupsVariables {
   offset?: number | null;
 }
 
+export interface ListSharedPreBooksellersData {
+  sharedPreBooksellers: ({
+    pbsCode: string;
+    sourceBsCode?: string | null;
+    vendorName: string;
+    address?: string | null;
+    district?: string | null;
+    state?: string | null;
+    pinCode?: string | null;
+    contactPerson?: string | null;
+    email?: string | null;
+    taxId?: string | null;
+    schoolDealCount?: string | null;
+    approximateStrength?: string | null;
+    groupSchoolCount?: string | null;
+    committedDiscount?: string | null;
+    transportCollaboration?: string | null;
+    bookingStation?: string | null;
+    vendorType?: string | null;
+    paymentStatus?: string | null;
+    conversionStatus: string;
+    assignedBsCode?: string | null;
+    convertedAt?: TimestampString | null;
+    syncedAt: TimestampString;
+  } & SharedPreBookseller_Key)[];
+}
+
+export interface ListSharedPreBooksellersVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+
 export interface ListSharedSchoolGroupLocationsData {
   sharedSchoolGroupLocations: ({
     groupCode: string;
@@ -302,6 +334,11 @@ export interface SharedChristianGroup_Key {
   __typename?: 'SharedChristianGroup_Key';
 }
 
+export interface SharedPreBookseller_Key {
+  pbsCode: string;
+  __typename?: 'SharedPreBookseller_Key';
+}
+
 export interface SharedSchoolGroupLocation_Key {
   id: Int64String;
   __typename?: 'SharedSchoolGroupLocation_Key';
@@ -338,6 +375,34 @@ export interface UpsertChristianGroupVariables {
   sourceHash?: string | null;
 }
 
+export interface UpsertPreBooksellerData {
+  sharedPreBookseller_upsert: SharedPreBookseller_Key;
+}
+
+export interface UpsertPreBooksellerVariables {
+  pbsCode: string;
+  sourceBsCode?: string | null;
+  vendorName: string;
+  address?: string | null;
+  district?: string | null;
+  state?: string | null;
+  pinCode?: string | null;
+  contactPerson?: string | null;
+  email?: string | null;
+  taxId?: string | null;
+  schoolDealCount?: string | null;
+  approximateStrength?: string | null;
+  groupSchoolCount?: string | null;
+  committedDiscount?: string | null;
+  transportCollaboration?: string | null;
+  bookingStation?: string | null;
+  vendorType?: string | null;
+  paymentStatus?: string | null;
+  conversionStatus: string;
+  assignedBsCode?: string | null;
+  convertedAt?: TimestampString | null;
+}
+
 /** Generated Node Admin SDK operation action function for the 'UpsertChristianGroup' Mutation. Allow users to execute without passing in DataConnect. */
 export function upsertChristianGroup(dc: DataConnect, vars: UpsertChristianGroupVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertChristianGroupData>>;
 /** Generated Node Admin SDK operation action function for the 'UpsertChristianGroup' Mutation. Allow users to pass in custom DataConnect instances. */
@@ -347,6 +412,11 @@ export function upsertChristianGroup(vars: UpsertChristianGroupVariables, option
 export function setChristianGroupActive(dc: DataConnect, vars: SetChristianGroupActiveVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<SetChristianGroupActiveData>>;
 /** Generated Node Admin SDK operation action function for the 'SetChristianGroupActive' Mutation. Allow users to pass in custom DataConnect instances. */
 export function setChristianGroupActive(vars: SetChristianGroupActiveVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<SetChristianGroupActiveData>>;
+
+/** Generated Node Admin SDK operation action function for the 'UpsertPreBookseller' Mutation. Allow users to execute without passing in DataConnect. */
+export function upsertPreBookseller(dc: DataConnect, vars: UpsertPreBooksellerVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertPreBooksellerData>>;
+/** Generated Node Admin SDK operation action function for the 'UpsertPreBookseller' Mutation. Allow users to pass in custom DataConnect instances. */
+export function upsertPreBookseller(vars: UpsertPreBooksellerVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertPreBooksellerData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListOrganisations' Query. Allow users to execute without passing in DataConnect. */
 export function listOrganisations(dc: DataConnect, vars?: ListOrganisationsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListOrganisationsData>>;
@@ -402,4 +472,9 @@ export function listSharedSchoolGroupLocations(vars?: ListSharedSchoolGroupLocat
 export function listSharedChristianGroups(dc: DataConnect, vars?: ListSharedChristianGroupsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSharedChristianGroupsData>>;
 /** Generated Node Admin SDK operation action function for the 'ListSharedChristianGroups' Query. Allow users to pass in custom DataConnect instances. */
 export function listSharedChristianGroups(vars?: ListSharedChristianGroupsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSharedChristianGroupsData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ListSharedPreBooksellers' Query. Allow users to execute without passing in DataConnect. */
+export function listSharedPreBooksellers(dc: DataConnect, vars?: ListSharedPreBooksellersVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSharedPreBooksellersData>>;
+/** Generated Node Admin SDK operation action function for the 'ListSharedPreBooksellers' Query. Allow users to pass in custom DataConnect instances. */
+export function listSharedPreBooksellers(vars?: ListSharedPreBooksellersVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSharedPreBooksellersData>>;
 

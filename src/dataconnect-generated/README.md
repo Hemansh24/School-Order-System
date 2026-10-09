@@ -21,9 +21,11 @@ This README will guide you through the process of using the generated JavaScript
   - [*ListSharedSchoolGroups*](#listsharedschoolgroups)
   - [*ListSharedSchoolGroupLocations*](#listsharedschoolgrouplocations)
   - [*ListSharedChristianGroups*](#listsharedchristiangroups)
+  - [*ListSharedPreBooksellers*](#listsharedprebooksellers)
 - [**Mutations**](#mutations)
   - [*UpsertChristianGroup*](#upsertchristiangroup)
   - [*SetChristianGroupActive*](#setchristiangroupactive)
+  - [*UpsertPreBookseller*](#upsertprebookseller)
 
 # Accessing the connector
 A connector is a collection of Queries and Mutations. One SDK is generated for each connector - this SDK is generated for the connector `example`. You can find more information about connectors in the [Data Connect documentation](https://firebase.google.com/docs/data-connect#how-does).
@@ -1501,6 +1503,145 @@ executeQuery(ref).then((response) => {
 });
 ```
 
+## ListSharedPreBooksellers
+You can execute the `ListSharedPreBooksellers` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+listSharedPreBooksellers(vars?: ListSharedPreBooksellersVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedPreBooksellersData, ListSharedPreBooksellersVariables>;
+
+interface ListSharedPreBooksellersRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: ListSharedPreBooksellersVariables): QueryRef<ListSharedPreBooksellersData, ListSharedPreBooksellersVariables>;
+}
+export const listSharedPreBooksellersRef: ListSharedPreBooksellersRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+listSharedPreBooksellers(dc: DataConnect, vars?: ListSharedPreBooksellersVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedPreBooksellersData, ListSharedPreBooksellersVariables>;
+
+interface ListSharedPreBooksellersRef {
+  ...
+  (dc: DataConnect, vars?: ListSharedPreBooksellersVariables): QueryRef<ListSharedPreBooksellersData, ListSharedPreBooksellersVariables>;
+}
+export const listSharedPreBooksellersRef: ListSharedPreBooksellersRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listSharedPreBooksellersRef:
+```typescript
+const name = listSharedPreBooksellersRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ListSharedPreBooksellers` query has an optional argument of type `ListSharedPreBooksellersVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface ListSharedPreBooksellersVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+```
+### Return Type
+Recall that executing the `ListSharedPreBooksellers` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ListSharedPreBooksellersData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ListSharedPreBooksellersData {
+  sharedPreBooksellers: ({
+    pbsCode: string;
+    sourceBsCode?: string | null;
+    vendorName: string;
+    address?: string | null;
+    district?: string | null;
+    state?: string | null;
+    pinCode?: string | null;
+    contactPerson?: string | null;
+    email?: string | null;
+    taxId?: string | null;
+    schoolDealCount?: string | null;
+    approximateStrength?: string | null;
+    groupSchoolCount?: string | null;
+    committedDiscount?: string | null;
+    transportCollaboration?: string | null;
+    bookingStation?: string | null;
+    vendorType?: string | null;
+    paymentStatus?: string | null;
+    conversionStatus: string;
+    assignedBsCode?: string | null;
+    convertedAt?: TimestampString | null;
+    syncedAt: TimestampString;
+  } & SharedPreBookseller_Key)[];
+}
+```
+### Using `ListSharedPreBooksellers`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, listSharedPreBooksellers, ListSharedPreBooksellersVariables } from '@dataconnect/generated';
+
+// The `ListSharedPreBooksellers` query has an optional argument of type `ListSharedPreBooksellersVariables`:
+const listSharedPreBooksellersVars: ListSharedPreBooksellersVariables = {
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listSharedPreBooksellers()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await listSharedPreBooksellers(listSharedPreBooksellersVars);
+// Variables can be defined inline as well.
+const { data } = await listSharedPreBooksellers({ limit: ..., offset: ..., });
+// Since all variables are optional for this query, you can omit the `ListSharedPreBooksellersVariables` argument.
+const { data } = await listSharedPreBooksellers();
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await listSharedPreBooksellers(dataConnect, listSharedPreBooksellersVars);
+
+console.log(data.sharedPreBooksellers);
+
+// Or, you can use the `Promise` API.
+listSharedPreBooksellers(listSharedPreBooksellersVars).then((response) => {
+  const data = response.data;
+  console.log(data.sharedPreBooksellers);
+});
+```
+
+### Using `ListSharedPreBooksellers`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, listSharedPreBooksellersRef, ListSharedPreBooksellersVariables } from '@dataconnect/generated';
+
+// The `ListSharedPreBooksellers` query has an optional argument of type `ListSharedPreBooksellersVariables`:
+const listSharedPreBooksellersVars: ListSharedPreBooksellersVariables = {
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listSharedPreBooksellersRef()` function to get a reference to the query.
+const ref = listSharedPreBooksellersRef(listSharedPreBooksellersVars);
+// Variables can be defined inline as well.
+const ref = listSharedPreBooksellersRef({ limit: ..., offset: ..., });
+// Since all variables are optional for this query, you can omit the `ListSharedPreBooksellersVariables` argument.
+const ref = listSharedPreBooksellersRef();
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = listSharedPreBooksellersRef(dataConnect, listSharedPreBooksellersVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.sharedPreBooksellers);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.sharedPreBooksellers);
+});
+```
+
 # Mutations
 
 There are two ways to execute a Data Connect Mutation using the generated Web SDK:
@@ -1788,6 +1929,175 @@ console.log(data.sharedChristianGroup_update);
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.sharedChristianGroup_update);
+});
+```
+
+## UpsertPreBookseller
+You can execute the `UpsertPreBookseller` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+upsertPreBookseller(vars: UpsertPreBooksellerVariables): MutationPromise<UpsertPreBooksellerData, UpsertPreBooksellerVariables>;
+
+interface UpsertPreBooksellerRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertPreBooksellerVariables): MutationRef<UpsertPreBooksellerData, UpsertPreBooksellerVariables>;
+}
+export const upsertPreBooksellerRef: UpsertPreBooksellerRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+upsertPreBookseller(dc: DataConnect, vars: UpsertPreBooksellerVariables): MutationPromise<UpsertPreBooksellerData, UpsertPreBooksellerVariables>;
+
+interface UpsertPreBooksellerRef {
+  ...
+  (dc: DataConnect, vars: UpsertPreBooksellerVariables): MutationRef<UpsertPreBooksellerData, UpsertPreBooksellerVariables>;
+}
+export const upsertPreBooksellerRef: UpsertPreBooksellerRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the upsertPreBooksellerRef:
+```typescript
+const name = upsertPreBooksellerRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `UpsertPreBookseller` mutation requires an argument of type `UpsertPreBooksellerVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface UpsertPreBooksellerVariables {
+  pbsCode: string;
+  sourceBsCode?: string | null;
+  vendorName: string;
+  address?: string | null;
+  district?: string | null;
+  state?: string | null;
+  pinCode?: string | null;
+  contactPerson?: string | null;
+  email?: string | null;
+  taxId?: string | null;
+  schoolDealCount?: string | null;
+  approximateStrength?: string | null;
+  groupSchoolCount?: string | null;
+  committedDiscount?: string | null;
+  transportCollaboration?: string | null;
+  bookingStation?: string | null;
+  vendorType?: string | null;
+  paymentStatus?: string | null;
+  conversionStatus: string;
+  assignedBsCode?: string | null;
+  convertedAt?: TimestampString | null;
+}
+```
+### Return Type
+Recall that executing the `UpsertPreBookseller` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `UpsertPreBooksellerData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface UpsertPreBooksellerData {
+  sharedPreBookseller_upsert: SharedPreBookseller_Key;
+}
+```
+### Using `UpsertPreBookseller`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, upsertPreBookseller, UpsertPreBooksellerVariables } from '@dataconnect/generated';
+
+// The `UpsertPreBookseller` mutation requires an argument of type `UpsertPreBooksellerVariables`:
+const upsertPreBooksellerVars: UpsertPreBooksellerVariables = {
+  pbsCode: ..., 
+  sourceBsCode: ..., // optional
+  vendorName: ..., 
+  address: ..., // optional
+  district: ..., // optional
+  state: ..., // optional
+  pinCode: ..., // optional
+  contactPerson: ..., // optional
+  email: ..., // optional
+  taxId: ..., // optional
+  schoolDealCount: ..., // optional
+  approximateStrength: ..., // optional
+  groupSchoolCount: ..., // optional
+  committedDiscount: ..., // optional
+  transportCollaboration: ..., // optional
+  bookingStation: ..., // optional
+  vendorType: ..., // optional
+  paymentStatus: ..., // optional
+  conversionStatus: ..., 
+  assignedBsCode: ..., // optional
+  convertedAt: ..., // optional
+};
+
+// Call the `upsertPreBookseller()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await upsertPreBookseller(upsertPreBooksellerVars);
+// Variables can be defined inline as well.
+const { data } = await upsertPreBookseller({ pbsCode: ..., sourceBsCode: ..., vendorName: ..., address: ..., district: ..., state: ..., pinCode: ..., contactPerson: ..., email: ..., taxId: ..., schoolDealCount: ..., approximateStrength: ..., groupSchoolCount: ..., committedDiscount: ..., transportCollaboration: ..., bookingStation: ..., vendorType: ..., paymentStatus: ..., conversionStatus: ..., assignedBsCode: ..., convertedAt: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await upsertPreBookseller(dataConnect, upsertPreBooksellerVars);
+
+console.log(data.sharedPreBookseller_upsert);
+
+// Or, you can use the `Promise` API.
+upsertPreBookseller(upsertPreBooksellerVars).then((response) => {
+  const data = response.data;
+  console.log(data.sharedPreBookseller_upsert);
+});
+```
+
+### Using `UpsertPreBookseller`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, upsertPreBooksellerRef, UpsertPreBooksellerVariables } from '@dataconnect/generated';
+
+// The `UpsertPreBookseller` mutation requires an argument of type `UpsertPreBooksellerVariables`:
+const upsertPreBooksellerVars: UpsertPreBooksellerVariables = {
+  pbsCode: ..., 
+  sourceBsCode: ..., // optional
+  vendorName: ..., 
+  address: ..., // optional
+  district: ..., // optional
+  state: ..., // optional
+  pinCode: ..., // optional
+  contactPerson: ..., // optional
+  email: ..., // optional
+  taxId: ..., // optional
+  schoolDealCount: ..., // optional
+  approximateStrength: ..., // optional
+  groupSchoolCount: ..., // optional
+  committedDiscount: ..., // optional
+  transportCollaboration: ..., // optional
+  bookingStation: ..., // optional
+  vendorType: ..., // optional
+  paymentStatus: ..., // optional
+  conversionStatus: ..., 
+  assignedBsCode: ..., // optional
+  convertedAt: ..., // optional
+};
+
+// Call the `upsertPreBooksellerRef()` function to get a reference to the mutation.
+const ref = upsertPreBooksellerRef(upsertPreBooksellerVars);
+// Variables can be defined inline as well.
+const ref = upsertPreBooksellerRef({ pbsCode: ..., sourceBsCode: ..., vendorName: ..., address: ..., district: ..., state: ..., pinCode: ..., contactPerson: ..., email: ..., taxId: ..., schoolDealCount: ..., approximateStrength: ..., groupSchoolCount: ..., committedDiscount: ..., transportCollaboration: ..., bookingStation: ..., vendorType: ..., paymentStatus: ..., conversionStatus: ..., assignedBsCode: ..., convertedAt: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = upsertPreBooksellerRef(dataConnect, upsertPreBooksellerVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.sharedPreBookseller_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.sharedPreBookseller_upsert);
 });
 ```
 

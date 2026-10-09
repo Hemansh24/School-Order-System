@@ -274,3 +274,31 @@ query ListSharedChristianGroups($limit: Int = 500, $offset: Int = 0)
     syncedAt
   }
 }
+
+query ListSharedPreBooksellers($limit: Int = 500, $offset: Int = 0)
+@auth(level: PUBLIC) {
+  sharedPreBooksellers(orderBy: [{ pbsCode: ASC }], limit: $limit, offset: $offset) {
+    pbsCode
+    sourceBsCode
+    vendorName
+    address
+    district
+    state
+    pinCode
+    contactPerson
+    email
+    taxId
+    schoolDealCount
+    approximateStrength
+    groupSchoolCount
+    committedDiscount
+    transportCollaboration
+    bookingStation
+    vendorType
+    paymentStatus
+    conversionStatus
+    assignedBsCode
+    convertedAt
+    syncedAt
+  }
+}

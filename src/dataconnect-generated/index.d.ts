@@ -227,6 +227,38 @@ export interface ListSharedChristianGroupsVariables {
   offset?: number | null;
 }
 
+export interface ListSharedPreBooksellersData {
+  sharedPreBooksellers: ({
+    pbsCode: string;
+    sourceBsCode?: string | null;
+    vendorName: string;
+    address?: string | null;
+    district?: string | null;
+    state?: string | null;
+    pinCode?: string | null;
+    contactPerson?: string | null;
+    email?: string | null;
+    taxId?: string | null;
+    schoolDealCount?: string | null;
+    approximateStrength?: string | null;
+    groupSchoolCount?: string | null;
+    committedDiscount?: string | null;
+    transportCollaboration?: string | null;
+    bookingStation?: string | null;
+    vendorType?: string | null;
+    paymentStatus?: string | null;
+    conversionStatus: string;
+    assignedBsCode?: string | null;
+    convertedAt?: TimestampString | null;
+    syncedAt: TimestampString;
+  } & SharedPreBookseller_Key)[];
+}
+
+export interface ListSharedPreBooksellersVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+
 export interface ListSharedSchoolGroupLocationsData {
   sharedSchoolGroupLocations: ({
     groupCode: string;
@@ -305,6 +337,11 @@ export interface SharedChristianGroup_Key {
   __typename?: 'SharedChristianGroup_Key';
 }
 
+export interface SharedPreBookseller_Key {
+  pbsCode: string;
+  __typename?: 'SharedPreBookseller_Key';
+}
+
 export interface SharedSchoolGroupLocation_Key {
   id: Int64String;
   __typename?: 'SharedSchoolGroupLocation_Key';
@@ -341,6 +378,34 @@ export interface UpsertChristianGroupVariables {
   sourceHash?: string | null;
 }
 
+export interface UpsertPreBooksellerData {
+  sharedPreBookseller_upsert: SharedPreBookseller_Key;
+}
+
+export interface UpsertPreBooksellerVariables {
+  pbsCode: string;
+  sourceBsCode?: string | null;
+  vendorName: string;
+  address?: string | null;
+  district?: string | null;
+  state?: string | null;
+  pinCode?: string | null;
+  contactPerson?: string | null;
+  email?: string | null;
+  taxId?: string | null;
+  schoolDealCount?: string | null;
+  approximateStrength?: string | null;
+  groupSchoolCount?: string | null;
+  committedDiscount?: string | null;
+  transportCollaboration?: string | null;
+  bookingStation?: string | null;
+  vendorType?: string | null;
+  paymentStatus?: string | null;
+  conversionStatus: string;
+  assignedBsCode?: string | null;
+  convertedAt?: TimestampString | null;
+}
+
 interface UpsertChristianGroupRef {
   /* Allow users to create refs without passing in DataConnect */
   (vars: UpsertChristianGroupVariables): MutationRef<UpsertChristianGroupData, UpsertChristianGroupVariables>;
@@ -364,6 +429,18 @@ export const setChristianGroupActiveRef: SetChristianGroupActiveRef;
 
 export function setChristianGroupActive(vars: SetChristianGroupActiveVariables): MutationPromise<SetChristianGroupActiveData, SetChristianGroupActiveVariables>;
 export function setChristianGroupActive(dc: DataConnect, vars: SetChristianGroupActiveVariables): MutationPromise<SetChristianGroupActiveData, SetChristianGroupActiveVariables>;
+
+interface UpsertPreBooksellerRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertPreBooksellerVariables): MutationRef<UpsertPreBooksellerData, UpsertPreBooksellerVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpsertPreBooksellerVariables): MutationRef<UpsertPreBooksellerData, UpsertPreBooksellerVariables>;
+  operationName: string;
+}
+export const upsertPreBooksellerRef: UpsertPreBooksellerRef;
+
+export function upsertPreBookseller(vars: UpsertPreBooksellerVariables): MutationPromise<UpsertPreBooksellerData, UpsertPreBooksellerVariables>;
+export function upsertPreBookseller(dc: DataConnect, vars: UpsertPreBooksellerVariables): MutationPromise<UpsertPreBooksellerData, UpsertPreBooksellerVariables>;
 
 interface ListOrganisationsRef {
   /* Allow users to create refs without passing in DataConnect */
@@ -496,4 +573,16 @@ export const listSharedChristianGroupsRef: ListSharedChristianGroupsRef;
 
 export function listSharedChristianGroups(vars?: ListSharedChristianGroupsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedChristianGroupsData, ListSharedChristianGroupsVariables>;
 export function listSharedChristianGroups(dc: DataConnect, vars?: ListSharedChristianGroupsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedChristianGroupsData, ListSharedChristianGroupsVariables>;
+
+interface ListSharedPreBooksellersRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: ListSharedPreBooksellersVariables): QueryRef<ListSharedPreBooksellersData, ListSharedPreBooksellersVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars?: ListSharedPreBooksellersVariables): QueryRef<ListSharedPreBooksellersData, ListSharedPreBooksellersVariables>;
+  operationName: string;
+}
+export const listSharedPreBooksellersRef: ListSharedPreBooksellersRef;
+
+export function listSharedPreBooksellers(vars?: ListSharedPreBooksellersVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedPreBooksellersData, ListSharedPreBooksellersVariables>;
+export function listSharedPreBooksellers(dc: DataConnect, vars?: ListSharedPreBooksellersVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedPreBooksellersData, ListSharedPreBooksellersVariables>;
 

@@ -170,3 +170,29 @@ type SharedChristianGroup
   sourceHash: String @col(name: "source_hash")
   syncedAt: Timestamp! @col(name: "synced_at")
 }
+
+type SharedPreBookseller
+@table(name: "shared_pre_booksellers", key: ["pbsCode"]) {
+  pbsCode: String! @col(name: "pbs_code")
+  sourceBsCode: String @col(name: "source_bs_code")
+  vendorName: String! @col(name: "vendor_name")
+  address: String
+  district: String
+  state: String
+  pinCode: String @col(name: "pin_code")
+  contactPerson: String @col(name: "contact_person")
+  email: String
+  taxId: String @col(name: "tax_id")
+  schoolDealCount: String @col(name: "school_deal_count")
+  approximateStrength: String @col(name: "approximate_strength")
+  groupSchoolCount: String @col(name: "group_school_count")
+  committedDiscount: String @col(name: "committed_discount")
+  transportCollaboration: String @col(name: "transport_collaboration")
+  bookingStation: String @col(name: "booking_station")
+  vendorType: String @col(name: "vendor_type")
+  paymentStatus: String @col(name: "payment_status")
+  conversionStatus: String! @col(name: "conversion_status")
+  assignedBsCode: String @col(name: "assigned_bs_code")
+  convertedAt: Timestamp @col(name: "converted_at")
+  syncedAt: Timestamp! @col(name: "synced_at")
+}
