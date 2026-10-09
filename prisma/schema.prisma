@@ -186,8 +186,41 @@ model Vendor {
   updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
 
   vendorSchools VendorSchool[]
+  convertedPreBookseller PreBookseller? @relation("ConvertedVendor")
 
   @@map("vendors")
+}
+
+model PreBookseller {
+  preBooksellerId       Int       @id @default(autoincrement()) @map("pre_bookseller_id")
+  pbsCode               String    @unique @map("pbs_code")
+  sourceBsCode          String?   @map("source_bs_code")
+  vendorName            String    @map("vendor_name")
+  address               String?
+  district              String?
+  state                 String?
+  pinCode               String?   @map("pin_code")
+  contactPerson         String?   @map("contact_person")
+  email                 String?
+  taxId                 String?   @map("tax_id")
+  schoolDealCount       String?   @map("school_deal_count")
+  approximateStrength   String?   @map("approximate_strength")
+  groupSchoolCount      String?   @map("group_school_count")
+  committedDiscount     String?   @map("committed_discount")
+  transportCollaboration String?  @map("transport_collaboration")
+  bookingStation        String?   @map("booking_station")
+  vendorType            String?   @map("vendor_type")
+  paymentStatus         String?   @map("payment_status")
+  conversionStatus      String    @default("pending") @map("conversion_status")
+  assignedBsCode        String?   @unique @map("assigned_bs_code")
+  convertedAt           DateTime? @map("converted_at")
+  convertedVendorId     Int?      @unique @map("converted_vendor_id")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  convertedVendor Vendor? @relation("ConvertedVendor", fields: [convertedVendorId], references: [vendorId], onDelete: SetNull)
+
+  @@map("pre_booksellers")
 }
 
 model VendorSchool {

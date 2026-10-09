@@ -1,29 +1,48 @@
 import Link from "next/link";
 import { Card, PageHeader } from "@/components/ui";
-import { deleteVendorAction, syncImportedBooksellersAction, syncPreBooksellersAction } from "@/app/vendors/actions";
+import { deleteVendorAction, syncImportedBooksellersAction } from "@/app/vendors/actions";
 import { InlineActionForm } from "@/components/inline-action-form";
 import { AddVendorForm } from "@/components/reference/reference-forms";
 import { prisma } from "@/lib/prisma";
 import { nextVendorCode } from "@/lib/reference-codes";
 
 export const dynamic = "force-dynamic";
+const PAGE_SIZE = 50;
 
-export default async function VendorsPage() {
-  const [vendors, schools, vendorCode] = await Promise.all([
+export default async function VendorsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+  const { page: pageParam } = await searchParams;
+  const page = Math.max(1, Number(pageParam) || 1);
+  const [total, vendors, schools, vendorCode, preBooksellers] = await Promise.all([
+    prisma.vendor.count(),
     prisma.vendor.findMany({
       orderBy: { vendorName: "asc" },
-      include: { vendorSchools: { include: { school: true } } }
+      include: { vendorSchools: { include: { school: true } }, convertedPreBookseller: true },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE
     }),
     prisma.school.findMany({ orderBy: { schoolName: "asc" } }),
-    nextVendorCode()
+    nextVendorCode(),
+    prisma.preBookseller.findMany({
+      where: { OR: [{ sourceBsCode: { not: null } }, { assignedBsCode: { not: null } }] },
+      select: { pbsCode: true, sourceBsCode: true, assignedBsCode: true }
+    })
   ]);
+  const pbsCodeByBsCode = new Map(
+    preBooksellers.flatMap((record) => [
+      ...(record.sourceBsCode ? [[record.sourceBsCode, record.pbsCode] as const] : []),
+      ...(record.assignedBsCode ? [[record.assignedBsCode, record.pbsCode] as const] : [])
+    ])
+  );
+  const pbsCodeForVendor = (vendorCode: string) =>
+    pbsCodeByBsCode.get(vendorCode) ?? pbsCodeByBsCode.get(vendorCode.replace(/-\d+$/, ""));
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <>
       <PageHeader
         title="Vendors"
-        description="PBS codes identify prospects; BS codes are assigned when a vendor is used on an order."
-        action={<div className="flex gap-2"><InlineActionForm action={syncPreBooksellersAction}>Import Pre-Bookseller Sheet</InlineActionForm><InlineActionForm action={syncImportedBooksellersAction}>Replace With Imported Booksellers</InlineActionForm></div>}
+        description="Active vendors and booksellers available for orders. PBS history is managed in Pre-Booksellers."
+        action={<InlineActionForm action={syncImportedBooksellersAction}>Replace With Imported Booksellers</InlineActionForm>}
       />
       <AddVendorForm schools={schools} nextCode={vendorCode} />
       <Card>
@@ -44,10 +63,8 @@ export default async function VendorsPage() {
             <tbody className="divide-y divide-line">
               {vendors.map((vendor) => (
                 <tr key={vendor.vendorId}>
-                  <td className="px-4 py-3 font-semibold text-ink">{vendor.preVendorCode ?? "—"}</td>
-                  <td className="px-4 py-3 font-semibold text-ink">
-                    {vendor.booksellerCode ?? (vendor.preVendorCode ? "Awaiting order" : vendor.vendorCode)}
-                  </td>
+                  <td className="px-4 py-3 font-semibold text-ink">{vendor.convertedPreBookseller?.pbsCode ?? pbsCodeForVendor(vendor.vendorCode) ?? "—"}</td>
+                  <td className="px-4 py-3 font-semibold text-ink">{vendor.vendorCode}</td>
                   <td className="px-4 py-3">{vendor.vendorName}</td>
                   <td className="px-4 py-3 text-muted">{vendor.vendorType}</td>
                   <td className="px-4 py-3 text-muted">{vendor.vendorRating}</td>
@@ -77,6 +94,13 @@ export default async function VendorsPage() {
               ))}
             </tbody>
           </table>
+        </div>
+        <div className="flex items-center justify-between border-t border-line p-4 text-sm text-muted">
+          <span>Showing {(page - 1) * PAGE_SIZE + (vendors.length ? 1 : 0)}–{Math.min(page * PAGE_SIZE, total)} of {total} vendors · Page {page} of {totalPages}</span>
+          <div className="flex gap-3">
+            {page > 1 ? <Link href={`/vendors?page=${page - 1}`} className="font-semibold text-brand-dark">Previous</Link> : null}
+            {page < totalPages ? <Link href={`/vendors?page=${page + 1}`} className="font-semibold text-brand-dark">Next</Link> : null}
+          </div>
         </div>
       </Card>
     </>

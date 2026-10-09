@@ -103,7 +103,8 @@ export async function replaceVendorsWithImportedBooksellers(): Promise<Bookselle
     listAllBooksellerSchoolMappings(dataConnect),
     prisma.vendor.findMany({
       include: {
-        vendorSchools: true
+        vendorSchools: true,
+        convertedPreBookseller: true
       }
     })
   ]);
@@ -148,7 +149,7 @@ export async function replaceVendorsWithImportedBooksellers(): Promise<Bookselle
       phone: normalizeText(bookseller.contactNumber),
       email: normalizeText(bookseller.email)
     };
-  });
+  }).filter((vendor) => !existingByCode.get(vendor.vendorCode)?.convertedPreBookseller);
 
   const schoolCodesByVendorCode = collectMappedSchoolCodes(
     mappingRows,
@@ -177,8 +178,12 @@ export async function replaceVendorsWithImportedBooksellers(): Promise<Bookselle
   let linkedVendors = 0;
 
   await prisma.$transaction(async (tx) => {
-    await tx.vendorSchool.deleteMany();
-    await tx.vendor.deleteMany();
+    const convertedVendorIds = (await tx.preBookseller.findMany({
+      where: { convertedVendorId: { not: null } },
+      select: { convertedVendorId: true }
+    })).flatMap((record) => record.convertedVendorId ? [record.convertedVendorId] : []);
+    await tx.vendorSchool.deleteMany({ where: convertedVendorIds.length ? { vendorId: { notIn: convertedVendorIds } } : undefined });
+    await tx.vendor.deleteMany({ where: convertedVendorIds.length ? { vendorId: { notIn: convertedVendorIds } } : undefined });
     await tx.vendor.createMany({
       data: nextVendors
     });

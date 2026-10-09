@@ -8,7 +8,6 @@ import {
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { ensurePtCodesForSchoolCodesTx } from "@/lib/services/organisations";
-import { ensureBsCodesForVendorCodesTx } from "@/lib/services/pre-booksellers";
 import { formatSchoolAddress, formatVendorAddress } from "@/lib/shipping";
 import { createOrderSchema, type CreateOrderInput } from "@/lib/validation/orders";
 
@@ -57,7 +56,7 @@ async function assertShippingDestinationExists(tx: Tx, input: CreateOrderInput):
   }
 
   const vendor = await tx.vendor.findFirst({
-    where: { OR: [{ vendorCode: input.sheet1.shippingToCode }, { booksellerCode: input.sheet1.shippingToCode }] }
+    where: { vendorCode: input.sheet1.shippingToCode }
   });
 
   if (!vendor) {
@@ -80,7 +79,7 @@ async function resolveShippingSummary(tx: Tx, input: CreateOrderInput) {
   }
 
   const vendor = await tx.vendor.findFirst({
-    where: { OR: [{ vendorCode: input.sheet1.shippingToCode }, { booksellerCode: input.sheet1.shippingToCode }] }
+    where: { vendorCode: input.sheet1.shippingToCode }
   });
 
   if (!vendor) {
@@ -173,24 +172,6 @@ function applyPtCodesToOrder(
   };
 }
 
-function vendorCodesTouchedByOrder(input: CreateOrderInput) {
-  return [
-    input.sheet1.billingToType === "vendor" ? input.sheet1.billingToCode : null,
-    input.sheet1.shippingToType === "vendor" ? input.sheet1.shippingToCode : null
-  ].filter((code): code is string => Boolean(code));
-}
-
-function applyBsCodesToOrder(input: CreateOrderInput, bsCodeByOriginalCode: Map<string, string>): CreateOrderInput {
-  const mappedCode = (code: string) => bsCodeByOriginalCode.get(code) ?? code;
-  return {
-    ...input,
-    sheet1: {
-      ...input.sheet1,
-      billingToCode: input.sheet1.billingToType === "vendor" ? mappedCode(input.sheet1.billingToCode) : input.sheet1.billingToCode,
-      shippingToCode: input.sheet1.shippingToType === "vendor" ? mappedCode(input.sheet1.shippingToCode) : input.sheet1.shippingToCode
-    }
-  };
-}
 
 export async function getDashboardData() {
   const [
@@ -270,8 +251,7 @@ export async function createOrder(input: CreateOrderInput) {
       schoolCodesTouchedByOrder(parsed)
     );
     const schoolCodeInput = applyPtCodesToOrder(parsed, ptCodeByOriginalCode);
-    const bsCodeByOriginalCode = await ensureBsCodesForVendorCodesTx(tx, vendorCodesTouchedByOrder(schoolCodeInput));
-    const orderInput = applyBsCodesToOrder(schoolCodeInput, bsCodeByOriginalCode);
+    const orderInput = schoolCodeInput;
     const orderNo = await nextParentOrderNo(tx);
     const shippingToSummary = await resolveShippingSummary(tx, orderInput);
 
@@ -375,8 +355,7 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
       schoolCodesTouchedByOrder(parsed)
     );
     const schoolCodeInput = applyPtCodesToOrder(parsed, ptCodeByOriginalCode);
-    const bsCodeByOriginalCode = await ensureBsCodesForVendorCodesTx(tx, vendorCodesTouchedByOrder(schoolCodeInput));
-    const orderInput = applyBsCodesToOrder(schoolCodeInput, bsCodeByOriginalCode);
+    const orderInput = schoolCodeInput;
 
     const existing = await tx.orderSheet1.findUnique({
       where: { orderSheet1Id },
