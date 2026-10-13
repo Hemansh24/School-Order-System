@@ -20,7 +20,7 @@ export async function getReferenceData() {
       where: { active: true, obsolete: false },
       orderBy: [{ categoryCode: "asc" }, { subCategoryCode: "asc" }, { itemName: "asc" }]
     }),
-    prisma.schoolGroupLocation.findMany({ include: { schoolGroup: true }, orderBy: [{ schoolGroup: { groupCode: "asc" } }, { subCode: "asc" }] }),
+    prisma.schoolGroupLocation.findMany({ where: { schoolGroup: { active: true, sourceType: "GS" } }, include: { schoolGroup: true }, orderBy: [{ schoolGroup: { groupCode: "asc" } }, { subCode: "asc" }] }),
     prisma.schoolGroup.findMany({
       where: { sourceType: "CHRISTIAN", active: true },
       orderBy: { groupCode: "asc" }

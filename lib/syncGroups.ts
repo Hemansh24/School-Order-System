@@ -1,15 +1,12 @@
 import {
   connectorConfig,
   listSharedChristianGroups,
-  listSharedSchoolGroupLocations,
-  listSharedSchoolGroups,
-  type ListSharedChristianGroupsData,
-  type ListSharedSchoolGroupLocationsData,
-  type ListSharedSchoolGroupsData
+  type ListSharedChristianGroupsData
 } from "@dataconnect/generated";
 import { getApp, getApps, initializeApp } from "firebase/app";
 import { getDataConnect } from "firebase/data-connect";
 import { prisma } from "@/lib/prisma";
+import { importGsGroups } from "@/lib/importGsGroups";
 
 const FIREBASE_PROJECT_ID =
   process.env.FIREBASE_PROJECT_ID ??
@@ -25,24 +22,6 @@ function ensureFirebaseApp() {
   return initializeApp({ projectId: FIREBASE_PROJECT_ID });
 }
 
-async function listAllGroups(dataConnect: ReturnType<typeof getDataConnect>) {
-  const groups: ListSharedSchoolGroupsData["sharedSchoolGroups"] = [];
-  for (let offset = 0; ; offset += PAGE_SIZE) {
-    const { data } = await listSharedSchoolGroups(dataConnect, { limit: PAGE_SIZE, offset });
-    groups.push(...data.sharedSchoolGroups);
-    if (data.sharedSchoolGroups.length < PAGE_SIZE) return groups;
-  }
-}
-
-async function listAllLocations(dataConnect: ReturnType<typeof getDataConnect>) {
-  const locations: ListSharedSchoolGroupLocationsData["sharedSchoolGroupLocations"] = [];
-  for (let offset = 0; ; offset += PAGE_SIZE) {
-    const { data } = await listSharedSchoolGroupLocations(dataConnect, { limit: PAGE_SIZE, offset });
-    locations.push(...data.sharedSchoolGroupLocations);
-    if (data.sharedSchoolGroupLocations.length < PAGE_SIZE) return locations;
-  }
-}
-
 async function listAllChristianGroups(dataConnect: ReturnType<typeof getDataConnect>) {
   const groups: ListSharedChristianGroupsData["sharedChristianGroups"] = [];
   for (let offset = 0; ; offset += PAGE_SIZE) {
@@ -53,40 +32,14 @@ async function listAllChristianGroups(dataConnect: ReturnType<typeof getDataConn
 }
 
 export async function syncGroups() {
-  const dataConnect = getDataConnect(ensureFirebaseApp(), connectorConfig);
-  const [sharedGroups, sharedLocations, christianGroups] = await Promise.all([
-    listAllGroups(dataConnect),
-    listAllLocations(dataConnect),
-    listAllChristianGroups(dataConnect)
-  ]);
-  if (sharedGroups.length === 0 && christianGroups.length === 0) {
-    throw new Error("No shared GS or Christian group rows were returned from Data Connect. Ask an administrator to publish master data.");
-  }
+  const gs = await importGsGroups(undefined, true);
+  const christian = await syncChristianGroups();
+  return { groups: gs.groups, locations: gs.locations, christianGroups: christian.christianGroups };
+}
 
-  const groupsByCode = new Map(sharedGroups.map((group) => [group.groupCode, group]));
-  const locationsByGroupCode = new Map<string, typeof sharedLocations>();
-  for (const location of sharedLocations) {
-    const rows = locationsByGroupCode.get(location.groupCode) ?? [];
-    rows.push(location);
-    locationsByGroupCode.set(location.groupCode, rows);
-  }
-
-  for (const [groupCode, sharedGroup] of groupsByCode) {
-    const group = await prisma.schoolGroup.upsert({
-      where: { groupCode },
-      create: { groupCode, groupName: sharedGroup.groupName, sourceType: "GS", active: true, syncedAt: new Date() },
-      update: { groupName: sharedGroup.groupName, sourceType: "GS", active: true, syncedAt: new Date() }
-    });
-    for (const location of locationsByGroupCode.get(groupCode) ?? []) {
-      const data = { name: location.name, address: location.address ?? null, district: location.district ?? null, state: location.state ?? null, pincode: location.pincode ?? null, centralizedDecision: location.centralizedDecision ?? null, syncedAt: new Date() };
-      await prisma.schoolGroupLocation.upsert({
-        where: { schoolGroupId_subCode: { schoolGroupId: group.schoolGroupId, subCode: location.subCode } },
-        create: { schoolGroupId: group.schoolGroupId, subCode: location.subCode, ...data },
-        update: data
-      });
-    }
-  }
-
+export async function syncChristianGroups() {
+  const christianGroups = await listAllChristianGroups(getDataConnect(ensureFirebaseApp(), connectorConfig));
+  if (!christianGroups.length) throw new Error("No Christian groups returned; existing local records were preserved.");
   for (const group of christianGroups) {
     await prisma.schoolGroup.upsert({
       where: { groupCode: group.groupCode },
@@ -142,29 +95,5 @@ export async function syncGroups() {
     });
   }
 
-  const groups = await prisma.schoolGroup.findMany({ include: { locations: true } });
-  const locationsByCode = new Map(groups.map((group) => [group.groupCode, group.locations]));
-  const organisations = await prisma.organisation.findMany({
-    where: { groupCode: { in: [...groupsByCode.keys()] }, ptCode: { not: null } },
-    select: { groupCode: true, ptCode: true, pinCode: true }
-  });
-
-  let suggestions = 0;
-  for (const organisation of organisations) {
-    if (!organisation.groupCode || !organisation.ptCode) continue;
-    const matches = (locationsByCode.get(organisation.groupCode) ?? []).filter(
-      (location) => !!organisation.pinCode && location.pincode === organisation.pinCode
-    );
-    const suggestedLocationId = matches.length === 1 ? matches[0].schoolGroupLocationId : null;
-    const existing = await prisma.schoolGroupSchool.findUnique({ where: { ptCode: organisation.ptCode } });
-    if (existing?.reviewedAt) continue;
-    await prisma.schoolGroupSchool.upsert({
-      where: { ptCode: organisation.ptCode },
-      create: { ptCode: organisation.ptCode, suggestedLocationId },
-      update: { suggestedLocationId }
-    });
-    if (suggestedLocationId) suggestions += 1;
-  }
-
-  return { groups: sharedGroups.length, locations: sharedLocations.length, christianGroups: christianGroups.length, suggestions };
+  return { christianGroups: christianGroups.length };
 }

@@ -16,7 +16,7 @@ type SchoolRef = {
   schoolName: string;
   addressSummary: string;
 };
-type GroupRef = SchoolRef & { groupType: "GS" | "Christian" };
+type GroupRef = SchoolRef & { groupType: "GS" | "Christian"; schoolGroupId?: number; locations?: { schoolGroupLocationId: number; subCode: string; addressSummary: string; usable: boolean }[]; members?: { schoolCode: string; schoolName: string; prCode: string; ptCode: string | null }[] };
 type VendorRef = {
   vendorCode: string;
   vendorName: string;
@@ -238,6 +238,29 @@ export function CreateOrderForm({
       ),
     [billingOptions, billingToCode]
   );
+  const selectedGs = groups.find(group => group.groupType === "GS" && group.schoolCode.toLowerCase() === billingToCode.trim().toLowerCase() && group.schoolGroupId);
+  const gsParticipantsReadOnly = !!selectedGs || (!!initialValues && /^GS\d+-\d+$/i.test(billingToCode) && billingToCode === initialValues.sheet1.billingToCode);
+  const selectedLocationId = form.watch("sheet1.schoolGroupLocationId");
+  const appliedGs = useRef<string | null>(null);
+  useEffect(() => {
+    const key = orderType === "combined" && selectedGs ? selectedGs.schoolCode : null;
+    if (key === appliedGs.current) return;
+    appliedGs.current = key;
+    if (!key || !selectedGs) {
+      form.setValue("sheet1.schoolGroupId", undefined);
+      form.setValue("sheet1.schoolGroupLocationId", undefined);
+      return;
+    }
+    const preserve = !!initialValues && initialValues.sheet1.schoolGroupId === selectedGs.schoolGroupId && initialValues.sheet1.billingToCode === selectedGs.schoolCode;
+    const locationId = preserve ? initialValues.sheet1.schoolGroupLocationId : selectedGs.locations?.length === 1 ? selectedGs.locations[0].schoolGroupLocationId : undefined;
+    form.setValue("sheet1.schoolGroupId", selectedGs.schoolGroupId);
+    form.setValue("sheet1.schoolGroupLocationId", locationId);
+    form.setValue("combinedSchools", preserve ? initialValues.combinedSchools : (selectedGs.members ?? []).map(member => ({ schoolCode: member.schoolCode, schoolName: member.schoolName, notes: "" })));
+    form.setValue("sheet1.shippingToCode", selectedGs.schoolCode);
+    form.setValue("sheet1.shippingToName", preserve ? initialValues.sheet1.shippingToName : selectedGs.schoolName);
+    form.setValue("sheet1.shippingToSummary", preserve ? initialValues.sheet1.shippingToSummary : selectedGs.locations?.find(location => location.schoolGroupLocationId === locationId)?.addressSummary ?? "", { shouldValidate: true });
+  }, [selectedGs, orderType, initialValues, form]);
+
   const filteredBillingOptions = useMemo(() => {
     const query = billingToCode.trim().toLowerCase();
 
@@ -396,6 +419,10 @@ export function CreateOrderForm({
 
   function setBilling(value: string) {
     const selected = billingOptions.find((option) => option.value === value);
+    if (selectedGs && selected?.code === billingToCode && orderType === "combined") {
+      setIsBillingDropdownOpen(false);
+      return;
+    }
     form.setValue("sheet1.billingToCode", selected?.code ?? "");
     form.setValue("sheet1.billingToName", selected?.name ?? "");
     form.setValue("sheet1.booksellerType", selected?.type ?? "");
@@ -406,7 +433,7 @@ export function CreateOrderForm({
       form.setValue("sheet1.shippingToName", selected?.name ?? "");
       form.setValue("sheet1.shippingToSummary", selected?.addressSummary ?? "");
     }
-    if (selected?.isGroup) {
+    if (selected?.isGroup && orderType !== "combined") {
       switchOrderType("combined");
     }
     if (billingToType === "vendor") {
@@ -420,6 +447,10 @@ export function CreateOrderForm({
   }
 
   function setBillingCode(rawCode: string) {
+    if (selectedGs && rawCode.trim().toLowerCase() === billingToCode.trim().toLowerCase() && orderType === "combined") {
+      setIsBillingDropdownOpen(true);
+      return;
+    }
     form.setValue("sheet1.billingToCode", rawCode);
     setIsBillingDropdownOpen(true);
 
@@ -888,9 +919,20 @@ export function CreateOrderForm({
                 <p className="mt-1 text-xs text-muted">Ambiguous orders are placed by vendors/booksellers only.</p>
               ) : null}
               {orderType === "combined" ? (
-                <p className="mt-1 text-xs text-muted">Combined orders are placed by a school and use shared item totals for all participating schools.</p>
+                <p className="mt-1 text-xs text-muted">Combined orders share billing, shipping, and pooled items. GS orders include every linked organisation.</p>
               ) : null}
             </Field>
+            {selectedGs && orderType === "combined" ? <Field label="Shared group billing / shipping address" error={errors.sheet1?.schoolGroupLocationId?.message}>
+              <select className={inputClass} value={selectedLocationId ?? ""} onChange={event => {
+                const location = selectedGs.locations?.find(row => row.schoolGroupLocationId === Number(event.target.value));
+                form.setValue("sheet1.schoolGroupLocationId", location?.schoolGroupLocationId, { shouldValidate: true });
+                form.setValue("sheet1.shippingToSummary", location?.addressSummary ?? "", { shouldValidate: true });
+              }}>
+                <option value="">Choose one shared address</option>
+                {selectedGs.locations?.map(location => <option key={location.schoolGroupLocationId} value={location.schoolGroupLocationId} disabled={!location.usable}>{location.subCode}: {location.addressSummary || "Address unavailable"}</option>)}
+              </select>
+              {!selectedGs.members?.length ? <p className="text-danger">This group has no linked organisations.</p> : null}
+            </Field> : null}
             <Field label="Bookseller Type">
               <input className={inputClass} {...form.register("sheet1.booksellerType")} />
             </Field>
@@ -1028,18 +1070,18 @@ export function CreateOrderForm({
         <Card className="p-5">
           <h2 className="text-lg font-semibold text-ink">Combined Order Entry</h2>
           <p className="mb-4 text-sm text-muted">
-            Add every participating school in Sheet 2C1. All listed schools share the pooled item totals in Sheet 2C2.
+            GS participants come from the organisation group relationship. All listed schools share the pooled item totals in Sheet 2C2.
           </p>
           <div className="grid gap-6 xl:grid-cols-2">
             <div>
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="font-semibold text-ink">Order Sheet 2C1 Participating Schools</h3>
-                <SubmitButton type="button" variant="secondary" onClick={appendCombinedSchool} disabled={combinedSchools.fields.length >= schools.length}>
+                {!gsParticipantsReadOnly ? <SubmitButton type="button" variant="secondary" onClick={appendCombinedSchool} disabled={combinedSchools.fields.length >= schools.length}>
                   <Plus className="mr-2 h-4 w-4" /> Add school
-                </SubmitButton>
+                </SubmitButton> : null}
               </div>
               <div className="space-y-3">
-                {combinedSchools.fields.map((field, index) => (
+                {gsParticipantsReadOnly ? <><p className="text-sm text-muted">{selectedGs ? `All ${combinedSchools.fields.length} linked organisations are included. PR-only members receive PT codes when saved.` : "Saved GS participants are preserved."}</p>{combinedSchools.fields.map((field, index) => <div key={field.id} className="rounded border border-line p-3 text-sm">{form.watch(`combinedSchools.${index}.schoolCode`)} — {form.watch(`combinedSchools.${index}.schoolName`)}</div>)}</> : combinedSchools.fields.map((field, index) => (
                   <LineRow key={field.id} onRemove={() => combinedSchools.remove(index)}>
                     <SchoolPicker
                       schools={schools.filter((school) => {

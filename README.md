@@ -70,7 +70,7 @@ npm run prisma:deploy
 npm run master-data:sync
 ```
 
-The import order is significant: schools must exist before bookseller-school mappings are created. The import commands replace the local organisation, school, vendor, and item master tables. No Google Sheets credentials are required for this shared Firebase master-data import.
+The import order is significant: schools must exist before bookseller-school mappings are created. The import commands replace the local organisation, school, vendor, and item master tables. These Firebase imports require no Google Sheets credentials, but the GS refresh at the end of `master-data:sync` requires Google Sheets read access.
 
 `schools:sync` always imports the shared Firebase/Data Connect organisations and their PT codes. Local Organisation records are not used for this shared master-data import, so they cannot prevent bookseller-to-school mappings from being created.
 
@@ -82,7 +82,32 @@ Christian C1 groups follow the same Firebase-first pattern as schools, vendors, 
 npm run christian-groups:publish
 ```
 
-Configure `CHRISTIAN_GROUPS_SHEET_ID`, `CHRISTIAN_GROUPS_SHEET_RANGE`, and `GOOGLE_SHEETS_SERVICE_ACCOUNT_FILE` for a Google service account that has Viewer access to that sheet. Set `FIREBASE_ADMIN_SERVICE_ACCOUNT_FILE` as well when the publisher machine does not already have Firebase Application Default Credentials. End-user dashboards never access Google Sheets: they receive C1 groups through `npm run master-data:sync` or the Grouped Schools page's **Sync Group Master Data** button.
+Configure `CHRISTIAN_GROUPS_SHEET_ID`, `CHRISTIAN_GROUPS_SHEET_RANGE`, and `GOOGLE_SHEETS_SERVICE_ACCOUNT_FILE` for a Google service account that has Viewer access to that sheet. Set `FIREBASE_ADMIN_SERVICE_ACCOUNT_FILE` as well when the publisher machine does not already have Firebase Application Default Credentials. Christian groups are read from local PostgreSQL and refreshed from Firebase through the **Sync Christian Groups** button.
+
+### GS master data and membership
+
+The Grouped Schools page reads GS groups, addresses, and member PR/PT codes from PostgreSQL. Membership uses the trimmed, case-insensitive `Organisation.groupCode` relationship. Common school names are retained in metadata only.
+
+Preview or apply a direct Google Sheets import:
+
+```bash
+npx tsx scripts/import-gs-groups.ts
+npx tsx scripts/import-gs-groups.ts --apply
+```
+
+Configure `GROUP_SHEETS_ID`, `GROUP_SHEETS_RANGE`, and `GOOGLE_SHEETS_SERVICE_ACCOUNT_FILE` as needed. Application Default Credentials must have the Sheets read scope if no service-account file is supplied. The website's **Refresh GS from Google Sheet** action uses the same importer. A credential error preserves the current local dataset.
+
+An authenticated connector export can also be imported as a JSON array of rows, including the header:
+
+```bash
+npx tsx scripts/import-gs-groups.ts --file tmp/group-sheet-import.json
+npx tsx scripts/import-gs-groups.ts --file tmp/group-sheet-import.json --apply
+npx tsx scripts/verify-group-logic.ts
+```
+
+Imports preserve record IDs, retire absent GS masters, and save pre-import JSON snapshots under `tmp/group-backups/` (excluded from Git). Raw source columns are stored in group metadata. The approved local `GSO198` correction is applied when `GS0198` exists; correcting the source organisation record separately prevents an organisation refresh from restoring that typo.
+
+GS combined orders include every member organisation, allocate PT codes to PR-only members when saved, and use one shared billing/shipping address. Multiple locations require an explicit choice. Saved participants and addresses remain snapshots. Reporting parents link independent member PT orders and preserve each child's destination and fulfillment; they cannot be finalized into fulfillment rows. Christian order behavior is unchanged.
 
 7. Start the development server:
 

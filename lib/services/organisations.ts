@@ -388,6 +388,7 @@ export async function ensureOrganisationForSchoolTx(
 }
 
 export async function ensurePtCodesForSchoolCodesTx(tx: Tx, schoolCodes: string[]) {
+  await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(741024)`;
   const ptCodeByOriginalCode = new Map<string, string>();
   const uniqueCodes = Array.from(new Set(schoolCodes.map((code) => code.trim()).filter(Boolean)));
   if (uniqueCodes.length === 0) {

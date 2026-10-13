@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import { currentLocations, normalizeGroupCode } from "@/lib/group-membership";
+import { formatSchoolAddress } from "@/lib/shipping";
 
 function metadataText(metadata: unknown, key: string) {
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
@@ -44,6 +46,7 @@ export async function getChristianGroupData(query = "", page = 1) {
       runsSchools: metadataText(group.metadata, "runsSchools"),
       totalSchools: metadataText(group.metadata, "totalSchools"),
       totalStudents: metadataText(group.metadata, "totalStudents"),
+      centralizedDecision: metadataText(group.metadata, "centralizedDecision"),
       address: group.address,
       district: group.district,
       state: group.state,
@@ -95,15 +98,37 @@ export async function confirmGroupMapping(ptCode: string, locationId: number | n
   });
 }
 
-export async function getGroupOrderReferenceData() {
-  const [groups, items, orders] = await Promise.all([
-    prisma.schoolGroup.findMany({ where: { sourceType: "GS", active: true }, include: { locations: { include: { mappings: true } } }, orderBy: { groupCode: "asc" } }),
-    prisma.item.findMany({ where: { active: true, obsolete: false }, select: { itemCode: true, itemName: true }, orderBy: { itemName: "asc" } }),
-    prisma.orderSheet1.findMany({
-      where: { classification: "normal" },
-      select: { orderSheet1Id: true, orderNo: true, billingToCode: true, shippingToSummary: true, groupParentLinks: { select: { orderGroupChildOrderId: true } } },
-      orderBy: { orderNo: "desc" }, take: 200
-    })
+export async function getGsMasterData(query = "", page = 1) {
+  const pageSize = 20;
+  const search = query.trim().toLowerCase();
+  const [masters, organisations] = await Promise.all([
+    prisma.schoolGroup.findMany({ where: { sourceType: "GS", active: true }, include: { locations: { orderBy: { subCode: "asc" } } }, orderBy: { groupCode: "asc" } }),
+    prisma.organisation.findMany({ where: { groupCode: { not: null } }, orderBy: { prCode: "asc" }, select: { groupCode: true, ptCode: true, prCode: true, organisationName: true, district: true, state: true, pinCode: true } })
   ]);
-  return { groups, items, orders };
+  const all = masters.map(group => ({ ...group, locations: currentLocations(group.locations, group.metadata), members: organisations.filter(org => normalizeGroupCode(org.groupCode) === normalizeGroupCode(group.groupCode)) }));
+  const matching = all.filter(group => !search || [group.groupCode, group.groupName, ...group.members.flatMap(member => [member.prCode, member.ptCode, member.organisationName]), ...group.locations.flatMap(location => [location.district, location.state])].some(value => value?.toLowerCase().includes(search)));
+  const known = new Set(masters.map(group => normalizeGroupCode(group.groupCode)));
+  const unresolved = organisations.filter(org => /^GS/.test(normalizeGroupCode(org.groupCode)) && !known.has(normalizeGroupCode(org.groupCode)));
+  const total = matching.length;
+  const safePage = Math.min(Math.max(1, page), Math.max(1, Math.ceil(total / pageSize)));
+  return { groups: matching.slice((safePage - 1) * pageSize, safePage * pageSize), total, page: safePage, pageSize, unresolved };
+}
+
+export async function getGsOrderOptions() {
+  const [groups, organisations] = await Promise.all([
+    prisma.schoolGroup.findMany({ where: { sourceType: "GS", active: true }, include: { locations: { orderBy: { subCode: "asc" } } }, orderBy: { groupCode: "asc" } }),
+    prisma.organisation.findMany({ where: { groupCode: { not: null } }, orderBy: { prCode: "asc" }, select: { groupCode: true, ptCode: true, prCode: true, organisationName: true } })
+  ]);
+  return groups.map(group => {
+    const locations = currentLocations(group.locations, group.metadata);
+    return { optionKey: group.groupCode, schoolCode: group.groupCode, schoolName: group.groupName, groupType: "GS" as const, schoolGroupId: group.schoolGroupId, addressSummary: locations.length === 1 ? formatSchoolAddress(locations[0]) : "", locations: locations.map(location => ({ schoolGroupLocationId: location.schoolGroupLocationId, subCode: location.subCode, addressSummary: formatSchoolAddress(location), usable: !!location.address })), members: organisations.filter(org => normalizeGroupCode(org.groupCode) === normalizeGroupCode(group.groupCode)).map(org => ({ schoolCode: org.ptCode ?? org.prCode, schoolName: org.organisationName, prCode: org.prCode, ptCode: org.ptCode })) };
+  });
+}
+
+export async function getGroupOrderReferenceData() {
+  const [groups, orders] = await Promise.all([
+    getGsOrderOptions(),
+    prisma.orderSheet1.findMany({ where: { classification: "normal", billingToType: "school", schoolGroupId: null, groupParentLinks: { none: {} } }, select: { orderSheet1Id: true, orderNo: true, billingToCode: true, shippingToSummary: true, groupParentLinks: { select: { orderGroupChildOrderId: true } } }, orderBy: { orderNo: "desc" } })
+  ]);
+  return { groups, items: [], orders };
 }

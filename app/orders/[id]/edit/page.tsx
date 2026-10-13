@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { CreateOrderForm } from "@/components/orders/create-order-form";
 import { PageHeader } from "@/components/ui";
 import { getOrder } from "@/lib/services/orders";
+import { getGsOrderOptions } from "@/lib/services/groups";
 import { getReferenceData } from "@/lib/services/reference";
 import { formatSchoolAddress, formatVendorAddress } from "@/lib/shipping";
 import type { CreateOrderInput } from "@/lib/validation/orders";
@@ -53,6 +54,7 @@ export default async function EditOrderPage({
   }
 
   const reference = await getReferenceData();
+  const gsOptions = await getGsOrderOptions();
   const initialValues: CreateOrderInput = {
     sheet1: {
       sessionYear: order.sessionYear,
@@ -67,6 +69,8 @@ export default async function EditOrderPage({
       shippingToName: order.shippingToName,
       shippingToSummary: order.shippingToSummary,
       orderType: order.orderType,
+      schoolGroupId: order.schoolGroupId ?? undefined,
+      schoolGroupLocationId: order.schoolGroupLocationId ?? undefined,
       booksellerType: order.booksellerType ?? "",
       booksellerRating: order.booksellerRating ?? "",
       pendingPayment: order.pendingPayment,
@@ -128,7 +132,8 @@ export default async function EditOrderPage({
       <CreateOrderForm
         schools={toSchoolOptions(reference.schools)}
         groups={[
-          ...reference.groupLocations.map((location) => ({ optionKey: `${location.schoolGroup.groupCode}-${location.subCode}`, schoolCode: `${location.schoolGroup.groupCode}-${location.subCode}`, schoolName: location.name, addressSummary: formatSchoolAddress(location), groupType: "GS" as const })),
+          ...gsOptions,
+          ...reference.groupLocations.filter(location => order.billingToCode === `${location.schoolGroup.groupCode}-${location.subCode}`).map(location => ({ optionKey: `${location.schoolGroup.groupCode}-${location.subCode}`, schoolCode: `${location.schoolGroup.groupCode}-${location.subCode}`, schoolName: location.name, addressSummary: order.shippingToSummary, groupType: "GS" as const })),
           ...reference.christianGroups.map((group) => ({ optionKey: group.groupCode, schoolCode: group.groupCode, schoolName: group.groupName, addressSummary: formatSchoolAddress(group), groupType: "Christian" as const }))
         ]}
         vendors={reference.vendors.map((vendor) => ({

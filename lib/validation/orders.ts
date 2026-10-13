@@ -34,6 +34,8 @@ export const sheet1Schema = z
     shippingToName: z.string().min(1, "Shipping name is required"),
     shippingToSummary: z.string().min(1, "Shipping address is required"),
     orderType: orderTypeSchema,
+    schoolGroupId: z.number().int().positive().optional(),
+    schoolGroupLocationId: z.number().int().positive().optional(),
     booksellerType: z.string().optional(),
     booksellerRating: z.string().optional(),
     pendingPayment: z.boolean().default(false),

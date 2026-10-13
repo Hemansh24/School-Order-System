@@ -5,6 +5,7 @@ import {
   Prisma,
   SourceType
 } from "@prisma/client";
+import { prepareGsOrder } from "@/lib/services/gs-orders";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { ensurePtCodesForSchoolCodesTx } from "@/lib/services/organisations";
@@ -40,11 +41,13 @@ function toDate(value: string): Date {
 }
 
 async function nextParentOrderNo(tx: Tx): Promise<number> {
+  await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(741026)`;
   const current = await tx.orderSheet1.aggregate({ _max: { orderNo: true } });
   return (current._max.orderNo ?? 0) + 1;
 }
 
 async function assertShippingDestinationExists(tx: Tx, input: CreateOrderInput): Promise<void> {
+  if (input.sheet1.schoolGroupId && input.sheet1.schoolGroupLocationId) return;
   if (input.sheet1.shippingToType === "school") {
     const school = await tx.school.findUnique({
       where: { schoolCode: input.sheet1.shippingToCode }
@@ -65,6 +68,7 @@ async function assertShippingDestinationExists(tx: Tx, input: CreateOrderInput):
 }
 
 async function resolveShippingSummary(tx: Tx, input: CreateOrderInput) {
+  if (input.sheet1.schoolGroupId && input.sheet1.schoolGroupLocationId) return input.sheet1.shippingToSummary;
   if (input.sheet1.shippingToType === "school") {
     const school = await tx.school.findUnique({
       where: { schoolCode: input.sheet1.shippingToCode }
@@ -245,12 +249,13 @@ export async function createOrder(input: CreateOrderInput) {
   const parsed = createOrderSchema.parse(input);
 
   const created = await prisma.$transaction(async (tx) => {
-    await assertShippingDestinationExists(tx, parsed);
-    const ptCodeByOriginalCode = await ensurePtCodesForSchoolCodesTx(
+    const prepared = await prepareGsOrder(tx, parsed);
+    await assertShippingDestinationExists(tx, prepared);
+    const ptCodeByOriginalCode = /^GS\d+(?:-\d+)?$/i.test(prepared.sheet1.billingToCode) ? new Map<string, string>() : await ensurePtCodesForSchoolCodesTx(
       tx,
-      schoolCodesTouchedByOrder(parsed)
+      schoolCodesTouchedByOrder(prepared)
     );
-    const schoolCodeInput = applyPtCodesToOrder(parsed, ptCodeByOriginalCode);
+    const schoolCodeInput = applyPtCodesToOrder(prepared, ptCodeByOriginalCode);
     const orderInput = schoolCodeInput;
     const orderNo = await nextParentOrderNo(tx);
     const shippingToSummary = await resolveShippingSummary(tx, orderInput);
@@ -262,6 +267,8 @@ export async function createOrder(input: CreateOrderInput) {
         orderPlacedDate: toDate(orderInput.sheet1.orderPlacedDate),
         orderReceivedDate: toDate(orderInput.sheet1.orderReceivedDate),
         expectedDeliveryDate: toDate(orderInput.sheet1.expectedDeliveryDate),
+        schoolGroupId: orderInput.sheet1.schoolGroupId ?? null,
+        schoolGroupLocationId: orderInput.sheet1.schoolGroupLocationId ?? null,
         billingToType: orderInput.sheet1.billingToType as BillingToType,
         billingToCode: orderInput.sheet1.billingToCode,
         billingToName: orderInput.sheet1.billingToName,
@@ -337,7 +344,7 @@ export async function createOrder(input: CreateOrderInput) {
       where: { orderSheet1Id: order.orderSheet1Id },
       include: orderInclude
     });
-  });
+  }, { timeout: 120000 });
 
   revalidatePath("/");
   revalidatePath("/orders");
@@ -349,27 +356,20 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
   const parsed = createOrderSchema.parse(input);
 
   const updated = await prisma.$transaction(async (tx) => {
-    await assertShippingDestinationExists(tx, parsed);
-    const ptCodeByOriginalCode = await ensurePtCodesForSchoolCodesTx(
+    const current = await tx.orderSheet1.findUnique({ where: { orderSheet1Id }, include: orderInclude });
+    if (!current) throw new Error("Order not found.");
+    if (current.classification !== "normal") throw new Error("Reporting containers and legacy direct group orders cannot be edited as normal orders.");
+    if (current.orderStatus === "finalized" || current.orderStatus === "cancelled") throw new Error("Finalized and cancelled orders cannot be edited.");
+    const prepared = await prepareGsOrder(tx, parsed, current);
+    await assertShippingDestinationExists(tx, prepared);
+    const ptCodeByOriginalCode = /^GS\d+(?:-\d+)?$/i.test(prepared.sheet1.billingToCode) ? new Map<string, string>() : await ensurePtCodesForSchoolCodesTx(
       tx,
-      schoolCodesTouchedByOrder(parsed)
+      schoolCodesTouchedByOrder(prepared)
     );
-    const schoolCodeInput = applyPtCodesToOrder(parsed, ptCodeByOriginalCode);
+    const schoolCodeInput = applyPtCodesToOrder(prepared, ptCodeByOriginalCode);
     const orderInput = schoolCodeInput;
 
-    const existing = await tx.orderSheet1.findUnique({
-      where: { orderSheet1Id },
-      include: orderInclude
-    });
-
-    if (!existing) {
-      throw new Error("Order not found.");
-    }
-    if (
-      existing.orderStatus === "finalized" || existing.orderStatus === "cancelled"
-    ) {
-    throw new Error("Finalized and cancelled orders cannot be edited.");
-    }
+    const existing = current;
 
     await Promise.all([
       tx.orderSheet3.deleteMany({ where: { orderSheet1Id } }),
@@ -380,7 +380,10 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
       tx.orderSheet2C2.deleteMany({ where: { orderSheet1Id } })
     ]);
 
-    const shippingToSummary = await resolveShippingSummary(tx, orderInput);
+    const preservedGsDestination = /^GS\d+(?:-\d+)?$/i.test(existing.billingToCode) &&
+      existing.billingToCode.trim().toUpperCase() === orderInput.sheet1.billingToCode.trim().toUpperCase() &&
+      (orderInput.sheet1.schoolGroupLocationId ?? null) === existing.schoolGroupLocationId;
+    const shippingToSummary = preservedGsDestination ? existing.shippingToSummary : await resolveShippingSummary(tx, orderInput);
 
     const order = await tx.orderSheet1.update({
       where: { orderSheet1Id },
@@ -389,6 +392,8 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
         orderPlacedDate: toDate(orderInput.sheet1.orderPlacedDate),
         orderReceivedDate: toDate(orderInput.sheet1.orderReceivedDate),
         expectedDeliveryDate: toDate(orderInput.sheet1.expectedDeliveryDate),
+        schoolGroupId: orderInput.sheet1.schoolGroupId ?? null,
+        schoolGroupLocationId: orderInput.sheet1.schoolGroupLocationId ?? null,
         billingToType: orderInput.sheet1.billingToType as BillingToType,
         billingToCode: orderInput.sheet1.billingToCode,
         billingToName: orderInput.sheet1.billingToName,
@@ -463,7 +468,7 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
       where: { orderSheet1Id: order.orderSheet1Id },
       include: orderInclude
     });
-  });
+  }, { timeout: 120000 });
 
   revalidatePath(`/orders/${orderSheet1Id}`);
   revalidatePath(`/orders/${orderSheet1Id}/edit`);

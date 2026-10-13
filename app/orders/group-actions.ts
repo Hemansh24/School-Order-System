@@ -8,9 +8,7 @@ function input(formData: FormData) {
 export async function createDirectGroupOrderAction(formData: FormData) {
   const ptCodes = String(formData.get("ptCodes") || "").split(/[\s,]+/).filter(Boolean);
   const items = JSON.parse(String(formData.get("items") || "[]"));
-  const order = await createDirectGroupOrder(Number(formData.get("locationId")), ptCodes, items, input(formData));
-  revalidatePath("/orders"); revalidatePath("/");
-  return order.orderSheet1Id;
+  return createDirectGroupOrder(Number(formData.get("locationId")), ptCodes, items, input(formData));
 }
 export async function createParentGroupOrderAction(formData: FormData) {
   try {
