@@ -1,4 +1,4 @@
-const { upsertChristianGroupRef, setChristianGroupActiveRef, upsertPreBooksellerRef, listOrganisationsRef, searchOrganisationsRef, getOrganisationByPrCodeRef, listBooksellersRef, getBooksellerByCodeRef, listItemsRef, getItemByCodeRef, listBooksellerSchoolMappingRef, listSharedSchoolGroupsRef, listSharedSchoolGroupLocationsRef, listSharedChristianGroupsRef, listSharedPreBooksellersRef, connectorConfig } = require('../index.cjs.js');
+const { upsertChristianGroupRef, setChristianGroupActiveRef, upsertPreBooksellerRef, upsertSharedSchoolGroupRef, upsertSharedSchoolGroupLocationRef, listOrganisationsRef, searchOrganisationsRef, getOrganisationByPrCodeRef, listBooksellersRef, getBooksellerByCodeRef, listItemsRef, getItemByCodeRef, listBooksellerSchoolMappingRef, listSharedSchoolGroupsRef, listSharedSchoolGroupLocationsRef, listSharedChristianGroupsRef, listSharedPreBooksellersRef, connectorConfig } = require('../index.cjs.js');
 const { validateArgs, CallerSdkTypeEnum } = require('firebase/data-connect');
 const { useDataConnectQuery, useDataConnectMutation, validateReactArgs } = require('@tanstack-query-firebase/react/data-connect');
 
@@ -22,6 +22,22 @@ exports.useUpsertPreBookseller = function useUpsertPreBookseller(dcOrOptions, op
   const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
   function refFactory(vars) {
     return upsertPreBooksellerRef(dcInstance, vars);
+  }
+  return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
+}
+
+exports.useUpsertSharedSchoolGroup = function useUpsertSharedSchoolGroup(dcOrOptions, options) {
+  const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
+  function refFactory(vars) {
+    return upsertSharedSchoolGroupRef(dcInstance, vars);
+  }
+  return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
+}
+
+exports.useUpsertSharedSchoolGroupLocation = function useUpsertSharedSchoolGroupLocation(dcOrOptions, options) {
+  const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
+  function refFactory(vars) {
+    return upsertSharedSchoolGroupLocationRef(dcInstance, vars);
   }
   return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }

@@ -99,3 +99,43 @@ mutation UpsertPreBookseller(
     syncedAt_expr: "request.time"
   })
 }
+
+mutation UpsertSharedSchoolGroup(
+  $id: Int64!
+  $groupCode: String!
+  $groupName: String!
+  $active: Boolean!
+) @auth(level: NO_ACCESS) {
+  sharedSchoolGroup_upsert(data: {
+    id: $id
+    groupCode: $groupCode
+    groupName: $groupName
+    active: $active
+    syncedAt_expr: "request.time"
+  })
+}
+
+mutation UpsertSharedSchoolGroupLocation(
+  $id: Int64!
+  $groupCode: String!
+  $subCode: String!
+  $name: String!
+  $address: String
+  $district: String
+  $state: String
+  $pincode: String
+  $centralizedDecision: String
+) @auth(level: NO_ACCESS) {
+  sharedSchoolGroupLocation_upsert(data: {
+    id: $id
+    groupCode: $groupCode
+    subCode: $subCode
+    name: $name
+    address: $address
+    district: $district
+    state: $state
+    pincode: $pincode
+    centralizedDecision: $centralizedDecision
+    syncedAt_expr: "request.time"
+  })
+}

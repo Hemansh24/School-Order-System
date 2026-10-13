@@ -55,6 +55,34 @@ exports.upsertPreBookseller = function upsertPreBookseller(dcOrVars, vars) {
 }
 ;
 
+const upsertSharedSchoolGroupRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertSharedSchoolGroup', inputVars);
+}
+upsertSharedSchoolGroupRef.operationName = 'UpsertSharedSchoolGroup';
+exports.upsertSharedSchoolGroupRef = upsertSharedSchoolGroupRef;
+
+exports.upsertSharedSchoolGroup = function upsertSharedSchoolGroup(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertSharedSchoolGroupRef(dcInstance, inputVars));
+}
+;
+
+const upsertSharedSchoolGroupLocationRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertSharedSchoolGroupLocation', inputVars);
+}
+upsertSharedSchoolGroupLocationRef.operationName = 'UpsertSharedSchoolGroupLocation';
+exports.upsertSharedSchoolGroupLocationRef = upsertSharedSchoolGroupLocationRef;
+
+exports.upsertSharedSchoolGroupLocation = function upsertSharedSchoolGroupLocation(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertSharedSchoolGroupLocationRef(dcInstance, inputVars));
+}
+;
+
 const listOrganisationsRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
   dcInstance._useGeneratedSdk();

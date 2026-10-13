@@ -261,6 +261,7 @@ export interface ListSharedPreBooksellersVariables {
 
 export interface ListSharedSchoolGroupLocationsData {
   sharedSchoolGroupLocations: ({
+    id: Int64String;
     groupCode: string;
     subCode: string;
     name: string;
@@ -270,7 +271,7 @@ export interface ListSharedSchoolGroupLocationsData {
     pincode?: string | null;
     centralizedDecision?: string | null;
     syncedAt: TimestampString;
-  })[];
+  } & SharedSchoolGroupLocation_Key)[];
 }
 
 export interface ListSharedSchoolGroupLocationsVariables {
@@ -280,10 +281,12 @@ export interface ListSharedSchoolGroupLocationsVariables {
 
 export interface ListSharedSchoolGroupsData {
   sharedSchoolGroups: ({
+    id: Int64String;
     groupCode: string;
     groupName: string;
+    active: boolean;
     syncedAt: TimestampString;
-  })[];
+  } & SharedSchoolGroup_Key)[];
 }
 
 export interface ListSharedSchoolGroupsVariables {
@@ -406,6 +409,33 @@ export interface UpsertPreBooksellerVariables {
   convertedAt?: TimestampString | null;
 }
 
+export interface UpsertSharedSchoolGroupData {
+  sharedSchoolGroup_upsert: SharedSchoolGroup_Key;
+}
+
+export interface UpsertSharedSchoolGroupLocationData {
+  sharedSchoolGroupLocation_upsert: SharedSchoolGroupLocation_Key;
+}
+
+export interface UpsertSharedSchoolGroupLocationVariables {
+  id: Int64String;
+  groupCode: string;
+  subCode: string;
+  name: string;
+  address?: string | null;
+  district?: string | null;
+  state?: string | null;
+  pincode?: string | null;
+  centralizedDecision?: string | null;
+}
+
+export interface UpsertSharedSchoolGroupVariables {
+  id: Int64String;
+  groupCode: string;
+  groupName: string;
+  active: boolean;
+}
+
 interface UpsertChristianGroupRef {
   /* Allow users to create refs without passing in DataConnect */
   (vars: UpsertChristianGroupVariables): MutationRef<UpsertChristianGroupData, UpsertChristianGroupVariables>;
@@ -441,6 +471,30 @@ export const upsertPreBooksellerRef: UpsertPreBooksellerRef;
 
 export function upsertPreBookseller(vars: UpsertPreBooksellerVariables): MutationPromise<UpsertPreBooksellerData, UpsertPreBooksellerVariables>;
 export function upsertPreBookseller(dc: DataConnect, vars: UpsertPreBooksellerVariables): MutationPromise<UpsertPreBooksellerData, UpsertPreBooksellerVariables>;
+
+interface UpsertSharedSchoolGroupRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertSharedSchoolGroupVariables): MutationRef<UpsertSharedSchoolGroupData, UpsertSharedSchoolGroupVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpsertSharedSchoolGroupVariables): MutationRef<UpsertSharedSchoolGroupData, UpsertSharedSchoolGroupVariables>;
+  operationName: string;
+}
+export const upsertSharedSchoolGroupRef: UpsertSharedSchoolGroupRef;
+
+export function upsertSharedSchoolGroup(vars: UpsertSharedSchoolGroupVariables): MutationPromise<UpsertSharedSchoolGroupData, UpsertSharedSchoolGroupVariables>;
+export function upsertSharedSchoolGroup(dc: DataConnect, vars: UpsertSharedSchoolGroupVariables): MutationPromise<UpsertSharedSchoolGroupData, UpsertSharedSchoolGroupVariables>;
+
+interface UpsertSharedSchoolGroupLocationRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertSharedSchoolGroupLocationVariables): MutationRef<UpsertSharedSchoolGroupLocationData, UpsertSharedSchoolGroupLocationVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpsertSharedSchoolGroupLocationVariables): MutationRef<UpsertSharedSchoolGroupLocationData, UpsertSharedSchoolGroupLocationVariables>;
+  operationName: string;
+}
+export const upsertSharedSchoolGroupLocationRef: UpsertSharedSchoolGroupLocationRef;
+
+export function upsertSharedSchoolGroupLocation(vars: UpsertSharedSchoolGroupLocationVariables): MutationPromise<UpsertSharedSchoolGroupLocationData, UpsertSharedSchoolGroupLocationVariables>;
+export function upsertSharedSchoolGroupLocation(dc: DataConnect, vars: UpsertSharedSchoolGroupLocationVariables): MutationPromise<UpsertSharedSchoolGroupLocationData, UpsertSharedSchoolGroupLocationVariables>;
 
 interface ListOrganisationsRef {
   /* Allow users to create refs without passing in DataConnect */

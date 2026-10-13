@@ -129,6 +129,7 @@ type SharedSchoolGroup
   id: Int64!
   groupCode: String! @col(name: "group_code") @unique
   groupName: String! @col(name: "group_name")
+  active: Boolean! @default(value: true)
   syncedAt: Timestamp! @col(name: "synced_at")
 }
 

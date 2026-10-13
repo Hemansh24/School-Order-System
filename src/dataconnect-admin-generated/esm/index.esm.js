@@ -24,6 +24,18 @@ export function upsertPreBookseller(dcOrVarsOrOptions, varsOrOptions, options) {
   return dcInstance.executeMutation('UpsertPreBookseller', inputVars, inputOpts);
 }
 
+export function upsertSharedSchoolGroup(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('UpsertSharedSchoolGroup', inputVars, inputOpts);
+}
+
+export function upsertSharedSchoolGroupLocation(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('UpsertSharedSchoolGroupLocation', inputVars, inputOpts);
+}
+
 export function listOrganisations(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, false);
   dcInstance.useGen(true);

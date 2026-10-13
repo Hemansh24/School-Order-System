@@ -258,6 +258,7 @@ export interface ListSharedPreBooksellersVariables {
 
 export interface ListSharedSchoolGroupLocationsData {
   sharedSchoolGroupLocations: ({
+    id: Int64String;
     groupCode: string;
     subCode: string;
     name: string;
@@ -267,7 +268,7 @@ export interface ListSharedSchoolGroupLocationsData {
     pincode?: string | null;
     centralizedDecision?: string | null;
     syncedAt: TimestampString;
-  })[];
+  } & SharedSchoolGroupLocation_Key)[];
 }
 
 export interface ListSharedSchoolGroupLocationsVariables {
@@ -277,10 +278,12 @@ export interface ListSharedSchoolGroupLocationsVariables {
 
 export interface ListSharedSchoolGroupsData {
   sharedSchoolGroups: ({
+    id: Int64String;
     groupCode: string;
     groupName: string;
+    active: boolean;
     syncedAt: TimestampString;
-  })[];
+  } & SharedSchoolGroup_Key)[];
 }
 
 export interface ListSharedSchoolGroupsVariables {
@@ -403,6 +406,33 @@ export interface UpsertPreBooksellerVariables {
   convertedAt?: TimestampString | null;
 }
 
+export interface UpsertSharedSchoolGroupData {
+  sharedSchoolGroup_upsert: SharedSchoolGroup_Key;
+}
+
+export interface UpsertSharedSchoolGroupLocationData {
+  sharedSchoolGroupLocation_upsert: SharedSchoolGroupLocation_Key;
+}
+
+export interface UpsertSharedSchoolGroupLocationVariables {
+  id: Int64String;
+  groupCode: string;
+  subCode: string;
+  name: string;
+  address?: string | null;
+  district?: string | null;
+  state?: string | null;
+  pincode?: string | null;
+  centralizedDecision?: string | null;
+}
+
+export interface UpsertSharedSchoolGroupVariables {
+  id: Int64String;
+  groupCode: string;
+  groupName: string;
+  active: boolean;
+}
+
 /** Generated Node Admin SDK operation action function for the 'UpsertChristianGroup' Mutation. Allow users to execute without passing in DataConnect. */
 export function upsertChristianGroup(dc: DataConnect, vars: UpsertChristianGroupVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertChristianGroupData>>;
 /** Generated Node Admin SDK operation action function for the 'UpsertChristianGroup' Mutation. Allow users to pass in custom DataConnect instances. */
@@ -417,6 +447,16 @@ export function setChristianGroupActive(vars: SetChristianGroupActiveVariables, 
 export function upsertPreBookseller(dc: DataConnect, vars: UpsertPreBooksellerVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertPreBooksellerData>>;
 /** Generated Node Admin SDK operation action function for the 'UpsertPreBookseller' Mutation. Allow users to pass in custom DataConnect instances. */
 export function upsertPreBookseller(vars: UpsertPreBooksellerVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertPreBooksellerData>>;
+
+/** Generated Node Admin SDK operation action function for the 'UpsertSharedSchoolGroup' Mutation. Allow users to execute without passing in DataConnect. */
+export function upsertSharedSchoolGroup(dc: DataConnect, vars: UpsertSharedSchoolGroupVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertSharedSchoolGroupData>>;
+/** Generated Node Admin SDK operation action function for the 'UpsertSharedSchoolGroup' Mutation. Allow users to pass in custom DataConnect instances. */
+export function upsertSharedSchoolGroup(vars: UpsertSharedSchoolGroupVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertSharedSchoolGroupData>>;
+
+/** Generated Node Admin SDK operation action function for the 'UpsertSharedSchoolGroupLocation' Mutation. Allow users to execute without passing in DataConnect. */
+export function upsertSharedSchoolGroupLocation(dc: DataConnect, vars: UpsertSharedSchoolGroupLocationVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertSharedSchoolGroupLocationData>>;
+/** Generated Node Admin SDK operation action function for the 'UpsertSharedSchoolGroupLocation' Mutation. Allow users to pass in custom DataConnect instances. */
+export function upsertSharedSchoolGroupLocation(vars: UpsertSharedSchoolGroupLocationVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertSharedSchoolGroupLocationData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListOrganisations' Query. Allow users to execute without passing in DataConnect. */
 export function listOrganisations(dc: DataConnect, vars?: ListOrganisationsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListOrganisationsData>>;

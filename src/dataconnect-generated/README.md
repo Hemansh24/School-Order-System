@@ -26,6 +26,8 @@ This README will guide you through the process of using the generated JavaScript
   - [*UpsertChristianGroup*](#upsertchristiangroup)
   - [*SetChristianGroupActive*](#setchristiangroupactive)
   - [*UpsertPreBookseller*](#upsertprebookseller)
+  - [*UpsertSharedSchoolGroup*](#upsertsharedschoolgroup)
+  - [*UpsertSharedSchoolGroupLocation*](#upsertsharedschoolgrouplocation)
 
 # Accessing the connector
 A connector is a collection of Queries and Mutations. One SDK is generated for each connector - this SDK is generated for the connector `example`. You can find more information about connectors in the [Data Connect documentation](https://firebase.google.com/docs/data-connect#how-does).
@@ -1165,10 +1167,12 @@ The `data` property is an object of type `ListSharedSchoolGroupsData`, which is 
 ```typescript
 export interface ListSharedSchoolGroupsData {
   sharedSchoolGroups: ({
+    id: Int64String;
     groupCode: string;
     groupName: string;
+    active: boolean;
     syncedAt: TimestampString;
-  })[];
+  } & SharedSchoolGroup_Key)[];
 }
 ```
 ### Using `ListSharedSchoolGroups`'s action shortcut function
@@ -1285,6 +1289,7 @@ The `data` property is an object of type `ListSharedSchoolGroupLocationsData`, w
 ```typescript
 export interface ListSharedSchoolGroupLocationsData {
   sharedSchoolGroupLocations: ({
+    id: Int64String;
     groupCode: string;
     subCode: string;
     name: string;
@@ -1294,7 +1299,7 @@ export interface ListSharedSchoolGroupLocationsData {
     pincode?: string | null;
     centralizedDecision?: string | null;
     syncedAt: TimestampString;
-  })[];
+  } & SharedSchoolGroupLocation_Key)[];
 }
 ```
 ### Using `ListSharedSchoolGroupLocations`'s action shortcut function
@@ -2098,6 +2103,257 @@ console.log(data.sharedPreBookseller_upsert);
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.sharedPreBookseller_upsert);
+});
+```
+
+## UpsertSharedSchoolGroup
+You can execute the `UpsertSharedSchoolGroup` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+upsertSharedSchoolGroup(vars: UpsertSharedSchoolGroupVariables): MutationPromise<UpsertSharedSchoolGroupData, UpsertSharedSchoolGroupVariables>;
+
+interface UpsertSharedSchoolGroupRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertSharedSchoolGroupVariables): MutationRef<UpsertSharedSchoolGroupData, UpsertSharedSchoolGroupVariables>;
+}
+export const upsertSharedSchoolGroupRef: UpsertSharedSchoolGroupRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+upsertSharedSchoolGroup(dc: DataConnect, vars: UpsertSharedSchoolGroupVariables): MutationPromise<UpsertSharedSchoolGroupData, UpsertSharedSchoolGroupVariables>;
+
+interface UpsertSharedSchoolGroupRef {
+  ...
+  (dc: DataConnect, vars: UpsertSharedSchoolGroupVariables): MutationRef<UpsertSharedSchoolGroupData, UpsertSharedSchoolGroupVariables>;
+}
+export const upsertSharedSchoolGroupRef: UpsertSharedSchoolGroupRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the upsertSharedSchoolGroupRef:
+```typescript
+const name = upsertSharedSchoolGroupRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `UpsertSharedSchoolGroup` mutation requires an argument of type `UpsertSharedSchoolGroupVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface UpsertSharedSchoolGroupVariables {
+  id: Int64String;
+  groupCode: string;
+  groupName: string;
+  active: boolean;
+}
+```
+### Return Type
+Recall that executing the `UpsertSharedSchoolGroup` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `UpsertSharedSchoolGroupData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface UpsertSharedSchoolGroupData {
+  sharedSchoolGroup_upsert: SharedSchoolGroup_Key;
+}
+```
+### Using `UpsertSharedSchoolGroup`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, upsertSharedSchoolGroup, UpsertSharedSchoolGroupVariables } from '@dataconnect/generated';
+
+// The `UpsertSharedSchoolGroup` mutation requires an argument of type `UpsertSharedSchoolGroupVariables`:
+const upsertSharedSchoolGroupVars: UpsertSharedSchoolGroupVariables = {
+  id: ..., 
+  groupCode: ..., 
+  groupName: ..., 
+  active: ..., 
+};
+
+// Call the `upsertSharedSchoolGroup()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await upsertSharedSchoolGroup(upsertSharedSchoolGroupVars);
+// Variables can be defined inline as well.
+const { data } = await upsertSharedSchoolGroup({ id: ..., groupCode: ..., groupName: ..., active: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await upsertSharedSchoolGroup(dataConnect, upsertSharedSchoolGroupVars);
+
+console.log(data.sharedSchoolGroup_upsert);
+
+// Or, you can use the `Promise` API.
+upsertSharedSchoolGroup(upsertSharedSchoolGroupVars).then((response) => {
+  const data = response.data;
+  console.log(data.sharedSchoolGroup_upsert);
+});
+```
+
+### Using `UpsertSharedSchoolGroup`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, upsertSharedSchoolGroupRef, UpsertSharedSchoolGroupVariables } from '@dataconnect/generated';
+
+// The `UpsertSharedSchoolGroup` mutation requires an argument of type `UpsertSharedSchoolGroupVariables`:
+const upsertSharedSchoolGroupVars: UpsertSharedSchoolGroupVariables = {
+  id: ..., 
+  groupCode: ..., 
+  groupName: ..., 
+  active: ..., 
+};
+
+// Call the `upsertSharedSchoolGroupRef()` function to get a reference to the mutation.
+const ref = upsertSharedSchoolGroupRef(upsertSharedSchoolGroupVars);
+// Variables can be defined inline as well.
+const ref = upsertSharedSchoolGroupRef({ id: ..., groupCode: ..., groupName: ..., active: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = upsertSharedSchoolGroupRef(dataConnect, upsertSharedSchoolGroupVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.sharedSchoolGroup_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.sharedSchoolGroup_upsert);
+});
+```
+
+## UpsertSharedSchoolGroupLocation
+You can execute the `UpsertSharedSchoolGroupLocation` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+upsertSharedSchoolGroupLocation(vars: UpsertSharedSchoolGroupLocationVariables): MutationPromise<UpsertSharedSchoolGroupLocationData, UpsertSharedSchoolGroupLocationVariables>;
+
+interface UpsertSharedSchoolGroupLocationRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertSharedSchoolGroupLocationVariables): MutationRef<UpsertSharedSchoolGroupLocationData, UpsertSharedSchoolGroupLocationVariables>;
+}
+export const upsertSharedSchoolGroupLocationRef: UpsertSharedSchoolGroupLocationRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+upsertSharedSchoolGroupLocation(dc: DataConnect, vars: UpsertSharedSchoolGroupLocationVariables): MutationPromise<UpsertSharedSchoolGroupLocationData, UpsertSharedSchoolGroupLocationVariables>;
+
+interface UpsertSharedSchoolGroupLocationRef {
+  ...
+  (dc: DataConnect, vars: UpsertSharedSchoolGroupLocationVariables): MutationRef<UpsertSharedSchoolGroupLocationData, UpsertSharedSchoolGroupLocationVariables>;
+}
+export const upsertSharedSchoolGroupLocationRef: UpsertSharedSchoolGroupLocationRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the upsertSharedSchoolGroupLocationRef:
+```typescript
+const name = upsertSharedSchoolGroupLocationRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `UpsertSharedSchoolGroupLocation` mutation requires an argument of type `UpsertSharedSchoolGroupLocationVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface UpsertSharedSchoolGroupLocationVariables {
+  id: Int64String;
+  groupCode: string;
+  subCode: string;
+  name: string;
+  address?: string | null;
+  district?: string | null;
+  state?: string | null;
+  pincode?: string | null;
+  centralizedDecision?: string | null;
+}
+```
+### Return Type
+Recall that executing the `UpsertSharedSchoolGroupLocation` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `UpsertSharedSchoolGroupLocationData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface UpsertSharedSchoolGroupLocationData {
+  sharedSchoolGroupLocation_upsert: SharedSchoolGroupLocation_Key;
+}
+```
+### Using `UpsertSharedSchoolGroupLocation`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, upsertSharedSchoolGroupLocation, UpsertSharedSchoolGroupLocationVariables } from '@dataconnect/generated';
+
+// The `UpsertSharedSchoolGroupLocation` mutation requires an argument of type `UpsertSharedSchoolGroupLocationVariables`:
+const upsertSharedSchoolGroupLocationVars: UpsertSharedSchoolGroupLocationVariables = {
+  id: ..., 
+  groupCode: ..., 
+  subCode: ..., 
+  name: ..., 
+  address: ..., // optional
+  district: ..., // optional
+  state: ..., // optional
+  pincode: ..., // optional
+  centralizedDecision: ..., // optional
+};
+
+// Call the `upsertSharedSchoolGroupLocation()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await upsertSharedSchoolGroupLocation(upsertSharedSchoolGroupLocationVars);
+// Variables can be defined inline as well.
+const { data } = await upsertSharedSchoolGroupLocation({ id: ..., groupCode: ..., subCode: ..., name: ..., address: ..., district: ..., state: ..., pincode: ..., centralizedDecision: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await upsertSharedSchoolGroupLocation(dataConnect, upsertSharedSchoolGroupLocationVars);
+
+console.log(data.sharedSchoolGroupLocation_upsert);
+
+// Or, you can use the `Promise` API.
+upsertSharedSchoolGroupLocation(upsertSharedSchoolGroupLocationVars).then((response) => {
+  const data = response.data;
+  console.log(data.sharedSchoolGroupLocation_upsert);
+});
+```
+
+### Using `UpsertSharedSchoolGroupLocation`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, upsertSharedSchoolGroupLocationRef, UpsertSharedSchoolGroupLocationVariables } from '@dataconnect/generated';
+
+// The `UpsertSharedSchoolGroupLocation` mutation requires an argument of type `UpsertSharedSchoolGroupLocationVariables`:
+const upsertSharedSchoolGroupLocationVars: UpsertSharedSchoolGroupLocationVariables = {
+  id: ..., 
+  groupCode: ..., 
+  subCode: ..., 
+  name: ..., 
+  address: ..., // optional
+  district: ..., // optional
+  state: ..., // optional
+  pincode: ..., // optional
+  centralizedDecision: ..., // optional
+};
+
+// Call the `upsertSharedSchoolGroupLocationRef()` function to get a reference to the mutation.
+const ref = upsertSharedSchoolGroupLocationRef(upsertSharedSchoolGroupLocationVars);
+// Variables can be defined inline as well.
+const ref = upsertSharedSchoolGroupLocationRef({ id: ..., groupCode: ..., subCode: ..., name: ..., address: ..., district: ..., state: ..., pincode: ..., centralizedDecision: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = upsertSharedSchoolGroupLocationRef(dataConnect, upsertSharedSchoolGroupLocationVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.sharedSchoolGroupLocation_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.sharedSchoolGroupLocation_upsert);
 });
 ```
 

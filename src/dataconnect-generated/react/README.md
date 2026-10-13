@@ -33,6 +33,8 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*UpsertChristianGroup*](#upsertchristiangroup)
   - [*SetChristianGroupActive*](#setchristiangroupactive)
   - [*UpsertPreBookseller*](#upsertprebookseller)
+  - [*UpsertSharedSchoolGroup*](#upsertsharedschoolgroup)
+  - [*UpsertSharedSchoolGroupLocation*](#upsertsharedschoolgrouplocation)
 
 # TanStack Query Firebase & TanStack React Query
 This SDK provides [React](https://react.dev/) hooks generated specific to your application, for the operations found in the connector `example`. These hooks are generated using [TanStack Query Firebase](https://react-query-firebase.invertase.dev/) by our partners at Invertase, a library built on top of [TanStack React Query v5](https://tanstack.com/query/v5/docs/framework/react/overview).
@@ -984,10 +986,12 @@ To access the data returned by a Query, use the `UseQueryResult.data` field. The
 ```javascript
 export interface ListSharedSchoolGroupsData {
   sharedSchoolGroups: ({
+    id: Int64String;
     groupCode: string;
     groupName: string;
+    active: boolean;
     syncedAt: TimestampString;
-  })[];
+  } & SharedSchoolGroup_Key)[];
 }
 ```
 
@@ -1078,6 +1082,7 @@ To access the data returned by a Query, use the `UseQueryResult.data` field. The
 ```javascript
 export interface ListSharedSchoolGroupLocationsData {
   sharedSchoolGroupLocations: ({
+    id: Int64String;
     groupCode: string;
     subCode: string;
     name: string;
@@ -1087,7 +1092,7 @@ export interface ListSharedSchoolGroupLocationsData {
     pincode?: string | null;
     centralizedDecision?: string | null;
     syncedAt: TimestampString;
-  })[];
+  } & SharedSchoolGroupLocation_Key)[];
 }
 ```
 
@@ -1753,6 +1758,216 @@ export default function UpsertPreBooksellerComponent() {
   // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
   if (mutation.isSuccess) {
     console.log(mutation.data.sharedPreBookseller_upsert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## UpsertSharedSchoolGroup
+You can execute the `UpsertSharedSchoolGroup` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts)):
+```javascript
+useUpsertSharedSchoolGroup(options?: useDataConnectMutationOptions<UpsertSharedSchoolGroupData, FirebaseError, UpsertSharedSchoolGroupVariables>): UseDataConnectMutationResult<UpsertSharedSchoolGroupData, UpsertSharedSchoolGroupVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useUpsertSharedSchoolGroup(dc: DataConnect, options?: useDataConnectMutationOptions<UpsertSharedSchoolGroupData, FirebaseError, UpsertSharedSchoolGroupVariables>): UseDataConnectMutationResult<UpsertSharedSchoolGroupData, UpsertSharedSchoolGroupVariables>;
+```
+
+### Variables
+The `UpsertSharedSchoolGroup` Mutation requires an argument of type `UpsertSharedSchoolGroupVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface UpsertSharedSchoolGroupVariables {
+  id: Int64String;
+  groupCode: string;
+  groupName: string;
+  active: boolean;
+}
+```
+### Return Type
+Recall that calling the `UpsertSharedSchoolGroup` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpsertSharedSchoolGroup` Mutation is of type `UpsertSharedSchoolGroupData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface UpsertSharedSchoolGroupData {
+  sharedSchoolGroup_upsert: SharedSchoolGroup_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `UpsertSharedSchoolGroup`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, UpsertSharedSchoolGroupVariables } from '@dataconnect/generated';
+import { useUpsertSharedSchoolGroup } from '@dataconnect/generated/react'
+
+export default function UpsertSharedSchoolGroupComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useUpsertSharedSchoolGroup();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useUpsertSharedSchoolGroup(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpsertSharedSchoolGroup(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpsertSharedSchoolGroup(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useUpsertSharedSchoolGroup` Mutation requires an argument of type `UpsertSharedSchoolGroupVariables`:
+  const upsertSharedSchoolGroupVars: UpsertSharedSchoolGroupVariables = {
+    id: ..., 
+    groupCode: ..., 
+    groupName: ..., 
+    active: ..., 
+  };
+  mutation.mutate(upsertSharedSchoolGroupVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., groupCode: ..., groupName: ..., active: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(upsertSharedSchoolGroupVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.sharedSchoolGroup_upsert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## UpsertSharedSchoolGroupLocation
+You can execute the `UpsertSharedSchoolGroupLocation` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts)):
+```javascript
+useUpsertSharedSchoolGroupLocation(options?: useDataConnectMutationOptions<UpsertSharedSchoolGroupLocationData, FirebaseError, UpsertSharedSchoolGroupLocationVariables>): UseDataConnectMutationResult<UpsertSharedSchoolGroupLocationData, UpsertSharedSchoolGroupLocationVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useUpsertSharedSchoolGroupLocation(dc: DataConnect, options?: useDataConnectMutationOptions<UpsertSharedSchoolGroupLocationData, FirebaseError, UpsertSharedSchoolGroupLocationVariables>): UseDataConnectMutationResult<UpsertSharedSchoolGroupLocationData, UpsertSharedSchoolGroupLocationVariables>;
+```
+
+### Variables
+The `UpsertSharedSchoolGroupLocation` Mutation requires an argument of type `UpsertSharedSchoolGroupLocationVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface UpsertSharedSchoolGroupLocationVariables {
+  id: Int64String;
+  groupCode: string;
+  subCode: string;
+  name: string;
+  address?: string | null;
+  district?: string | null;
+  state?: string | null;
+  pincode?: string | null;
+  centralizedDecision?: string | null;
+}
+```
+### Return Type
+Recall that calling the `UpsertSharedSchoolGroupLocation` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpsertSharedSchoolGroupLocation` Mutation is of type `UpsertSharedSchoolGroupLocationData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface UpsertSharedSchoolGroupLocationData {
+  sharedSchoolGroupLocation_upsert: SharedSchoolGroupLocation_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `UpsertSharedSchoolGroupLocation`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, UpsertSharedSchoolGroupLocationVariables } from '@dataconnect/generated';
+import { useUpsertSharedSchoolGroupLocation } from '@dataconnect/generated/react'
+
+export default function UpsertSharedSchoolGroupLocationComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useUpsertSharedSchoolGroupLocation();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useUpsertSharedSchoolGroupLocation(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpsertSharedSchoolGroupLocation(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpsertSharedSchoolGroupLocation(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useUpsertSharedSchoolGroupLocation` Mutation requires an argument of type `UpsertSharedSchoolGroupLocationVariables`:
+  const upsertSharedSchoolGroupLocationVars: UpsertSharedSchoolGroupLocationVariables = {
+    id: ..., 
+    groupCode: ..., 
+    subCode: ..., 
+    name: ..., 
+    address: ..., // optional
+    district: ..., // optional
+    state: ..., // optional
+    pincode: ..., // optional
+    centralizedDecision: ..., // optional
+  };
+  mutation.mutate(upsertSharedSchoolGroupLocationVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., groupCode: ..., subCode: ..., name: ..., address: ..., district: ..., state: ..., pincode: ..., centralizedDecision: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(upsertSharedSchoolGroupLocationVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.sharedSchoolGroupLocation_upsert);
   }
   return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
 }
