@@ -281,6 +281,7 @@ export async function createOrder(input: CreateOrderInput) {
         booksellerType: orderInput.sheet1.booksellerType || null,
         booksellerRating: orderInput.sheet1.booksellerRating || null,
         pendingPayment: orderInput.sheet1.pendingPayment,
+        contactNumbers: [...new Set((orderInput.sheet1.contactNumbers ?? []).map(number => number.trim()).filter(Boolean))],
         notes: orderInput.sheet1.notes || null
       }
     });
@@ -405,6 +406,7 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
         booksellerType: orderInput.sheet1.booksellerType || null,
         booksellerRating: orderInput.sheet1.booksellerRating || null,
         pendingPayment: orderInput.sheet1.pendingPayment,
+        contactNumbers: [...new Set((orderInput.sheet1.contactNumbers ?? []).map(number => number.trim()).filter(Boolean))],
         notes: orderInput.sheet1.notes || null
       }
     });

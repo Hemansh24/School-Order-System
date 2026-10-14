@@ -38,6 +38,10 @@ export const sheet1Schema = z
     schoolGroupLocationId: z.number().int().positive().optional(),
     booksellerType: z.string().optional(),
     booksellerRating: z.string().optional(),
+    contactNumbers: z.array(z.string().trim().refine(
+      value => !value || (/^\+?[\d\s().-]+$/.test(value) && value.replace(/\D/g, "").length >= 7 && value.replace(/\D/g, "").length <= 15),
+      "Enter a valid contact number (7–15 digits)"
+    )).optional(),
     pendingPayment: z.boolean().default(false),
     notes: z.string().optional()
   })

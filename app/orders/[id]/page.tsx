@@ -70,6 +70,7 @@ export default async function OrderDetailsPage({
             <Info label="Order Type">
               <span className="capitalize">{order.orderType}</span>
             </Info>
+            <Info label="Contact numbers">{order.contactNumbers.join(", ") || "—"}</Info>
             <Info label="Classification"><span className="capitalize">{order.classification.replaceAll("_", " ")}</span></Info>
             <Info label="Session Year">{order.sessionYear}</Info>
             <Info label="Order Placed">{order.orderPlacedDate.toLocaleDateString()}</Info>

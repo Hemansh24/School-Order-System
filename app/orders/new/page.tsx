@@ -3,6 +3,7 @@ import { CreateOrderForm } from "@/components/orders/create-order-form";
 import { getGsOrderOptions } from "@/lib/services/groups";
 import { getReferenceData } from "@/lib/services/reference";
 import { formatSchoolAddress, formatVendorAddress } from "@/lib/shipping";
+import { extractContactNumbers } from "@/lib/contact-numbers";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ function toSchoolOptions(
   schools: Array<{
     schoolCode: string;
     schoolName: string;
+    phone: string | null;
     address: string | null;
     district: string | null;
     state: string | null;
@@ -20,12 +22,14 @@ function toSchoolOptions(
   schoolCode: string;
   schoolName: string;
   addressSummary: string;
+  contactNumbers: string[];
 }> {
   return schools.map((school) => ({
     optionKey: school.schoolCode,
     schoolCode: school.schoolCode,
     schoolName: school.schoolName,
-    addressSummary: formatSchoolAddress(school)
+    addressSummary: formatSchoolAddress(school),
+    contactNumbers: extractContactNumbers(school.phone)
   }));
 }
 
@@ -43,13 +47,14 @@ export default async function CreateOrderPage() {
         schools={toSchoolOptions(reference.schools)}
         groups={[
           ...gsOptions,
-          ...reference.christianGroups.map((group) => ({ optionKey: group.groupCode, schoolCode: group.groupCode, schoolName: group.groupName, addressSummary: formatSchoolAddress(group), groupType: "Christian" as const }))
+          ...reference.christianGroups.map((group) => ({ optionKey: group.groupCode, schoolCode: group.groupCode, schoolName: group.groupName, addressSummary: formatSchoolAddress(group), contactNumbers: extractContactNumbers(group.phoneEmail), groupType: "Christian" as const }))
         ]}
         vendors={reference.vendors.map((vendor) => ({
           vendorCode: vendor.vendorCode,
           vendorName: vendor.vendorName,
           vendorType: vendor.vendorType,
           vendorRating: vendor.vendorRating,
+          contactNumbers: extractContactNumbers(vendor.phone),
           addressSummary: formatVendorAddress(vendor.address),
           schools: toSchoolOptions(vendor.vendorSchools.map((row) => row.school))
         }))}

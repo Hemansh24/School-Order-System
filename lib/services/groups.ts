@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { currentLocations, normalizeGroupCode } from "@/lib/group-membership";
 import { formatSchoolAddress } from "@/lib/shipping";
+import { extractContactNumbers } from "@/lib/contact-numbers";
 
 function metadataText(metadata: unknown, key: string) {
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
@@ -121,7 +122,7 @@ export async function getGsOrderOptions() {
   ]);
   return groups.map(group => {
     const locations = currentLocations(group.locations, group.metadata);
-    return { optionKey: group.groupCode, schoolCode: group.groupCode, schoolName: group.groupName, groupType: "GS" as const, schoolGroupId: group.schoolGroupId, addressSummary: locations.length === 1 ? formatSchoolAddress(locations[0]) : "", locations: locations.map(location => ({ schoolGroupLocationId: location.schoolGroupLocationId, subCode: location.subCode, addressSummary: formatSchoolAddress(location), usable: !!location.address })), members: organisations.filter(org => normalizeGroupCode(org.groupCode) === normalizeGroupCode(group.groupCode)).map(org => ({ schoolCode: org.ptCode ?? org.prCode, schoolName: org.organisationName, prCode: org.prCode, ptCode: org.ptCode })) };
+    return { optionKey: group.groupCode, schoolCode: group.groupCode, schoolName: group.groupName, contactNumbers: extractContactNumbers(group.phoneEmail), groupType: "GS" as const, schoolGroupId: group.schoolGroupId, addressSummary: locations.length === 1 ? formatSchoolAddress(locations[0]) : "", locations: locations.map(location => ({ schoolGroupLocationId: location.schoolGroupLocationId, subCode: location.subCode, addressSummary: formatSchoolAddress(location), usable: !!location.address })), members: organisations.filter(org => normalizeGroupCode(org.groupCode) === normalizeGroupCode(group.groupCode)).map(org => ({ schoolCode: org.ptCode ?? org.prCode, schoolName: org.organisationName, prCode: org.prCode, ptCode: org.ptCode })) };
   });
 }
 

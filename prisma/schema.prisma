@@ -284,6 +284,7 @@ model OrderSheet1 {
   booksellerType       String?       @map("bookseller_type")
   booksellerRating     String?       @map("bookseller_rating")
   pendingPayment       Boolean       @default(false) @map("pending_payment")
+  contactNumbers       String[]      @default([]) @map("contact_numbers")
   notes                String?
   createdAt            DateTime      @default(now()) @map("created_at")
   updatedAt            DateTime      @default(now()) @updatedAt @map("updated_at")

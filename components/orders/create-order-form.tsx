@@ -15,6 +15,7 @@ type SchoolRef = {
   schoolCode: string;
   schoolName: string;
   addressSummary: string;
+  contactNumbers?: string[];
 };
 type GroupRef = SchoolRef & { groupType: "GS" | "Christian"; schoolGroupId?: number; locations?: { schoolGroupLocationId: number; subCode: string; addressSummary: string; usable: boolean }[]; members?: { schoolCode: string; schoolName: string; prCode: string; ptCode: string | null }[] };
 type VendorRef = {
@@ -22,6 +23,7 @@ type VendorRef = {
   vendorName: string;
   vendorType: string | null;
   vendorRating: string | null;
+  contactNumbers?: string[];
   addressSummary: string;
   schools: SchoolRef[];
 };
@@ -118,6 +120,7 @@ export function CreateOrderForm({
         booksellerType: "",
         booksellerRating: "",
         pendingPayment: false,
+        contactNumbers: schools[0]?.contactNumbers?.length ? schools[0].contactNumbers : [""],
         notes: ""
       },
       descriptiveRows: [],
@@ -216,6 +219,7 @@ export function CreateOrderForm({
           type: "",
           rating: "",
           addressSummary: school.addressSummary,
+          contactNumbers: school.contactNumbers ?? [],
           isGroup: groups.some((group) => group.optionKey === school.optionKey),
           groupType: groups.find((group) => group.optionKey === school.optionKey)?.groupType
           }))
@@ -226,6 +230,7 @@ export function CreateOrderForm({
             type: vendor.vendorType ?? "",
           rating: vendor.vendorRating ?? "",
           addressSummary: vendor.addressSummary,
+          contactNumbers: vendor.contactNumbers ?? [],
           isGroup: false,
           groupType: undefined
           })),
@@ -239,6 +244,19 @@ export function CreateOrderForm({
     [billingOptions, billingToCode]
   );
   const selectedGs = groups.find(group => group.groupType === "GS" && group.schoolCode.toLowerCase() === billingToCode.trim().toLowerCase() && group.schoolGroupId);
+  const contactNumbers = form.watch("sheet1.contactNumbers") ?? [""];
+  const appliedContactCode = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isDraftReady) return;
+    const key = `${billingToType}:${billingToCode.trim().toLowerCase()}`;
+    if (appliedContactCode.current === key) return;
+    const firstSelection = appliedContactCode.current === null;
+    appliedContactCode.current = key;
+    // Keep saved order/draft numbers, including manual edits, on initial load.
+    if (firstSelection && form.getValues("sheet1.contactNumbers") !== undefined) return;
+    const numbers = selectedBillingOption?.contactNumbers ?? [];
+    form.setValue("sheet1.contactNumbers", numbers.length ? [...numbers] : [""], { shouldValidate: true });
+  }, [billingToType, billingToCode, selectedBillingOption, isDraftReady, form]);
   const gsParticipantsReadOnly = !!selectedGs || (!!initialValues && /^GS\d+-\d+$/i.test(billingToCode) && billingToCode === initialValues.sheet1.billingToCode);
   const selectedLocationId = form.watch("sheet1.schoolGroupLocationId");
   const appliedGs = useRef<string | null>(null);
@@ -933,6 +951,34 @@ export function CreateOrderForm({
               </select>
               {!selectedGs.members?.length ? <p className="text-danger">This group has no linked organisations.</p> : null}
             </Field> : null}
+            <fieldset className="md:col-span-3">
+              <legend className={labelClass}>Contact numbers</legend>
+              <p className="mb-2 text-xs text-muted">Autofilled from the Billing To code. You can edit the numbers or add more.</p>
+              <div className="space-y-2">
+                {(contactNumbers.length ? contactNumbers : [""]).map((number, index) => (
+                  <div key={index} className="flex items-start gap-2">
+                    <div className="w-full max-w-sm">
+                      <input
+                        type="tel"
+                        className={inputClass}
+                        aria-label={`Contact number ${index + 1}`}
+                        placeholder="Enter a contact number"
+                        value={number}
+                        onChange={event => {
+                          const next = [...(contactNumbers.length ? contactNumbers : [""])];
+                          next[index] = event.target.value;
+                          form.setValue("sheet1.contactNumbers", next, { shouldDirty: true, shouldValidate: true });
+                        }}
+                      />
+                      {errors.sheet1?.contactNumbers?.[index]?.message ? <p className="mt-1 text-xs text-red-700">{errors.sheet1.contactNumbers[index]?.message}</p> : null}
+                    </div>
+                    {contactNumbers.length > 1 ? <button type="button" className="focus-ring grid h-10 w-10 place-items-center rounded-md border border-line text-red-700" aria-label={`Remove contact number ${index + 1}`} onClick={() => form.setValue("sheet1.contactNumbers", contactNumbers.filter((_, position) => position !== index), { shouldDirty: true, shouldValidate: true })}><Trash2 className="h-4 w-4" /></button> : null}
+                  </div>
+                ))}
+              </div>
+              {!contactNumbers.some(number => number.trim()) ? <p className="mt-2 text-sm text-muted">Please enter a contact number.</p> : null}
+              <button type="button" className="focus-ring mt-2 flex items-center gap-1 rounded px-2 py-1 text-sm font-medium text-brand-dark" onClick={() => form.setValue("sheet1.contactNumbers", [...(contactNumbers.length ? contactNumbers : [""]), ""], { shouldDirty: true })}><Plus className="h-4 w-4" />Add contact number</button>
+            </fieldset>
             <Field label="Bookseller Type">
               <input className={inputClass} {...form.register("sheet1.booksellerType")} />
             </Field>
@@ -1450,6 +1496,7 @@ function ReviewBlock({ values }: { values: CreateOrderInput }) {
         <p className="font-semibold text-ink">Sheet 1</p>
         <p className="mt-2 text-muted">Billing: {values.sheet1.billingToName}</p>
         <p className="text-muted">Shipping: {values.sheet1.shippingToName}</p>
+        <p className="text-muted">Contact numbers: {values.sheet1.contactNumbers?.filter(number => number.trim()).join(", ") || "—"}</p>
         <p className="text-muted">Placed: {values.sheet1.orderPlacedDate}</p>
         <p className="text-muted">Received: {values.sheet1.orderReceivedDate}</p>
         <p className="text-muted">Address: {values.sheet1.shippingToSummary}</p>
