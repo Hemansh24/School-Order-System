@@ -93,6 +93,8 @@ export function CreateOrderForm({
   );
   const [isBillingDropdownOpen, setIsBillingDropdownOpen] = useState(false);
   const [isShippingDropdownOpen, setIsShippingDropdownOpen] = useState(false);
+  const [billingReferenceType, setBillingReferenceType] = useState<"school" | "group">("school");
+  const [shippingReferenceType, setShippingReferenceType] = useState<"school" | "group">("school");
   const [isPending, startTransition] = useTransition();
   const isNewOrder = orderSheet1Id === undefined && initialValues === undefined;
   const [isDraftReady, setIsDraftReady] = useState(!isNewOrder);
@@ -159,6 +161,11 @@ export function CreateOrderForm({
   const billingToCode = form.watch("sheet1.billingToCode");
   const shippingToType = form.watch("sheet1.shippingToType");
   const shippingToCode = form.watch("sheet1.shippingToCode");
+  // Groups retain the existing school storage type so saved orders and GS processing stay compatible.
+  const billingPartyType = billingToType === "vendor" ? "vendor"
+    : /^(GS|C)\d/i.test(billingToCode.trim()) ? "group" : billingReferenceType;
+  const shippingPartyType = shippingToType === "vendor" ? "vendor"
+    : /^(GS|C)\d/i.test(shippingToCode.trim()) ? "group" : shippingReferenceType;
   const watchedDescriptiveRows = form.watch("descriptiveRows");
   const watchedAmbiguousItems = form.watch("ambiguousItems");
   const watchedCombinedItems = form.watch("combinedItems");
@@ -283,6 +290,7 @@ export function CreateOrderForm({
     const query = billingToCode.trim().toLowerCase();
 
     return billingOptions
+      .filter((option) => billingPartyType === "vendor" || option.isGroup === (billingPartyType === "group"))
       .filter(
         (option) =>
           !query ||
@@ -290,7 +298,7 @@ export function CreateOrderForm({
           option.name.toLowerCase().includes(query)
       )
       .slice(0, 50);
-  }, [billingOptions, billingToCode]);
+  }, [billingOptions, billingToCode, billingPartyType]);
 
   const shippingOptions = useMemo(
     () =>
@@ -299,12 +307,14 @@ export function CreateOrderForm({
             value: school.optionKey,
             code: school.schoolCode,
             name: school.schoolName,
+            isGroup: groups.some((group) => group.optionKey === school.optionKey),
             addressSummary: school.addressSummary
           }))
         : vendors.map((vendor) => ({
             value: vendor.vendorCode,
             code: vendor.vendorCode,
             name: vendor.vendorName,
+            isGroup: false,
             addressSummary: vendor.addressSummary
           })),
     [shippingToType, schools, groups, vendors]
@@ -313,6 +323,7 @@ export function CreateOrderForm({
     const query = shippingToCode.trim().toLowerCase();
 
     return shippingOptions
+      .filter((option) => shippingPartyType === "vendor" || option.isGroup === (shippingPartyType === "group"))
       .filter(
         (option) =>
           !query ||
@@ -320,7 +331,7 @@ export function CreateOrderForm({
           option.name.toLowerCase().includes(query)
       )
       .slice(0, 50);
-  }, [shippingOptions, shippingToCode]);
+  }, [shippingOptions, shippingToCode, shippingPartyType]);
 
   const selectedBillingSchool =
     billingToType === "school"
@@ -437,6 +448,7 @@ export function CreateOrderForm({
 
   function setBilling(value: string) {
     const selected = billingOptions.find((option) => option.value === value);
+    if (selected) setBillingReferenceType(selected.isGroup ? "group" : "school");
     if (selectedGs && selected?.code === billingToCode && orderType === "combined") {
       setIsBillingDropdownOpen(false);
       return;
@@ -475,6 +487,7 @@ export function CreateOrderForm({
     const selected = billingOptions.find(
       (option) => option.code.toLowerCase() === rawCode.trim().toLowerCase()
     );
+    if (selected) setBillingReferenceType(selected.isGroup ? "group" : "school");
 
     form.setValue("sheet1.billingToName", selected?.name ?? "");
     form.setValue("sheet1.booksellerType", selected?.type ?? "");
@@ -505,9 +518,13 @@ export function CreateOrderForm({
 
   function setShipping(value: string) {
     const selected = shippingOptions.find((option) => option.value === value);
+    if (selected) setShippingReferenceType(selected.isGroup ? "group" : "school");
     form.setValue("sheet1.shippingToCode", selected?.code ?? "");
     form.setValue("sheet1.shippingToName", selected?.name ?? "");
     form.setValue("sheet1.shippingToSummary", selected?.addressSummary ?? "");
+    if (selected?.isGroup) {
+      setShippingGroupBilling(selected.code, selected.name);
+    }
     setIsShippingDropdownOpen(false);
   }
 
@@ -518,9 +535,22 @@ export function CreateOrderForm({
     const selected = shippingOptions.find(
       (option) => option.code.toLowerCase() === rawCode.trim().toLowerCase()
     );
+    if (selected) setShippingReferenceType(selected.isGroup ? "group" : "school");
 
     form.setValue("sheet1.shippingToName", selected?.name ?? "");
     form.setValue("sheet1.shippingToSummary", selected?.addressSummary ?? "");
+    if (selected?.isGroup) {
+      setShippingGroupBilling(selected.code, selected.name);
+    }
+  }
+
+  function setShippingGroupBilling(code: string, name: string) {
+    form.setValue("sheet1.billingToType", "school");
+    form.setValue("sheet1.billingToCode", code);
+    form.setValue("sheet1.billingToName", name);
+    form.setValue("sheet1.booksellerType", "");
+    form.setValue("sheet1.booksellerRating", "");
+    switchOrderType("combined");
   }
 
   function setAmbiguousSchool(index: number, optionKey: string) {
@@ -673,7 +703,7 @@ export function CreateOrderForm({
       form.setValue("ambiguousSchools", []);
       form.setValue("ambiguousItems", []);
       const selectedSchool =
-        billingToType === "school"
+        form.getValues("sheet1.billingToType") === "school"
           ? findSchoolOptionByStoredValue([...schools, ...groups], form.getValues("sheet1.billingToCode"), form.getValues("sheet1.billingToName"))
           : schools[0];
       form.setValue("sheet1.billingToType", "school");
@@ -788,9 +818,11 @@ export function CreateOrderForm({
             <Field label="Billing To Type" error={errors.sheet1?.billingToType?.message}>
               <select
                 className={inputClass}
-                {...form.register("sheet1.billingToType", {
-                  onChange: (event) => {
-                    const nextType = event.target.value as "school" | "vendor";
+                value={billingPartyType}
+                onChange={(event) => {
+                    const nextType = event.target.value as "school" | "group" | "vendor";
+                    form.setValue("sheet1.billingToType", nextType === "vendor" ? "vendor" : "school");
+                    setBillingReferenceType(nextType === "group" ? "group" : "school");
                     if (nextType === "school" && orderType === "ambiguous") {
                       form.setValue("sheet1.orderType", "descriptive");
                       form.setValue("ambiguousSchools", []);
@@ -802,6 +834,8 @@ export function CreateOrderForm({
                     const first =
                       nextType === "school"
                         ? schools[0]
+                        : nextType === "group"
+                          ? groups[0]
                         : vendors[0]
                           ? { schoolCode: vendors[0].vendorCode, schoolName: vendors[0].vendorName }
                           : undefined;
@@ -813,10 +847,18 @@ export function CreateOrderForm({
                       form.setValue("ambiguousSchools", []);
                     }
                     setSelectedDescriptiveSchoolKey(nextType === "school" ? schools[0]?.optionKey ?? "" : "");
-                  }
-                })}
+                    if (nextType === "group" && first) {
+                      switchOrderType("combined");
+                    } else if (orderType === "combined") {
+                      form.setValue("sheet1.shippingToCode", first?.schoolCode ?? "");
+                      form.setValue("sheet1.shippingToName", first?.schoolName ?? "");
+                      form.setValue("sheet1.shippingToSummary", schools[0]?.addressSummary ?? "");
+                      setShippingReferenceType("school");
+                    }
+                }}
               >
                 <option value="school" disabled={orderType === "ambiguous"}>School</option>
+                <option value="group">Group</option>
                 <option value="vendor" disabled={orderType === "combined"}>Vendor / Bookseller</option>
               </select>
             </Field>
@@ -862,12 +904,16 @@ export function CreateOrderForm({
             <Field label="Shipping To Type">
               <select
                 className={inputClass}
-                {...form.register("sheet1.shippingToType", {
-                  onChange: (event) => {
-                    const nextType = event.target.value as "school" | "vendor";
+                value={shippingPartyType}
+                onChange={(event) => {
+                    const nextType = event.target.value as "school" | "group" | "vendor";
+                    form.setValue("sheet1.shippingToType", nextType === "vendor" ? "vendor" : "school");
+                    setShippingReferenceType(nextType === "group" ? "group" : "school");
                     const first =
                       nextType === "school"
                         ? schools[0]
+                        : nextType === "group"
+                          ? groups[0]
                         : vendors[0]
                           ? {
                               schoolCode: vendors[0].vendorCode,
@@ -878,11 +924,14 @@ export function CreateOrderForm({
                     form.setValue("sheet1.shippingToCode", first?.schoolCode ?? "");
                     form.setValue("sheet1.shippingToName", first?.schoolName ?? "");
                     form.setValue("sheet1.shippingToSummary", first?.addressSummary ?? "");
-                  }
-                })}
+                    if (nextType === "group" && first) {
+                      setShippingGroupBilling(first.schoolCode, first.schoolName);
+                    }
+                }}
                 disabled={orderType === "combined"}
               >
                 <option value="school">School</option>
+                <option value="group">Group</option>
                 <option value="vendor">Vendor / Bookseller</option>
               </select>
             </Field>

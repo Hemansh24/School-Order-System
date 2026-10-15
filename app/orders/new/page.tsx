@@ -41,7 +41,7 @@ export default async function CreateOrderPage() {
     <>
       <PageHeader
         title="Create Order"
-        description="Create PT-code, GS-code, or Christian C1-group orders. Group choices are available in the Billing To and Shipping To search fields."
+        description="Create PT-code, GS-code, or Christian C-group orders. Choose Group in Billing To Type or Shipping To Type to search GS and C codes."
       />
       <CreateOrderForm
         schools={toSchoolOptions(reference.schools)}
