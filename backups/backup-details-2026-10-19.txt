@@ -1,0 +1,11 @@
+Project ZIP: order-backup-2026-10-19_23-46-46.zip
+Local PostgreSQL: postgres-2026-10-19T18-18-14-830Z.dump
+PostgreSQL format: pg_dump custom archive; archive directory and full SQL extraction checked using pg_restore. No test database restoration performed.
+Cloud project: system-order-34c0a
+Cloud SQL instance: order-fdc
+Cloud SQL backup ID: 1792433923280
+Cloud SQL backup description: Project backup 2026-10-19
+Cloud backup is stored in Google Cloud, not inside this folder.
+Automatic cloud backups were disabled at time of inspection; settings were not changed.
+The ZIP contains .env credentials. Store backups securely and copy them to another disk for protection against disk failure.
+Cloud backup verified SUCCESSFUL; completed 2026-10-19 18:20:04 UTC.

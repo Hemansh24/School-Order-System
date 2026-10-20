@@ -10,7 +10,7 @@ const rollback = new Error('Verification rollback');
 const code = 'GS99999999';
 const dates = { sessionYear: '2026-2027', orderPlacedDate: '2026-10-13', orderReceivedDate: '2026-10-13', expectedDeliveryDate: '2026-10-14' };
 const input = (groupId: number, locationId?: number): CreateOrderInput => ({
-  sheet1: { ...dates, billingToType: 'school', billingToCode: code, billingToName: 'Test group', shippingToType: 'school', shippingToCode: code, shippingToName: 'Test group', shippingToSummary: 'Test address', orderType: 'combined', pendingPayment: false, schoolGroupId: groupId, schoolGroupLocationId: locationId },
+  sheet1: { ...dates, billingToType: 'individual', billingToCode: '', billingToName: 'Manual payer', shippingToType: 'individual', shippingToCode: '', shippingToName: 'Test group', shippingToSummary: 'Test address', orderType: 'descriptive', descriptiveMode: 'group', endUserGroupCode: code, pendingPayment: false, schoolGroupId: groupId, schoolGroupLocationId: locationId },
   descriptiveRows: [], ambiguousSchools: [], ambiguousItems: [],
   combinedSchools: [{ schoolCode: 'PT-UNRELATED', schoolName: 'Forged participant' }],
   combinedItems: [{ itemCode: 'TEST', itemName: 'Test', pooledQuantity: 1 }]
@@ -29,21 +29,22 @@ async function main() {
       const prepared = await prepareGsOrder(tx, input(group.schoolGroupId));
       assert.equal(prepared.combinedSchools.length, 1);
       assert.match(prepared.combinedSchools[0].schoolCode, /^PT\d+$/);
-      assert.equal(prepared.sheet1.shippingToCode, code);
-      assert.equal(prepared.sheet1.schoolGroupLocationId, location.schoolGroupLocationId);
-      assert.equal(prepared.sheet1.shippingToSummary, 'One shared address');
+      assert.equal(prepared.sheet1.shippingToCode, '');
+      assert.equal(prepared.sheet1.billingToName, 'Manual payer');
+      assert.equal(prepared.sheet1.schoolGroupLocationId, undefined);
+      assert.equal(prepared.sheet1.shippingToSummary, 'Test address');
       const member = await tx.organisation.findUniqueOrThrow({ where: { prCode: pr } });
       assert.equal(member.prCode, pr);
       assert.equal(member.ptCode, prepared.combinedSchools[0].schoolCode);
       const independent = await tx.organisation.findUniqueOrThrow({ where: { prCode: 'PR999999992' } });
       assert.equal(independent.ptCode, null);
       await tx.schoolGroupLocation.create({ data: { schoolGroupId: group.schoolGroupId, subCode: '2', name: 'Second address', address: 'Second shared address' } });
-      await assert.rejects(() => prepareGsOrder(tx, input(group.schoolGroupId)), /Choose a usable address/);
-      await assert.rejects(() => prepareGsOrder(tx, input(group.schoolGroupId, -1)), /Choose a usable address/);
-      const snapshot = { schoolGroupId: group.schoolGroupId, schoolGroupLocationId: location.schoolGroupLocationId, billingToCode: code, shippingToCode: code, billingToName: 'Saved name', shippingToName: 'Saved name', shippingToSummary: 'Saved address', combinedSchools: prepared.combinedSchools.map(row => ({ ...row, notes: null })) };
+      assert.equal((await prepareGsOrder(tx, input(group.schoolGroupId))).sheet1.shippingToSummary, 'Test address');
+      assert.equal((await prepareGsOrder(tx, input(group.schoolGroupId, -1))).sheet1.schoolGroupLocationId, undefined);
+      const snapshot = { endUserGroupCode: code, schoolGroupId: group.schoolGroupId, schoolGroupLocationId: location.schoolGroupLocationId, billingToCode: code, shippingToCode: code, billingToName: 'Saved name', shippingToName: 'Saved name', shippingToSummary: 'Saved address', combinedSchools: prepared.combinedSchools.map(row => ({ ...row, notes: null })) };
       await tx.organisation.update({ where: { prCode: pr }, data: { groupCode: null } });
       const preserved = await prepareGsOrder(tx, input(group.schoolGroupId, location.schoolGroupLocationId), snapshot);
-      assert.equal(preserved.sheet1.shippingToSummary, 'Saved address');
+      assert.equal(preserved.sheet1.shippingToSummary, 'Test address');
       assert.deepEqual(preserved.combinedSchools.map(row => row.schoolCode), prepared.combinedSchools.map(row => row.schoolCode));
       await tx.organisation.update({ where: { prCode: pr }, data: { groupCode: code } });
       const children: OrderSheet1[] = [];
@@ -62,11 +63,11 @@ async function main() {
       }
       assert.equal(await tx.orderSheet3.count({ where: { orderSheet1Id: parent.orderSheet1Id } }), 0);
       await assert.rejects(() => createParentGroupOrderTx(tx, group.schoolGroupId, [children[0].orderSheet1Id], dates), /already belong/);
-      const c1 = { ...input(group.schoolGroupId), sheet1: { ...input(group.schoolGroupId).sheet1, schoolGroupId: undefined, schoolGroupLocationId: undefined, billingToCode: 'C1-001', shippingToCode: 'C1-001' } };
+      const c1 = { ...input(group.schoolGroupId), sheet1: { ...input(group.schoolGroupId).sheet1, schoolGroupId: undefined, schoolGroupLocationId: undefined, descriptiveMode: 'school' as const, endUserGroupCode: '', billingToCode: 'C1-001', shippingToCode: 'C1-001' } };
       assert.deepEqual(await prepareGsOrder(tx, c1), c1);
-      const legacy = { ...snapshot, billingToCode: code + '-1', shippingToCode: code + '-1', schoolGroupId: null, schoolGroupLocationId: null };
-      const oldInput = { ...input(group.schoolGroupId), sheet1: { ...input(group.schoolGroupId).sheet1, schoolGroupId: undefined, billingToCode: code + '-1', shippingToCode: code + '-1' } };
-      assert.equal((await prepareGsOrder(tx, oldInput, legacy)).sheet1.shippingToSummary, 'Saved address');
+      const legacy = { ...snapshot, endUserGroupCode: code + '-1', billingToCode: code + '-1', shippingToCode: code + '-1', schoolGroupId: null, schoolGroupLocationId: null };
+      const oldInput = { ...input(group.schoolGroupId), sheet1: { ...input(group.schoolGroupId).sheet1, schoolGroupId: undefined, endUserGroupCode: code + '-1', billingToCode: code + '-1', shippingToCode: code + '-1' } };
+      assert.equal((await prepareGsOrder(tx, oldInput, legacy)).sheet1.shippingToSummary, 'Test address');
       assert.equal(createOrderSchema.safeParse(prepared).success, true);
       completed = true;
       throw rollback;
@@ -78,6 +79,6 @@ async function main() {
   assert.throws(() => parseGsRows([headers]), /empty/);
   assert.throws(() => parseGsRows([headers, [code, '1', 'Name'], [code, '1', 'Other name']]), /Duplicate/);
   assert.equal(parseGsRows([headers, [code, '1', 'Name', '', '', '', '', 'NA']])[0].address, null);
-  console.log('Passed GS membership, PR conversion, snapshots, multi-address validation, reporting groups, C1 compatibility, legacy orders, and import validation. All fixtures rolled back.');
+  console.log('Passed GS membership, PR conversion, snapshots, independent manual billing/shipping, reporting groups, C1 compatibility, legacy orders, and import validation. All fixtures rolled back.');
 }
 main().catch(error => { console.error(error instanceof Error ? error.message : 'Verification failed'); process.exitCode = 1; }).finally(() => prisma.$disconnect());

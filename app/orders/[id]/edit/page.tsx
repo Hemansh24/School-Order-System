@@ -1,3 +1,4 @@
+import { isGroupOrder } from "@/lib/order-model";
 import { notFound, redirect } from "next/navigation";
 import { CreateOrderForm } from "@/components/orders/create-order-form";
 import { PageHeader } from "@/components/ui";
@@ -10,8 +11,8 @@ import { extractContactNumbers } from "@/lib/contact-numbers";
 
 export const dynamic = "force-dynamic";
 
-function toInputDate(value: Date) {
-  return value.toISOString().slice(0, 10);
+function toInputDate(value: Date | null) {
+  return value?.toISOString().slice(0, 10) ?? "";
 }
 
 function toSchoolOptions(
@@ -52,7 +53,7 @@ export default async function EditOrderPage({
   }
 
   if (
-    order.orderStatus === "finalized" || order.orderStatus === "cancelled"
+    order.orderStatus === "finalized" || order.orderStatus === "cancelled" || order.classification !== "normal"
   ) {
     redirect(`/orders/${order.orderSheet1Id}`);
   }
@@ -61,18 +62,20 @@ export default async function EditOrderPage({
   const gsOptions = await getGsOrderOptions();
   const initialValues: CreateOrderInput = {
     sheet1: {
-      sessionYear: order.sessionYear,
+      sessionYear: order.sessionYear ?? "",
       orderPlacedDate: toInputDate(order.orderPlacedDate),
       orderReceivedDate: toInputDate(order.orderReceivedDate),
       expectedDeliveryDate: toInputDate(order.expectedDeliveryDate),
-      billingToType: order.billingToType,
-      billingToCode: order.billingToCode,
+      billingToType: order.billingToType === "school" && /^(GS|C)\d/i.test(order.billingToCode ?? "") ? "group" : order.billingToType,
+      billingToCode: order.billingToCode ?? "",
       billingToName: order.billingToName,
-      shippingToType: order.shippingToType,
-      shippingToCode: order.shippingToCode,
+      shippingToType: order.shippingToType === "school" && /^(GS|C)\d/i.test(order.shippingToCode ?? "") ? "group" : order.shippingToType,
+      shippingToCode: order.shippingToCode ?? "",
       shippingToName: order.shippingToName,
       shippingToSummary: order.shippingToSummary,
-      orderType: order.orderType,
+      orderType: order.orderType === "ambiguous" ? "ambiguous" : "descriptive",
+      descriptiveMode: isGroupOrder(order) ? "group" : "school",
+      endUserGroupCode: order.endUserGroupCode ?? "",
       schoolGroupId: order.schoolGroupId ?? undefined,
       schoolGroupLocationId: order.schoolGroupLocationId ?? undefined,
       booksellerType: order.booksellerType ?? "",
@@ -110,7 +113,7 @@ export default async function EditOrderPage({
         }))
         : [],
     combinedSchools:
-      order.orderType === "combined"
+      isGroupOrder(order)
         ? order.combinedSchools.map((row) => ({
             schoolCode: row.schoolCode,
             schoolName: row.schoolName,
@@ -118,7 +121,7 @@ export default async function EditOrderPage({
           }))
         : [],
     combinedItems:
-      order.orderType === "combined"
+      isGroupOrder(order)
         ? order.combinedItems.map((row) => ({
             itemCode: row.itemCode,
             itemName: row.itemName,

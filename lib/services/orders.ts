@@ -1,3 +1,4 @@
+import { isGroupOrder } from "@/lib/order-model";
 import {
   BillingToType,
   OrderStatus,
@@ -9,7 +10,6 @@ import { prepareGsOrder } from "@/lib/services/gs-orders";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { ensurePtCodesForSchoolCodesTx } from "@/lib/services/organisations";
-import { formatSchoolAddress, formatVendorAddress } from "@/lib/shipping";
 import { createOrderSchema, type CreateOrderInput } from "@/lib/validation/orders";
 
 const orderInclude = {
@@ -47,13 +47,19 @@ async function nextParentOrderNo(tx: Tx): Promise<number> {
 }
 
 async function assertShippingDestinationExists(tx: Tx, input: CreateOrderInput): Promise<void> {
-  if (input.sheet1.schoolGroupId && input.sheet1.schoolGroupLocationId) return;
+  if (input.sheet1.shippingToType === "individual") return;
+  if (input.sheet1.shippingToType === "group") {
+    const code = input.sheet1.shippingToCode;
+    const group = await tx.schoolGroup.findUnique({ where: { groupCode: code } });
+    if (!group && !(await findGroupLocationByCode(tx, code))) throw new Error("Shipping group must exist.");
+    return;
+  }
   if (input.sheet1.shippingToType === "school") {
     const school = await tx.school.findUnique({
       where: { schoolCode: input.sheet1.shippingToCode }
     });
 
-    if (!school && !(await findGroupLocationByCode(tx, input.sheet1.shippingToCode)) && !(await findChristianGroupByCode(tx, input.sheet1.shippingToCode))) throw new Error("Shipping school, GS-code location, or Christian group must exist.");
+    if (!school && !(await findGroupLocationByCode(tx, input.sheet1.shippingToCode)) && !(await findGroupByCode(tx, input.sheet1.shippingToCode))) throw new Error("Shipping school, GS-code location, or Christian group must exist.");
 
     return;
   }
@@ -67,32 +73,6 @@ async function assertShippingDestinationExists(tx: Tx, input: CreateOrderInput):
   }
 }
 
-async function resolveShippingSummary(tx: Tx, input: CreateOrderInput) {
-  if (input.sheet1.schoolGroupId && input.sheet1.schoolGroupLocationId) return input.sheet1.shippingToSummary;
-  if (input.sheet1.shippingToType === "school") {
-    const school = await tx.school.findUnique({
-      where: { schoolCode: input.sheet1.shippingToCode }
-    });
-
-    if (school) return formatSchoolAddress(school);
-    const groupLocation = await findGroupLocationByCode(tx, input.sheet1.shippingToCode);
-    if (groupLocation) return formatSchoolAddress(groupLocation);
-    const christianGroup = await findChristianGroupByCode(tx, input.sheet1.shippingToCode);
-    if (christianGroup) return formatSchoolAddress(christianGroup);
-    throw new Error("Shipping school, GS-code location, or Christian group must exist.");
-  }
-
-  const vendor = await tx.vendor.findFirst({
-    where: { vendorCode: input.sheet1.shippingToCode }
-  });
-
-  if (!vendor) {
-    throw new Error("Shipping vendor must exist.");
-  }
-
-  return formatVendorAddress(vendor.address);
-}
-
 async function findGroupLocationByCode(tx: Tx, code: string) {
   const match = code.trim().match(/^(GS\d+)-(\d+)$/i);
   if (!match) return null;
@@ -103,11 +83,10 @@ async function findGroupLocationByCode(tx: Tx, code: string) {
   });
 }
 
-async function findChristianGroupByCode(tx: Tx, code: string) {
+async function findGroupByCode(tx: Tx, code: string) {
   return tx.schoolGroup.findFirst({
     where: {
-      groupCode: { equals: code.trim(), mode: "insensitive" },
-      sourceType: "CHRISTIAN"
+      groupCode: { equals: code.trim(), mode: "insensitive" }
     },
     select: { address: true, district: true, state: true, pincode: true }
   });
@@ -187,7 +166,6 @@ export async function getDashboardData() {
     cancelledOrders,
     descriptiveOrders,
     ambiguousOrders,
-    combinedOrders,
     pendingPayments,
     onHoldOrders,
     recentOrders
@@ -202,7 +180,6 @@ export async function getDashboardData() {
     prisma.orderSheet1.count({ where: { orderStatus: "cancelled" } }),
     prisma.orderSheet1.count({ where: { orderType: "descriptive" } }),
     prisma.orderSheet1.count({ where: { orderType: "ambiguous" } }),
-    prisma.orderSheet1.count({ where: { orderType: "combined" } }),
     prisma.orderSheet1.count({ where: { pendingPayment: true } }),
     prisma.orderSheet3.count({
       where: { cancelOrOnHoldStatus: "on_hold" }
@@ -223,7 +200,6 @@ export async function getDashboardData() {
       cancelledOrders,
       descriptiveOrders,
       ambiguousOrders,
-      combinedOrders,
       pendingPayments,
       onHoldOrders
     },
@@ -251,32 +227,34 @@ export async function createOrder(input: CreateOrderInput) {
   const created = await prisma.$transaction(async (tx) => {
     const prepared = await prepareGsOrder(tx, parsed);
     await assertShippingDestinationExists(tx, prepared);
-    const ptCodeByOriginalCode = /^GS\d+(?:-\d+)?$/i.test(prepared.sheet1.billingToCode) ? new Map<string, string>() : await ensurePtCodesForSchoolCodesTx(
+    const ptCodeByOriginalCode = await ensurePtCodesForSchoolCodesTx(
       tx,
       schoolCodesTouchedByOrder(prepared)
     );
     const schoolCodeInput = applyPtCodesToOrder(prepared, ptCodeByOriginalCode);
     const orderInput = schoolCodeInput;
     const orderNo = await nextParentOrderNo(tx);
-    const shippingToSummary = await resolveShippingSummary(tx, orderInput);
+    const shippingToSummary = orderInput.sheet1.shippingToSummary;
 
     const order = await tx.orderSheet1.create({
       data: {
         orderNo,
-        sessionYear: orderInput.sheet1.sessionYear,
+        sessionYear: orderInput.sheet1.sessionYear || null,
         orderPlacedDate: toDate(orderInput.sheet1.orderPlacedDate),
-        orderReceivedDate: toDate(orderInput.sheet1.orderReceivedDate),
-        expectedDeliveryDate: toDate(orderInput.sheet1.expectedDeliveryDate),
+        orderReceivedDate: orderInput.sheet1.orderReceivedDate ? toDate(orderInput.sheet1.orderReceivedDate) : null,
+        expectedDeliveryDate: orderInput.sheet1.expectedDeliveryDate ? toDate(orderInput.sheet1.expectedDeliveryDate) : null,
         schoolGroupId: orderInput.sheet1.schoolGroupId ?? null,
         schoolGroupLocationId: orderInput.sheet1.schoolGroupLocationId ?? null,
         billingToType: orderInput.sheet1.billingToType as BillingToType,
-        billingToCode: orderInput.sheet1.billingToCode,
+        billingToCode: orderInput.sheet1.billingToCode || null,
         billingToName: orderInput.sheet1.billingToName,
         shippingToType: orderInput.sheet1.shippingToType as BillingToType,
-        shippingToCode: orderInput.sheet1.shippingToCode,
+        shippingToCode: orderInput.sheet1.shippingToCode || null,
         shippingToName: orderInput.sheet1.shippingToName,
         shippingToSummary,
         orderType: orderInput.sheet1.orderType as OrderType,
+        descriptiveMode: orderInput.sheet1.orderType === "descriptive" ? orderInput.sheet1.descriptiveMode ?? "school" : null,
+        endUserGroupCode: isGroupOrder(orderInput.sheet1) ? orderInput.sheet1.endUserGroupCode : null,
         orderStatus: "draft",
         booksellerType: orderInput.sheet1.booksellerType || null,
         booksellerRating: orderInput.sheet1.booksellerRating || null,
@@ -286,7 +264,7 @@ export async function createOrder(input: CreateOrderInput) {
       }
     });
 
-    if (orderInput.sheet1.orderType === "descriptive") {
+    if (orderInput.sheet1.orderType === "descriptive" && !isGroupOrder(orderInput.sheet1)) {
       await tx.orderSheet2A.createMany({
         data: orderInput.descriptiveRows.map((row) => ({
           orderSheet1Id: order.orderSheet1Id,
@@ -363,7 +341,7 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
     if (current.orderStatus === "finalized" || current.orderStatus === "cancelled") throw new Error("Finalized and cancelled orders cannot be edited.");
     const prepared = await prepareGsOrder(tx, parsed, current);
     await assertShippingDestinationExists(tx, prepared);
-    const ptCodeByOriginalCode = /^GS\d+(?:-\d+)?$/i.test(prepared.sheet1.billingToCode) ? new Map<string, string>() : await ensurePtCodesForSchoolCodesTx(
+    const ptCodeByOriginalCode = await ensurePtCodesForSchoolCodesTx(
       tx,
       schoolCodesTouchedByOrder(prepared)
     );
@@ -381,28 +359,27 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
       tx.orderSheet2C2.deleteMany({ where: { orderSheet1Id } })
     ]);
 
-    const preservedGsDestination = /^GS\d+(?:-\d+)?$/i.test(existing.billingToCode) &&
-      existing.billingToCode.trim().toUpperCase() === orderInput.sheet1.billingToCode.trim().toUpperCase() &&
-      (orderInput.sheet1.schoolGroupLocationId ?? null) === existing.schoolGroupLocationId;
-    const shippingToSummary = preservedGsDestination ? existing.shippingToSummary : await resolveShippingSummary(tx, orderInput);
+    const shippingToSummary = orderInput.sheet1.shippingToSummary;
 
     const order = await tx.orderSheet1.update({
       where: { orderSheet1Id },
       data: {
-        sessionYear: orderInput.sheet1.sessionYear,
+        sessionYear: orderInput.sheet1.sessionYear || null,
         orderPlacedDate: toDate(orderInput.sheet1.orderPlacedDate),
-        orderReceivedDate: toDate(orderInput.sheet1.orderReceivedDate),
-        expectedDeliveryDate: toDate(orderInput.sheet1.expectedDeliveryDate),
+        orderReceivedDate: orderInput.sheet1.orderReceivedDate ? toDate(orderInput.sheet1.orderReceivedDate) : null,
+        expectedDeliveryDate: orderInput.sheet1.expectedDeliveryDate ? toDate(orderInput.sheet1.expectedDeliveryDate) : null,
         schoolGroupId: orderInput.sheet1.schoolGroupId ?? null,
         schoolGroupLocationId: orderInput.sheet1.schoolGroupLocationId ?? null,
         billingToType: orderInput.sheet1.billingToType as BillingToType,
-        billingToCode: orderInput.sheet1.billingToCode,
+        billingToCode: orderInput.sheet1.billingToCode || null,
         billingToName: orderInput.sheet1.billingToName,
         shippingToType: orderInput.sheet1.shippingToType as BillingToType,
-        shippingToCode: orderInput.sheet1.shippingToCode,
+        shippingToCode: orderInput.sheet1.shippingToCode || null,
         shippingToName: orderInput.sheet1.shippingToName,
         shippingToSummary,
         orderType: orderInput.sheet1.orderType as OrderType,
+        descriptiveMode: orderInput.sheet1.orderType === "descriptive" ? orderInput.sheet1.descriptiveMode ?? "school" : null,
+        endUserGroupCode: isGroupOrder(orderInput.sheet1) ? orderInput.sheet1.endUserGroupCode : null,
         booksellerType: orderInput.sheet1.booksellerType || null,
         booksellerRating: orderInput.sheet1.booksellerRating || null,
         pendingPayment: orderInput.sheet1.pendingPayment,
@@ -411,7 +388,7 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
       }
     });
 
-    if (orderInput.sheet1.orderType === "descriptive") {
+    if (orderInput.sheet1.orderType === "descriptive" && !isGroupOrder(orderInput.sheet1)) {
       await tx.orderSheet2A.createMany({
         data: orderInput.descriptiveRows.map((row) => ({
           orderSheet1Id,
@@ -496,21 +473,21 @@ export async function lockOrder(orderSheet1Id: number) {
   if (order.orderStatus === "finalized" || order.orderStatus === "cancelled") {
     throw new Error("Finalized or cancelled orders cannot be locked again.");
   }
-  if (order.orderType === "descriptive" && order.descriptiveRows.length === 0) {
+  if (order.orderType === "descriptive" && !isGroupOrder(order) && order.descriptiveRows.length === 0) {
     throw new Error("Descriptive orders need Order Sheet 2A rows before locking.");
   }
   if (
     order.orderType === "ambiguous" &&
-    (order.ambiguousSchools.length === 0 || order.ambiguousItems.length === 0)
+    order.ambiguousItems.length === 0
   ) {
-    throw new Error("Ambiguous orders need Order Sheet 2B1 and 2B2 rows before locking.");
+    throw new Error("Ambiguous orders need grouped items before locking.");
   }
   if (
     order.classification !== "direct_group" &&
-    order.orderType === "combined" &&
+    isGroupOrder(order) &&
     (order.combinedSchools.length === 0 || order.combinedItems.length === 0)
   ) {
-    throw new Error("Combined orders need participating schools and pooled items before locking.");
+    throw new Error("Descriptive group orders need participating schools and pooled items before locking.");
   }
   if (order.classification === "direct_group" && (order.groupParticipants.length === 0 || order.groupItems.length === 0)) {
     throw new Error("Direct group orders need participating schools and pooled items before locking.");
@@ -557,7 +534,7 @@ export async function finalizeOrder(orderSheet1Id: number) {
       return tx.orderSheet1.update({ where: { orderSheet1Id }, data: { orderStatus: "finalized" }, include: orderInclude });
     }
 
-    if (order.orderType === "descriptive") {
+    if (order.orderType === "descriptive" && !isGroupOrder(order)) {
       if (order.ambiguousSchools.length > 0 || order.ambiguousItems.length > 0 || order.combinedSchools.length > 0 || order.combinedItems.length > 0) {
         throw new Error("Descriptive orders cannot finalize with ambiguous or combined rows.");
       }
@@ -592,8 +569,8 @@ export async function finalizeOrder(orderSheet1Id: number) {
       if (order.descriptiveRows.length > 0 || order.combinedSchools.length > 0 || order.combinedItems.length > 0) {
         throw new Error("Ambiguous orders cannot finalize with descriptive or combined rows.");
       }
-      if (order.ambiguousSchools.length === 0 || order.ambiguousItems.length === 0) {
-        throw new Error("Ambiguous orders require Order Sheet 2B1 and 2B2 rows.");
+      if (order.ambiguousItems.length === 0) {
+        throw new Error("Ambiguous orders require grouped items.");
       }
 
       for (const row of order.ambiguousItems) {
@@ -619,12 +596,12 @@ export async function finalizeOrder(orderSheet1Id: number) {
       }
     }
 
-    if (order.orderType === "combined") {
+    if (isGroupOrder(order)) {
       if (order.descriptiveRows.length > 0 || order.ambiguousSchools.length > 0 || order.ambiguousItems.length > 0) {
-        throw new Error("Combined orders cannot finalize with descriptive or ambiguous rows.");
+        throw new Error("Descriptive group orders cannot finalize with descriptive or ambiguous rows.");
       }
       if (order.combinedSchools.length === 0 || order.combinedItems.length === 0) {
-        throw new Error("Combined orders require participating schools and pooled items.");
+        throw new Error("Descriptive group orders require participating schools and pooled items.");
       }
 
       for (const row of order.combinedItems) {
@@ -852,7 +829,8 @@ export async function searchOrders(params: URLSearchParams): Promise<SearchOrder
   const where: Prisma.OrderSheet1WhereInput = {
     orderNo: orderNo ? Number(orderNo) : undefined,
     billingToType: billingToType ? (billingToType as BillingToType) : undefined,
-    orderType: orderType ? (orderType as OrderType) : undefined,
+    orderType: orderType === "combined" ? "descriptive" : orderType ? (orderType as OrderType) : undefined,
+    descriptiveMode: orderType === "combined" ? "group" : undefined,
     classification: classification ? (classification as "normal" | "direct_group" | "group_parent") : undefined,
     orderStatus: orderStatus ? (orderStatus as OrderStatus) : undefined,
     sessionYear: sessionYear || undefined,

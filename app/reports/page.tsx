@@ -1,3 +1,4 @@
+import { isGroupOrder, orderTypeLabel } from "@/lib/order-model";
 import Link from "next/link";
 import { ArrowRight, Search } from "lucide-react";
 import { Card, OrderNumber, PageHeader, StatusPill, SubmitButton } from "@/components/ui";
@@ -34,6 +35,8 @@ export default async function ReportsPage({
             <option value="">All</option>
             <option value="school">School</option>
             <option value="vendor">Vendor</option>
+            <option value="group">Group</option>
+            <option value="individual">Individual / manual</option>
           </Select>
           <Input name="billing" label="Billing Code/Name" defaultValue={params.get("billing") ?? ""} />
           <Input name="shipping" label="Shipping Code/Name" defaultValue={params.get("shipping") ?? ""} />
@@ -41,7 +44,7 @@ export default async function ReportsPage({
             <option value="">All</option>
             <option value="descriptive">Descriptive</option>
             <option value="ambiguous">Ambiguous</option>
-            <option value="combined">Combined</option>
+
           </Select>
           <Select name="classification" label="Classification" defaultValue={params.get("classification") ?? ""}>
             <option value="">All</option>
@@ -108,7 +111,7 @@ export default async function ReportsPage({
             <tbody className="divide-y divide-line">
               {orders.map((order) => {
                 const itemNames =
-                  order.orderType === "descriptive"
+                  (order.orderType === "descriptive" && !isGroupOrder(order))
                     ? order.descriptiveRows.map((row) => row.itemName)
                     : order.orderType === "ambiguous"
                       ? order.ambiguousItems.map((row) => row.itemName)
@@ -126,7 +129,7 @@ export default async function ReportsPage({
                       <div className="truncate text-xs">{order.shippingToSummary}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <StatusPill value={order.orderType} />
+                      <StatusPill value={orderTypeLabel(order)} />
                     </td>
                     <td className="px-4 py-3"><StatusPill value={order.classification} /></td>
                     <td className="px-4 py-3">

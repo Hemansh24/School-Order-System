@@ -1,8 +1,8 @@
 import { z } from "zod";
 
-export const orderTypeSchema = z.enum(["descriptive", "ambiguous", "combined"]);
-export const billingToTypeSchema = z.enum(["school", "vendor"]);
-export const shippingToTypeSchema = z.enum(["school", "vendor"]);
+export const orderTypeSchema = z.enum(["descriptive", "ambiguous"]);
+export const billingToTypeSchema = z.enum(["school", "vendor", "group", "individual"]);
+export const shippingToTypeSchema = z.enum(["school", "vendor", "group", "individual"]);
 export const orderStatusSchema = z.enum([
   "draft",
   "pending_confirmation",
@@ -22,18 +22,20 @@ const itemCodeSchema = z
 
 export const sheet1Schema = z
   .object({
-    sessionYear: z.string().min(4, "Session year is required"),
+    sessionYear: z.string().trim().default(""),
     orderPlacedDate: isoDate,
-    orderReceivedDate: isoDate,
-    expectedDeliveryDate: isoDate,
+    orderReceivedDate: z.union([isoDate, z.literal("")]).default(""),
+    expectedDeliveryDate: z.union([isoDate, z.literal("")]).default(""),
     billingToType: billingToTypeSchema,
-    billingToCode: z.string().min(1, "Billing code is required"),
-    billingToName: z.string().min(1, "Billing name is required"),
+    billingToCode: z.string().trim().default(""),
+    billingToName: z.string().trim().min(1, "Billing name is required"),
     shippingToType: shippingToTypeSchema,
-    shippingToCode: z.string().min(1, "Shipping code is required"),
-    shippingToName: z.string().min(1, "Shipping name is required"),
-    shippingToSummary: z.string().min(1, "Shipping address is required"),
+    shippingToCode: z.string().trim().default(""),
+    shippingToName: z.string().trim().min(1, "Shipping name is required"),
+    shippingToSummary: z.string().trim().min(1, "Shipping address is required"),
     orderType: orderTypeSchema,
+    descriptiveMode: z.enum(["school", "group"]).optional(),
+    endUserGroupCode: z.string().trim().optional(),
     schoolGroupId: z.number().int().positive().optional(),
     schoolGroupLocationId: z.number().int().positive().optional(),
     booksellerType: z.string().optional(),
@@ -46,14 +48,14 @@ export const sheet1Schema = z
     notes: z.string().optional()
   })
   .refine(
-    (data) => new Date(data.orderPlacedDate) <= new Date(data.orderReceivedDate),
+    (data) => !data.orderReceivedDate || new Date(data.orderPlacedDate) <= new Date(data.orderReceivedDate),
     {
       message: "Order placed date cannot be after order received date",
       path: ["orderPlacedDate"]
     }
   )
   .refine(
-    (data) => new Date(data.expectedDeliveryDate) >= new Date(data.orderReceivedDate),
+    (data) => !data.expectedDeliveryDate || !data.orderReceivedDate || new Date(data.expectedDeliveryDate) >= new Date(data.orderReceivedDate),
     {
       message: "Expected delivery date cannot be before order received date",
       path: ["expectedDeliveryDate"]
@@ -108,88 +110,33 @@ export const createOrderSchema = z
     combinedItems: z.array(sheet2C2RowSchema).default([])
   })
   .superRefine((data, ctx) => {
-    if (data.sheet1.orderType === "descriptive") {
-      if (data.descriptiveRows.length === 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["descriptiveRows"],
-          message: "Descriptive orders require at least one Order Sheet 2A row"
-        });
-      }
-      if (
-        data.ambiguousSchools.length > 0 ||
-        data.ambiguousItems.length > 0 ||
-        data.combinedSchools.length > 0 ||
-        data.combinedItems.length > 0
-      ) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["sheet1", "orderType"],
-          message: "Descriptive orders cannot contain ambiguous or combined rows"
-        });
+    const { orderType, descriptiveMode } = data.sheet1;
+    const group = orderType === "descriptive" && descriptiveMode === "group";
+    const school = orderType === "descriptive" && !group;
+    const issue = (path: string[], message: string) => ctx.addIssue({ code: z.ZodIssueCode.custom, path, message });
+    for (const party of ["billing", "shipping"] as const) {
+      if (data.sheet1[`${party}ToType`] !== "individual" && !data.sheet1[`${party}ToCode`]) {
+        issue(["sheet1", `${party}ToCode`], "Select a reference or choose Individual / manual entry");
       }
     }
-
-    if (data.sheet1.orderType === "ambiguous") {
-      if (data.sheet1.billingToType !== "vendor") {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["sheet1", "billingToType"],
-          message: "Ambiguous orders can only be placed by a vendor or bookseller"
-        });
-      }
-      if (data.ambiguousSchools.length === 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["ambiguousSchools"],
-          message: "Ambiguous orders require at least one Order Sheet 2B1 school row"
-        });
-      }
-      if (data.ambiguousItems.length === 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["ambiguousItems"],
-          message: "Ambiguous orders require at least one Order Sheet 2B2 item row"
-        });
-      }
-      if (
-        data.descriptiveRows.length > 0 ||
-        data.combinedSchools.length > 0 ||
-        data.combinedItems.length > 0
-      ) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["sheet1", "orderType"],
-          message: "Ambiguous orders cannot contain descriptive or combined rows"
-        });
-      }
+    if (school && !data.descriptiveRows.length) issue(["descriptiveRows"], "Add at least one school item quantity");
+    if (group) {
+      if (!data.sheet1.endUserGroupCode) issue(["sheet1", "endUserGroupCode"], "Select an end-school group");
+      if (!data.combinedSchools.length) issue(["combinedSchools"], "Group orders require participating schools");
+      if (!data.combinedItems.length) issue(["combinedItems"], "Group orders require pooled items");
     }
-
-    if (data.sheet1.orderType === "combined") {
-      if (data.sheet1.billingToType !== "school") {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["sheet1", "billingToType"], message: "Combined orders must be placed by a school" });
-      }
-      if (
-        data.sheet1.shippingToType !== "school" ||
-        data.sheet1.shippingToCode !== data.sheet1.billingToCode
-      ) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["sheet1", "shippingToCode"], message: "Combined-order shipping must match the billing school" });
-      }
-      if (data.combinedSchools.length === 0) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["combinedSchools"], message: "Combined orders require at least one participating school" });
-      }
-      if (new Set(data.combinedSchools.map((row) => row.schoolCode)).size !== data.combinedSchools.length) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["combinedSchools"], message: "A school can only be added once to a combined order" });
-      }
-      if (data.combinedItems.length === 0) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["combinedItems"], message: "Combined orders require at least one pooled item" });
-      }
-      if (new Set(data.combinedItems.map((row) => row.itemCode)).size !== data.combinedItems.length) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["combinedItems"], message: "An item can only be added once to a combined order" });
-      }
-      if (data.descriptiveRows.length > 0 || data.ambiguousSchools.length > 0 || data.ambiguousItems.length > 0) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["sheet1", "orderType"], message: "Combined orders cannot contain descriptive or ambiguous rows" });
-      }
+    if (orderType === "ambiguous" && !data.ambiguousItems.length) issue(["ambiguousItems"], "Add at least one grouped item quantity");
+    if ((!school && data.descriptiveRows.length) || (!group && (data.combinedSchools.length || data.combinedItems.length)) || (orderType !== "ambiguous" && (data.ambiguousSchools.length || data.ambiguousItems.length))) {
+      issue(["sheet1", "orderType"], "Remove rows belonging to another order type or descriptive mode");
+    }
+    for (const [name, keys] of [
+      ["descriptiveRows", data.descriptiveRows.map(row => `${row.schoolCode}:${row.itemCode}`)],
+      ["combinedSchools", data.combinedSchools.map(row => row.schoolCode)],
+      ["combinedItems", data.combinedItems.map(row => row.itemCode)],
+      ["ambiguousSchools", data.ambiguousSchools.map(row => row.schoolCode)],
+      ["ambiguousItems", data.ambiguousItems.map(row => row.itemCode)]
+    ] as const) {
+      if (new Set(keys).size !== keys.length) issue([name], "Duplicate entries are not allowed");
     }
   });
 

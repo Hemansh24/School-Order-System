@@ -1,3 +1,4 @@
+import { orderTypeLabel } from "@/lib/order-model";
 import Link from "next/link";
 import { ArrowRight, CalendarClock, ClipboardCheck, Layers3 } from "lucide-react";
 import { Card, OrderNumber, PageHeader, StatusPill } from "@/components/ui";
@@ -14,7 +15,6 @@ const statLabels: Record<string, string> = {
   cancelledOrders: "Cancelled orders",
   descriptiveOrders: "Descriptive orders",
   ambiguousOrders: "Ambiguous orders",
-  combinedOrders: "Combined orders",
   pendingPayments: "Pending payments",
   onHoldOrders: "On-hold orders"
 };
@@ -26,7 +26,7 @@ export default async function DashboardPage() {
     <>
       <PageHeader
         title="Operations Dashboard"
-        description="Track descriptive, ambiguous, and combined orders through finalization into Order Sheet 3."
+        description="Track descriptive and ambiguous orders through finalization into Order Sheet 3."
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
@@ -82,12 +82,12 @@ export default async function DashboardPage() {
                     <div className="font-medium text-ink">{order.shippingToName}</div>
                     <div className="truncate text-xs">{order.shippingToSummary}</div>
                   </td>
-                  <td className="px-4 py-3 capitalize">{order.orderType}</td>
+                  <td className="px-4 py-3 capitalize">{orderTypeLabel(order)}</td>
                   <td className="px-4 py-3">
                     <StatusPill value={order.orderStatus} />
                   </td>
                   <td className="px-4 py-3 text-muted">
-                    {order.expectedDeliveryDate.toLocaleDateString()}
+                    {order.expectedDeliveryDate?.toLocaleDateString() ?? "Not set"}
                   </td>
                   <td className="px-4 py-3">
                     <Link

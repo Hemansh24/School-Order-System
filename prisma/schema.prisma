@@ -10,6 +10,8 @@ datasource db {
 enum BillingToType {
   school
   vendor
+  group
+  individual
 }
 
 enum OrderType {
@@ -265,18 +267,20 @@ model Item {
 model OrderSheet1 {
   orderSheet1Id        Int           @id @default(autoincrement()) @map("order_sheet_1_id")
   orderNo              Int           @map("order_no")
-  sessionYear          String        @map("session_year")
+  sessionYear          String?       @map("session_year")
   orderPlacedDate      DateTime      @map("order_placed_date") @db.Date
-  orderReceivedDate    DateTime      @map("order_received_date") @db.Date
-  expectedDeliveryDate DateTime      @map("expected_delivery_date") @db.Date
+  orderReceivedDate    DateTime?     @map("order_received_date") @db.Date
+  expectedDeliveryDate DateTime?     @map("expected_delivery_date") @db.Date
   billingToType        BillingToType @map("billing_to_type")
-  billingToCode        String        @map("billing_to_code")
+  billingToCode        String?       @map("billing_to_code")
   billingToName        String        @map("billing_to_name")
   shippingToType       BillingToType @map("shipping_to_type")
-  shippingToCode       String        @map("shipping_to_code")
+  shippingToCode       String?       @map("shipping_to_code")
   shippingToName       String        @map("shipping_to_name")
   shippingToSummary    String        @map("shipping_to_summary")
   orderType            OrderType     @map("order_type")
+  descriptiveMode      String?       @map("descriptive_mode")
+  endUserGroupCode      String?       @map("end_user_group_code")
   classification        OrderClassification @default(normal) @map("classification")
   schoolGroupId         Int?         @map("school_group_id")
   schoolGroupLocationId Int?         @map("school_group_location_id")

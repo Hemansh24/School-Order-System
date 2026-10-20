@@ -1,3 +1,4 @@
+import { isGroupOrder } from "@/lib/order-model";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
@@ -22,8 +23,8 @@ export default async function DescriptiveEntryPage({
         title="Descriptive Entry - Order Sheet 2A"
         description="This editor is only shown for descriptive orders."
       />
-      {order.orderType !== "descriptive" ? (
-        <EmptyState>Order Sheet 2A is not available for ambiguous orders.</EmptyState>
+      {order.orderType !== "descriptive" || isGroupOrder(order) ? (
+        <EmptyState>Order Sheet 2A is only available for descriptive school orders.</EmptyState>
       ) : (
         <Card>
           <div className="border-b border-line p-4">

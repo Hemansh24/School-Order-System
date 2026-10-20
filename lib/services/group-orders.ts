@@ -13,7 +13,7 @@ async function nextNo(tx: Prisma.TransactionClient) {
 }
 
 export async function createDirectGroupOrder(locationId: number, ptCodes: string[], items: GroupItem[], input: GroupDates): Promise<never> {
-  throw new Error("Create GS combined orders from the Create Order screen.");
+  throw new Error("Create descriptive group orders from the Create Order screen.");
 }
 
 export async function createParentGroupOrder(groupId: number, childOrderIds: number[], input: GroupDates) {
@@ -33,9 +33,9 @@ export async function createParentGroupOrderTx(tx: Prisma.TransactionClient, gro
     if (alreadyLinked.length > 0) throw new Error("One or more selected PT orders already belong to a group order.");
     const members = await getGroupMembers(tx, group.groupCode);
     const codes = new Set(members.flatMap(member => member.ptCode ? [normalizeGroupCode(member.ptCode)] : []));
-    if (children.some(child => child.billingToType !== "school" || !/^PT\d+$/i.test(child.billingToCode) || !codes.has(normalizeGroupCode(child.billingToCode)) || child.schoolGroupId !== null)) throw new Error("Each child must be an independent PT-code order belonging to this GS group.");
+    if (children.some(child => child.billingToType !== "school" || !/^PT\d+$/i.test(child.billingToCode ?? "") || !codes.has(normalizeGroupCode(child.billingToCode ?? "")) || child.schoolGroupId !== null)) throw new Error("Each child must be an independent PT-code order belonging to this GS group.");
     const orderNo = await nextNo(tx);
-    const order = await tx.orderSheet1.create({ data: { orderNo, sessionYear: input.sessionYear, orderPlacedDate: date(input.orderPlacedDate), orderReceivedDate: date(input.orderReceivedDate), expectedDeliveryDate: date(input.expectedDeliveryDate), billingToType: "school", billingToCode: group.groupCode, billingToName: group.groupName, shippingToType: "school", shippingToCode: group.groupCode, shippingToName: "Multiple PT destinations", shippingToSummary: "Child PT-code orders retain their own shipping destinations.", orderType: "combined", classification: "group_parent", schoolGroupId: groupId, notes: input.notes || null } });
+    const order = await tx.orderSheet1.create({ data: { orderNo, sessionYear: input.sessionYear, orderPlacedDate: date(input.orderPlacedDate), orderReceivedDate: date(input.orderReceivedDate), expectedDeliveryDate: date(input.expectedDeliveryDate), billingToType: "school", billingToCode: group.groupCode, billingToName: group.groupName, shippingToType: "school", shippingToCode: group.groupCode, shippingToName: "Multiple PT destinations", shippingToSummary: "Child PT-code orders retain their own shipping destinations.", orderType: "descriptive", descriptiveMode: "group", endUserGroupCode: group.groupCode, classification: "group_parent", schoolGroupId: groupId, notes: input.notes || null } });
     await tx.orderGroupChildOrder.createMany({ data: childOrderIds.map((childOrderId) => ({ groupParentOrderId: order.orderSheet1Id, childOrderId })) });
     return order;
 }

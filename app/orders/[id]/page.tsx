@@ -1,3 +1,4 @@
+import { isGroupOrder, orderTypeLabel } from "@/lib/order-model";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card, EmptyState, OrderNumber, PageHeader, StatusPill } from "@/components/ui";
@@ -57,32 +58,33 @@ export default async function OrderDetailsPage({
             <Info label="Billing To">
               {order.billingToName}
               <span className="block text-xs text-muted">
-                {order.billingToType} - {order.billingToCode}
+                {order.billingToType}{order.billingToCode ? ` - ${order.billingToCode}` : ""}
               </span>
             </Info>
             <Info label="Shipping To">
               {order.shippingToName}
               <span className="block text-xs text-muted">
-                {order.shippingToType} - {order.shippingToCode}
+                {order.shippingToType}{order.shippingToCode ? ` - ${order.shippingToCode}` : ""}
               </span>
               <span className="block text-xs text-muted">{order.shippingToSummary}</span>
             </Info>
             <Info label="Order Type">
-              <span className="capitalize">{order.orderType}</span>
+              <span className="capitalize">{orderTypeLabel(order)}</span>
             </Info>
+            {isGroupOrder(order) ? <Info label="End-school group">{order.endUserGroupCode ?? "Saved group"}</Info> : null}
             <Info label="Contact numbers">{order.contactNumbers.join(", ") || "—"}</Info>
             <Info label="Classification"><span className="capitalize">{order.classification.replaceAll("_", " ")}</span></Info>
-            <Info label="Session Year">{order.sessionYear}</Info>
+            <Info label="Session Year">{order.sessionYear ?? "Not set"}</Info>
             <Info label="Order Placed">{order.orderPlacedDate.toLocaleDateString()}</Info>
-            <Info label="Order Received">{order.orderReceivedDate.toLocaleDateString()}</Info>
-            <Info label="Expected Delivery">{order.expectedDeliveryDate.toLocaleDateString()}</Info>
+            <Info label="Order Received">{order.orderReceivedDate?.toLocaleDateString() ?? "Not set"}</Info>
+            <Info label="Expected Delivery">{order.expectedDeliveryDate?.toLocaleDateString() ?? "Not set"}</Info>
           </div>
         </Card>
         <Card className="p-5">
           <h2 className="font-semibold text-ink">Workflow</h2>
           <div className="mt-4 space-y-3 text-sm">
             <FlowStep active label="Order Sheet 1" />
-            {order.orderType === "descriptive" ? (
+            {(order.orderType === "descriptive" && !isGroupOrder(order)) ? (
               <FlowStep active label="Order Sheet 2A" />
             ) : order.orderType === "ambiguous" ? (
               <>
@@ -103,8 +105,8 @@ export default async function OrderDetailsPage({
       {order.classification === "direct_group" ? (
         <div className="mb-6 grid gap-4 xl:grid-cols-2"><GroupParticipants rows={order.groupParticipants}/><GroupItems rows={order.groupItems}/></div>
       ) : order.classification === "group_parent" ? (
-        <Card className="mb-6"><TableTitle title="Linked PT Orders" subtitle="These orders retain their own destinations and fulfillment workflow." /><SimpleTable headers={["Order", "PT Code", "Shipping", "Status"]} rows={order.groupChildLinks.map((link) => [link.childOrder.orderNo, link.childOrder.billingToCode, link.childOrder.shippingToSummary, link.childOrder.orderStatus])}/></Card>
-      ) : order.orderType === "descriptive" ? (
+        <Card className="mb-6"><TableTitle title="Linked PT Orders" subtitle="These orders retain their own destinations and fulfillment workflow." /><SimpleTable headers={["Order", "PT Code", "Shipping", "Status"]} rows={order.groupChildLinks.map((link) => [link.childOrder.orderNo, link.childOrder.billingToCode ?? "", link.childOrder.shippingToSummary, link.childOrder.orderStatus])}/></Card>
+      ) : (order.orderType === "descriptive" && !isGroupOrder(order)) ? (
         <Sheet2ATable rows={order.descriptiveRows} />
       ) : order.orderType === "ambiguous" ? (
         <div className="mb-6 grid gap-4 xl:grid-cols-2">
@@ -121,7 +123,7 @@ export default async function OrderDetailsPage({
       <Sheet3Table rows={order.finalRows} />
 
       <div className="mt-6 flex flex-wrap gap-3 text-sm">
-        {order.classification !== "normal" ? null : order.orderType === "descriptive" ? (
+        {order.classification !== "normal" ? null : (order.orderType === "descriptive" && !isGroupOrder(order)) ? (
           <Link className="font-semibold text-brand-dark" href={`/orders/${order.orderSheet1Id}/descriptive`}>
             Open Descriptive Entry - Sheet 2A
           </Link>
@@ -131,7 +133,7 @@ export default async function OrderDetailsPage({
           </Link>
         ) : (
           <Link className="font-semibold text-brand-dark" href={`/orders/${order.orderSheet1Id}/combined`}>
-            Open Combined Entry - Sheet 2C1 and 2C2
+            Open Descriptive Group Entry - Sheet 2C1 and 2C2
           </Link>
         )}
         <Link className="font-semibold text-brand-dark" href={`/orders/${order.orderSheet1Id}/finalization`}>
@@ -234,7 +236,7 @@ function Sheet2C1Table({
 }) {
   return (
     <Card>
-      <TableTitle title="Order Sheet 2C1" subtitle="Schools participating in the combined order" />
+      <TableTitle title="Order Sheet 2C1" subtitle="Schools participating in the descriptive group order" />
       <SimpleTable headers={["School"]} rows={rows.map((row) => [`${row.schoolCode} - ${row.schoolName}`])} />
     </Card>
   );

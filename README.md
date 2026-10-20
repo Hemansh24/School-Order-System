@@ -1,6 +1,6 @@
 # School Book Order Operations Dashboard
 
-Next.js App Router application for school-book order processing with the required Order Sheet 1 -> 2A or 2B1/2B2 -> 3 workflow.
+Next.js App Router application for school-book order processing with the required Order Sheet 1 -> descriptive school/group or ambiguous entry -> Order Sheet 3 workflow.
 
 ## Stack
 
@@ -107,7 +107,11 @@ npx tsx scripts/verify-group-logic.ts
 
 Imports preserve record IDs, retire absent GS masters, and save pre-import JSON snapshots under `tmp/group-backups/` (excluded from Git). Raw source columns are stored in group metadata. The approved local `GSO198` correction is applied when `GS0198` exists; correcting the source organisation record separately prevents an organisation refresh from restoring that typo.
 
-GS combined orders include every member organisation, allocate PT codes to PR-only members when saved, and use one shared billing/shipping address. Multiple locations require an explicit choice. Saved participants and addresses remain snapshots. Reporting parents link independent member PT orders and preserve each child's destination and fulfillment; they cannot be finalized into fulfillment rows. Christian order behavior is unchanged.
+Order types are **Descriptive** (known end schools) and **Ambiguous** (end schools unknown). Descriptive Sheet 2 begins with School / Group: School records quantities per school/item; Group selects a GS or Christian group and records pooled item totals. GS groups include every member organisation and allocate PT codes to PR-only members when saved; Christian groups use an editable school list. Saved GS participants remain snapshots. Ambiguous school lists are optional; grouped item quantities are required.
+
+Sheet 1 requires billing, shipping recipient/address, order type, and placed date. Billing and shipping each support school, vendor, group, or individual/manual entry and are independent of the chosen end schools and order type. Manual recipients need no master record or reference code. Session year, received/delivery dates, and other metadata are optional. Group selection never replaces billing or shipping. Reporting parents retain their tracking-container behavior and cannot be finalized.
+
+The `202610200001_flexible_order_parties` migration converts combined orders to descriptive/group while retaining existing row IDs, quantities, snapshots, and fulfillment sources. The legacy database enum value and combined-sheet URLs remain for compatibility. Run `node --import tsx --test lib/contact-numbers.test.ts lib/validation/orders.test.ts` for validation checks. `scripts/verify-group-logic.ts` tests GS behavior inside a rolled-back transaction. `scripts/verify-order-flow.ts` exercises committed save/edit/lock/finalize transactions and is guarded to run only against the disposable local verification database on port 55439.
 
 7. Start the development server:
 

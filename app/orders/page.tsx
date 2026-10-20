@@ -1,3 +1,4 @@
+import { orderTypeLabel } from "@/lib/order-model";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { ButtonLink, Card, OrderNumber, PageHeader, StatusPill } from "@/components/ui";
@@ -43,7 +44,7 @@ export default async function OrdersPage() {
                     <div className="font-medium text-ink">{order.shippingToName}</div>
                     <div className="truncate text-xs">{order.shippingToSummary}</div>
                   </td>
-                  <td className="px-4 py-3 capitalize">{order.orderType}</td>
+                  <td className="px-4 py-3 capitalize">{orderTypeLabel(order)}</td>
                   <td className="px-4 py-3 capitalize">{order.classification.replaceAll("_", " ")}</td>
                   <td className="px-4 py-3">
                     <StatusPill value={order.orderStatus} />

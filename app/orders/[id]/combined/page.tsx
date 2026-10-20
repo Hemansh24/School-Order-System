@@ -1,3 +1,4 @@
+import { isGroupOrder } from "@/lib/order-model";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
@@ -15,11 +16,11 @@ export default async function CombinedEntryPage({ params }: { params: Promise<{ 
   return (
     <>
       <PageHeader
-        title="Combined Entry - Order Sheet 2C1 and 2C2"
+        title="Descriptive Group Entry - Order Sheet 2C1 and 2C2"
         description="Participating schools share the pooled item quantities in this order."
       />
-      {order.orderType !== "combined" ? (
-        <EmptyState>Order Sheet 2C1/2C2 is only available for combined orders.</EmptyState>
+      {!isGroupOrder(order) ? (
+        <EmptyState>Order Sheet 2C1/2C2 is only available for descriptive group orders.</EmptyState>
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">
           <Card>

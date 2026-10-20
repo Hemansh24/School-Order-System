@@ -26,7 +26,7 @@ export default async function FinalizationPage({
         <div className="border-b border-line p-4">
           <h2 className="font-semibold text-ink">Final fulfillment rows</h2>
           <p className="text-sm text-muted">
-            Descriptive quantities come from 2A. Ambiguous quantities come from 2B2.
+            Descriptive school quantities come from 2A, descriptive group totals from 2C2, and ambiguous totals from 2B2.
           </p>
         </div>
         {order.finalRows.length === 0 ? (
