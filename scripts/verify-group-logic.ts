@@ -10,7 +10,7 @@ const rollback = new Error('Verification rollback');
 const code = 'GS99999999';
 const dates = { sessionYear: '2026-2027', orderPlacedDate: '2026-10-13', orderReceivedDate: '2026-10-13', expectedDeliveryDate: '2026-10-14' };
 const input = (groupId: number, locationId?: number): CreateOrderInput => ({
-  sheet1: { ...dates, billingToType: 'individual', billingToCode: '', billingToName: 'Manual payer', shippingToType: 'individual', shippingToCode: '', shippingToName: 'Test group', shippingToSummary: 'Test address', orderType: 'descriptive', descriptiveMode: 'group', endUserGroupCode: code, pendingPayment: false, schoolGroupId: groupId, schoolGroupLocationId: locationId },
+  sheet1: { ...dates, billingToType: 'individual', billingToCode: '', billingToName: 'Manual payer', shippingToType: 'individual', shippingToCode: '', shippingToName: 'Test group', shippingToSummary: 'Test address', orderType: 'descriptive', descriptiveMode: 'multiple_group', endUserGroupCode: code, pendingPayment: false, schoolGroupId: groupId, schoolGroupLocationId: locationId },
   descriptiveRows: [], ambiguousSchools: [], ambiguousItems: [],
   combinedSchools: [{ schoolCode: 'PT-UNRELATED', schoolName: 'Forged participant' }],
   combinedItems: [{ itemCode: 'TEST', itemName: 'Test', pooledQuantity: 1 }]
@@ -63,7 +63,7 @@ async function main() {
       }
       assert.equal(await tx.orderSheet3.count({ where: { orderSheet1Id: parent.orderSheet1Id } }), 0);
       await assert.rejects(() => createParentGroupOrderTx(tx, group.schoolGroupId, [children[0].orderSheet1Id], dates), /already belong/);
-      const c1 = { ...input(group.schoolGroupId), sheet1: { ...input(group.schoolGroupId).sheet1, schoolGroupId: undefined, schoolGroupLocationId: undefined, descriptiveMode: 'school' as const, endUserGroupCode: '', billingToCode: 'C1-001', shippingToCode: 'C1-001' } };
+      const c1 = { ...input(group.schoolGroupId), sheet1: { ...input(group.schoolGroupId).sheet1, schoolGroupId: undefined, schoolGroupLocationId: undefined, descriptiveMode: 'individual' as const, endUserGroupCode: '', billingToCode: 'C1-001', shippingToCode: 'C1-001' } };
       assert.deepEqual(await prepareGsOrder(tx, c1), c1);
       const legacy = { ...snapshot, endUserGroupCode: code + '-1', billingToCode: code + '-1', shippingToCode: code + '-1', schoolGroupId: null, schoolGroupLocationId: null };
       const oldInput = { ...input(group.schoolGroupId), sheet1: { ...input(group.schoolGroupId).sheet1, schoolGroupId: undefined, endUserGroupCode: code + '-1', billingToCode: code + '-1', shippingToCode: code + '-1' } };

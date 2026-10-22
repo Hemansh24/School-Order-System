@@ -1,4 +1,4 @@
-import { isGroupOrder } from "@/lib/order-model";
+import { entryModeForOrder, hasLegacySchoolAllocations, isPooledOrder } from "@/lib/order-model";
 import { notFound, redirect } from "next/navigation";
 import { CreateOrderForm } from "@/components/orders/create-order-form";
 import { PageHeader } from "@/components/ui";
@@ -74,7 +74,7 @@ export default async function EditOrderPage({
       shippingToName: order.shippingToName,
       shippingToSummary: order.shippingToSummary,
       orderType: order.orderType === "ambiguous" ? "ambiguous" : "descriptive",
-      descriptiveMode: isGroupOrder(order) ? "group" : "school",
+      descriptiveMode: entryModeForOrder(order),
       endUserGroupCode: order.endUserGroupCode ?? "",
       schoolGroupId: order.schoolGroupId ?? undefined,
       schoolGroupLocationId: order.schoolGroupLocationId ?? undefined,
@@ -113,7 +113,7 @@ export default async function EditOrderPage({
         }))
         : [],
     combinedSchools:
-      isGroupOrder(order)
+      isPooledOrder(order)
         ? order.combinedSchools.map((row) => ({
             schoolCode: row.schoolCode,
             schoolName: row.schoolName,
@@ -121,7 +121,7 @@ export default async function EditOrderPage({
           }))
         : [],
     combinedItems:
-      isGroupOrder(order)
+      isPooledOrder(order)
         ? order.combinedItems.map((row) => ({
             itemCode: row.itemCode,
             itemName: row.itemName,
@@ -166,6 +166,7 @@ export default async function EditOrderPage({
           mrp: item.mrp?.toString() ?? null
         }))}
         initialValues={initialValues}
+        requiresLegacyConversion={hasLegacySchoolAllocations(order)}
         orderSheet1Id={order.orderSheet1Id}
         submitLabel="Save Changes"
       />

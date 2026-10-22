@@ -1,4 +1,4 @@
-import { isGroupOrder, orderTypeLabel } from "@/lib/order-model";
+import { hasLegacySchoolAllocations, isGroupOrder, isPooledOrder, orderTypeLabel } from "@/lib/order-model";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card, EmptyState, OrderNumber, PageHeader, StatusPill } from "@/components/ui";
@@ -84,7 +84,7 @@ export default async function OrderDetailsPage({
           <h2 className="font-semibold text-ink">Workflow</h2>
           <div className="mt-4 space-y-3 text-sm">
             <FlowStep active label="Order Sheet 1" />
-            {(order.orderType === "descriptive" && !isGroupOrder(order)) ? (
+            {(order.orderType === "descriptive" && !isPooledOrder(order)) ? (
               <FlowStep active label="Order Sheet 2A" />
             ) : order.orderType === "ambiguous" ? (
               <>
@@ -106,7 +106,7 @@ export default async function OrderDetailsPage({
         <div className="mb-6 grid gap-4 xl:grid-cols-2"><GroupParticipants rows={order.groupParticipants}/><GroupItems rows={order.groupItems}/></div>
       ) : order.classification === "group_parent" ? (
         <Card className="mb-6"><TableTitle title="Linked PT Orders" subtitle="These orders retain their own destinations and fulfillment workflow." /><SimpleTable headers={["Order", "PT Code", "Shipping", "Status"]} rows={order.groupChildLinks.map((link) => [link.childOrder.orderNo, link.childOrder.billingToCode ?? "", link.childOrder.shippingToSummary, link.childOrder.orderStatus])}/></Card>
-      ) : (order.orderType === "descriptive" && !isGroupOrder(order)) ? (
+      ) : (order.orderType === "descriptive" && !isPooledOrder(order)) ? (
         <Sheet2ATable rows={order.descriptiveRows} />
       ) : order.orderType === "ambiguous" ? (
         <div className="mb-6 grid gap-4 xl:grid-cols-2">
@@ -120,10 +120,12 @@ export default async function OrderDetailsPage({
         </div>
       )}
 
+      {hasLegacySchoolAllocations(order) ? <p className="mb-6 text-sm text-muted">This older order retains its original per-school quantities. Editing and saving converts them to shared item totals.</p> : null}
+
       <Sheet3Table rows={order.finalRows} />
 
       <div className="mt-6 flex flex-wrap gap-3 text-sm">
-        {order.classification !== "normal" ? null : (order.orderType === "descriptive" && !isGroupOrder(order)) ? (
+        {order.classification !== "normal" ? null : (order.orderType === "descriptive" && !isPooledOrder(order)) ? (
           <Link className="font-semibold text-brand-dark" href={`/orders/${order.orderSheet1Id}/descriptive`}>
             Open Descriptive Entry - Sheet 2A
           </Link>
@@ -133,7 +135,7 @@ export default async function OrderDetailsPage({
           </Link>
         ) : (
           <Link className="font-semibold text-brand-dark" href={`/orders/${order.orderSheet1Id}/combined`}>
-            Open Descriptive Group Entry - Sheet 2C1 and 2C2
+            Open Multiple Descriptive Entry - Sheet 2C1 and 2C2
           </Link>
         )}
         <Link className="font-semibold text-brand-dark" href={`/orders/${order.orderSheet1Id}/finalization`}>
@@ -236,7 +238,7 @@ function Sheet2C1Table({
 }) {
   return (
     <Card>
-      <TableTitle title="Order Sheet 2C1" subtitle="Schools participating in the descriptive group order" />
+      <TableTitle title="Order Sheet 2C1" subtitle="Schools participating in the multiple order" />
       <SimpleTable headers={["School"]} rows={rows.map((row) => [`${row.schoolCode} - ${row.schoolName}`])} />
     </Card>
   );

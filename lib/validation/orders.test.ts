@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { normalizeOrderEntry } from "../order-entry";
+import type { CreateOrderInput } from "./orders";
 import { createOrderSchema, sheet1Schema } from "./orders";
-import { isGroupOrder, orderTypeLabel } from "../order-model";
+import { isGroupOrder, isPooledOrder, hasLegacySchoolAllocations, orderTypeLabel } from "../order-model";
 
 const sheet1 = {
   billingToType: "individual", billingToCode: "", billingToName: "Manual payer",
@@ -28,8 +30,8 @@ test("all billing/shipping combinations support either order type", () => {
     for (const shippingToType of ["school", "vendor", "group", "individual"]) {
       const parties = { ...sheet1, billingToType, shippingToType, billingToCode: "REF1", shippingToCode: "REF2" };
       assert.equal(createOrderSchema.safeParse({ ...ambiguous, sheet1: parties }).success, true);
-      assert.equal(createOrderSchema.safeParse({ sheet1: { ...parties, orderType: "descriptive", descriptiveMode: "school" }, descriptiveRows: [{ ...school, ...item, quantity: 2 }] }).success, true);
-      assert.equal(createOrderSchema.safeParse({ sheet1: { ...parties, orderType: "descriptive", descriptiveMode: "group", endUserGroupCode: "GS1" }, combinedSchools: [school], combinedItems: [{ ...item, pooledQuantity: 8 }] }).success, true);
+      assert.equal(createOrderSchema.safeParse({ sheet1: { ...parties, orderType: "descriptive", descriptiveMode: "individual" }, descriptiveRows: [{ ...school, ...item, quantity: 2 }] }).success, true);
+      assert.equal(createOrderSchema.safeParse({ sheet1: { ...parties, orderType: "descriptive", descriptiveMode: "multiple_group", endUserGroupCode: "GS1" }, combinedSchools: [school], combinedItems: [{ ...item, pooledQuantity: 8 }] }).success, true);
     }
   }
 });
@@ -41,7 +43,7 @@ test("ambiguous schools are optional but grouped quantities are required", () =>
 });
 
 test("group mode requires a group, participants, and pooled quantities", () => {
-  const input = { sheet1: { ...sheet1, orderType: "descriptive", descriptiveMode: "group", endUserGroupCode: "C1-001" }, combinedSchools: [school], combinedItems: [{ ...item, pooledQuantity: 5 }] };
+  const input = { sheet1: { ...sheet1, orderType: "descriptive", descriptiveMode: "multiple_group", endUserGroupCode: "C1-001" }, combinedSchools: [school], combinedItems: [{ ...item, pooledQuantity: 5 }] };
   assert.equal(createOrderSchema.safeParse(input).success, true);
   assert.equal(createOrderSchema.safeParse({ ...input, sheet1: { ...input.sheet1, endUserGroupCode: "" } }).success, false);
   assert.equal(createOrderSchema.safeParse({ ...input, combinedSchools: [] }).success, false);
@@ -50,10 +52,54 @@ test("group mode requires a group, participants, and pooled quantities", () => {
   assert.equal(createOrderSchema.safeParse({ ...input, descriptiveRows: [{ ...school, ...item, quantity: 1 }] }).success, false);
 });
 
-test("school quantities remain separate for multiple schools", () => {
-  const input = { sheet1: { ...sheet1, orderType: "descriptive", descriptiveMode: "school" }, descriptiveRows: [{ ...school, ...item, quantity: 2 }, { ...school, schoolCode: "PT2", ...item, quantity: 3 }] };
+test("individual orders reject a second school while allowing several items", () => {
+  const input = { sheet1: { ...sheet1, orderType: "descriptive", descriptiveMode: "individual" }, descriptiveRows: [{ ...school, ...item, quantity: 2 }, { ...school, schoolCode: "PT2", ...item, quantity: 3 }] };
+  assert.equal(createOrderSchema.safeParse(input).success, false);
+  assert.equal(createOrderSchema.safeParse({ ...input, descriptiveRows: [input.descriptiveRows[0], { ...input.descriptiveRows[0], itemCode: "ITEM2" }] }).success, true);
+});
+
+test("multiple schools require two distinct participants and shared item totals", () => {
+  const input = { sheet1: { ...sheet1, orderType: "descriptive", descriptiveMode: "multiple_schools" }, combinedSchools: [school, { ...school, schoolCode: "PT2" }], combinedItems: [{ ...item, pooledQuantity: 8 }] };
   assert.equal(createOrderSchema.safeParse(input).success, true);
-  assert.equal(createOrderSchema.safeParse({ ...input, descriptiveRows: [input.descriptiveRows[0], input.descriptiveRows[0]] }).success, false);
+  assert.equal(createOrderSchema.safeParse({ ...input, combinedSchools: [school] }).success, false);
+  assert.equal(createOrderSchema.safeParse({ ...input, combinedSchools: [school, school] }).success, false);
+  assert.equal(createOrderSchema.safeParse({ ...input, combinedItems: [] }).success, false);
+  assert.equal(createOrderSchema.safeParse({ ...input, descriptiveRows: [{ ...school, ...item, quantity: 1 }] }).success, false);
+  for (const pooledQuantity of [0, -1, 0.5]) assert.equal(createOrderSchema.safeParse({ ...input, combinedItems: [{ ...item, pooledQuantity }] }).success, false);
+  assert.equal(isGroupOrder(input.sheet1), false);
+  assert.equal(isPooledOrder(input.sheet1), true);
+});
+
+test("legacy multi-school allocations become shared totals without mutating the saved input", () => {
+  const original = {
+    ...createOrderSchema.parse({ ...ambiguous }),
+    sheet1: { ...createOrderSchema.parse(ambiguous).sheet1, orderType: "descriptive", descriptiveMode: "school" },
+    ambiguousItems: [], descriptiveRows: [{ ...school, ...item, quantity: 3, notes: "First school" }, { ...school, schoolCode: "PT2", ...item, quantity: 7, notes: "Second school" }]
+  } as unknown as CreateOrderInput;
+  const snapshot = structuredClone(original);
+  assert.equal(hasLegacySchoolAllocations({ ...original.sheet1, descriptiveRows: original.descriptiveRows }), true);
+  const converted = normalizeOrderEntry(original);
+  assert.equal(converted.sheet1.descriptiveMode, "multiple_schools");
+  assert.equal(converted.combinedSchools.length, 2);
+  assert.equal(converted.combinedItems.length, 1);
+  assert.equal(converted.combinedItems[0].pooledQuantity, 10);
+  assert.match(converted.combinedItems[0].notes ?? "", /First school/);
+  assert.match(converted.combinedItems[0].notes ?? "", /Second school/);
+  assert.equal(createOrderSchema.safeParse(converted).success, true);
+  assert.deepEqual(original, snapshot);
+  assert.deepEqual(normalizeOrderEntry(converted), converted);
+  assert.equal(isPooledOrder(original.sheet1), false);
+});
+
+test("legacy single-school and group entries normalize to the new modes", () => {
+  const base = createOrderSchema.parse(ambiguous);
+  const individual = normalizeOrderEntry({ ...base, sheet1: { ...base.sheet1, orderType: "descriptive", descriptiveMode: "school" }, ambiguousItems: [], descriptiveRows: [{ ...school, ...item, quantity: 4 }] } as unknown as CreateOrderInput);
+  assert.equal(individual.sheet1.descriptiveMode, "individual");
+  assert.equal(individual.descriptiveRows[0].quantity, 4);
+  const group = normalizeOrderEntry({ ...base, sheet1: { ...base.sheet1, orderType: "combined", billingToCode: "GS1" }, ambiguousItems: [], combinedSchools: [school], combinedItems: [{ ...item, pooledQuantity: 9 }] } as unknown as CreateOrderInput);
+  assert.equal(group.sheet1.descriptiveMode, "multiple_group");
+  assert.equal(group.sheet1.endUserGroupCode, "GS1");
+  assert.equal(createOrderSchema.safeParse(group).success, true);
 });
 
 test("rejects invalid quantities, mixed modes and the retired combined input", () => {
@@ -73,6 +119,6 @@ test("validates optional dates only when supplied", () => {
 
 test("legacy combined orders retain descriptive group semantics", () => {
   assert.equal(isGroupOrder({ orderType: "combined" }), true);
-  assert.equal(orderTypeLabel({ orderType: "combined" }), "Descriptive / Group");
-  assert.equal(isGroupOrder({ orderType: "descriptive", descriptiveMode: "school" }), false);
+  assert.equal(orderTypeLabel({ orderType: "combined" }), "Descriptive / Multiple / Group");
+  assert.equal(isGroupOrder({ orderType: "descriptive", descriptiveMode: "individual" }), false);
 });

@@ -8,6 +8,8 @@ import { useFieldArray, useForm } from "react-hook-form";
 import { createOrderAction, updateOrderAction } from "@/app/orders/actions";
 import { Card, SubmitButton } from "@/components/ui";
 import { compareEditionCodes, DEFAULT_LANGUAGE_CODE } from "@/lib/item-code";
+import { hasLegacySchoolAllocations, isPooledOrder, orderTypeLabel, type DescriptiveMode } from "@/lib/order-model";
+import { normalizeOrderEntry } from "@/lib/order-entry";
 import { createOrderSchema, type CreateOrderInput } from "@/lib/validation/orders";
 
 type SchoolRef = {
@@ -49,6 +51,7 @@ type Props = {
   initialValues?: CreateOrderInput;
   orderSheet1Id?: number;
   submitLabel?: string;
+  requiresLegacyConversion?: boolean;
 };
 
 const inputClass =
@@ -82,10 +85,12 @@ export function CreateOrderForm({
   items,
   initialValues,
   orderSheet1Id,
-  submitLabel = "Create Order"
+  submitLabel = "Create Order",
+  requiresLegacyConversion = false
 }: Props) {
   const router = useRouter();
   const [step, setStep] = useState(1);
+  const [legacySchoolConversion, setLegacySchoolConversion] = useState(requiresLegacyConversion);
   const [serverError, setServerError] = useState<string | null>(null);
   const [selectedDescriptiveSchoolKey, setSelectedDescriptiveSchoolKey] = useState("");
   const [selectedCategoryCode, setSelectedCategoryCode] = useState(items[0]?.categoryCode ?? "");
@@ -114,7 +119,7 @@ export function CreateOrderForm({
         shippingToName: "",
         shippingToSummary: "",
         orderType: "descriptive",
-        descriptiveMode: "school",
+        descriptiveMode: "individual",
         endUserGroupCode: "",
         booksellerType: "",
         booksellerRating: "",
@@ -150,7 +155,7 @@ export function CreateOrderForm({
   const form = useForm<CreateOrderInput>({
     resolver: zodResolver(createOrderSchema),
     mode: "onChange",
-    defaultValues: initialValues ?? newOrderDefaults
+    defaultValues: normalizeOrderEntry(initialValues ?? newOrderDefaults)
   });
 
   const orderType = form.watch("sheet1.orderType");
@@ -160,9 +165,10 @@ export function CreateOrderForm({
   const shippingToCode = form.watch("sheet1.shippingToCode");
   const billingPartyType = billingToType;
   const shippingPartyType = shippingToType;
-  const descriptiveMode = form.watch("sheet1.descriptiveMode") ?? "school";
+  const descriptiveMode = form.watch("sheet1.descriptiveMode") ?? "individual";
   const endUserGroupCode = form.watch("sheet1.endUserGroupCode") ?? "";
-  const isGroup = orderType === "descriptive" && descriptiveMode === "group";
+  const isGroup = orderType === "descriptive" && descriptiveMode === "multiple_group";
+  const isMultiple = orderType === "descriptive" && descriptiveMode !== "individual";
   const watchedDescriptiveRows = form.watch("descriptiveRows");
   const watchedAmbiguousItems = form.watch("ambiguousItems");
   const watchedCombinedItems = form.watch("combinedItems");
@@ -183,18 +189,11 @@ export function CreateOrderForm({
       if (savedDraft) {
         const parsedDraft: unknown = JSON.parse(savedDraft);
         if (isSavedOrderDraft(parsedDraft)) {
-          form.reset({
+          setLegacySchoolConversion(hasLegacySchoolAllocations({ ...parsedDraft.sheet1, descriptiveRows: parsedDraft.descriptiveRows }) || !!(parsedDraft as CreateOrderInput & { legacySchoolConversion?: boolean }).legacySchoolConversion);
+          form.reset(normalizeOrderEntry({
             ...parsedDraft,
-            sheet1: {
-              ...parsedDraft.sheet1,
-              orderType: (parsedDraft.sheet1.orderType as string) === "combined" ? "descriptive" : parsedDraft.sheet1.orderType,
-              descriptiveMode: (parsedDraft.sheet1.orderType as string) === "combined" ? "group" : parsedDraft.sheet1.descriptiveMode ?? "school",
-              endUserGroupCode: parsedDraft.sheet1.endUserGroupCode ?? ((parsedDraft.sheet1.orderType as string) === "combined" ? parsedDraft.sheet1.billingToCode : ""),
-              // Drafts saved before this field was introduced use their received date.
-              orderPlacedDate:
-                parsedDraft.sheet1.orderPlacedDate || parsedDraft.sheet1.orderReceivedDate
-            }
-          });
+            sheet1: { ...parsedDraft.sheet1, orderPlacedDate: parsedDraft.sheet1.orderPlacedDate || parsedDraft.sheet1.orderReceivedDate }
+          }));
         }
       }
     } catch {
@@ -210,11 +209,11 @@ export function CreateOrderForm({
     }
 
     const subscription = form.watch((values) => {
-      window.sessionStorage.setItem(ORDER_DRAFT_STORAGE_KEY, JSON.stringify(values));
+      window.sessionStorage.setItem(ORDER_DRAFT_STORAGE_KEY, JSON.stringify({ ...values, legacySchoolConversion }));
     });
 
     return () => subscription.unsubscribe();
-  }, [form, isDraftReady, isNewOrder]);
+  }, [form, isDraftReady, isNewOrder, legacySchoolConversion]);
 
   const billingOptions = useMemo(
     () =>
@@ -264,7 +263,7 @@ export function CreateOrderForm({
     const numbers = selectedBillingOption?.contactNumbers ?? [];
     form.setValue("sheet1.contactNumbers", numbers.length ? [...numbers] : [""], { shouldValidate: true });
   }, [billingToType, billingToCode, selectedBillingOption, isDraftReady, form]);
-  const gsParticipantsReadOnly = !!selectedGs || (!!initialValues && /^GS\d/i.test(endUserGroupCode) && endUserGroupCode === initialValues.sheet1.endUserGroupCode);
+  const gsParticipantsReadOnly = isGroup && (!!selectedGs || (!!initialValues && /^GS\d/i.test(endUserGroupCode) && endUserGroupCode === initialValues.sheet1.endUserGroupCode));
   const appliedGs = useRef<string | null>(null);
   useEffect(() => {
     if (!isDraftReady) return;
@@ -547,10 +546,12 @@ export function CreateOrderForm({
     }
   }
 
-  function changeEntry(type: "descriptive" | "ambiguous", mode: "school" | "group" = descriptiveMode) {
+  function changeEntry(type: "descriptive" | "ambiguous", mode: DescriptiveMode = descriptiveMode) {
     if (type === orderType && mode === descriptiveMode) return;
     const hasRows = ["descriptiveRows", "ambiguousSchools", "ambiguousItems", "combinedSchools", "combinedItems"].some(key => (form.getValues(key as "descriptiveRows") ?? []).length);
     if (hasRows && !window.confirm("Changing the order entry will discard the current schools and item quantities. Continue?")) return;
+    setLegacySchoolConversion(false);
+    setSelectedDescriptiveSchoolKey("");
     form.setValue("sheet1.orderType", type);
     form.setValue("sheet1.descriptiveMode", mode);
     form.setValue("sheet1.endUserGroupCode", "");
@@ -564,6 +565,7 @@ export function CreateOrderForm({
   }
 
   async function submit(values: CreateOrderInput) {
+    if (legacySchoolConversion && !window.confirm("This older order stores per-school quantities. Saving will replace those allocations with shared item totals. Continue?")) return;
     setServerError(null);
     startTransition(async () => {
       const result =
@@ -596,6 +598,7 @@ export function CreateOrderForm({
 
   function clearOrder() {
     form.reset(newOrderDefaults);
+    setLegacySchoolConversion(false);
     setStep(1);
     setServerError(null);
     setSelectedDescriptiveSchoolKey("");
@@ -612,7 +615,7 @@ export function CreateOrderForm({
   return (
     <form onSubmit={form.handleSubmit(submit)} className="space-y-6">
       <div className="grid gap-3 sm:grid-cols-4">
-        {["Order Sheet 1", orderType === "ambiguous" ? "Order Sheet 2B1 + 2B2" : isGroup ? "Order Sheet 2C1 + 2C2" : "Order Sheet 2A", "Review", "Lock/Finalize"].map(
+        {["Order Sheet 1", orderType === "ambiguous" ? "Order Sheet 2B1 + 2B2" : isMultiple ? "Order Sheet 2C1 + 2C2" : "Order Sheet 2A", "Review", "Lock/Finalize"].map(
           (label, index) => (
             <button
               key={label}
@@ -632,6 +635,10 @@ export function CreateOrderForm({
           )
         )}
       </div>
+
+      {legacySchoolConversion ? <p className="rounded-md border border-line bg-canvas p-3 text-sm text-ink">
+        This older order has quantities per school. Its item quantities are shown as shared totals here; saving will convert it to Multiple / Schools.
+      </p> : null}
 
       {serverError ? (
         <div className="rounded-md border border-danger bg-red-50 p-3 text-sm text-red-900">
@@ -832,11 +839,16 @@ export function CreateOrderForm({
       ) : null}
 
       {step === 2 && orderType === "descriptive" ? <Card className="mb-4 p-5">
-        <Field label="End schools">
-          <select className={inputClass} value={descriptiveMode} onChange={event => changeEntry("descriptive", event.target.value as "school" | "group")}>
-            <option value="school">School</option><option value="group">Group</option>
+        <Field label="Descriptive entry">
+          <select className={inputClass} value={isMultiple ? "multiple" : "individual"} onChange={event => changeEntry("descriptive", event.target.value === "individual" ? "individual" : "multiple_schools")}>
+            <option value="individual">Individual</option><option value="multiple">Multiple</option>
           </select>
         </Field>
+        {isMultiple ? <Field label="Multiple entry">
+          <select className={inputClass} value={descriptiveMode} onChange={event => changeEntry("descriptive", event.target.value as DescriptiveMode)}>
+            <option value="multiple_schools">Schools</option><option value="multiple_group">Group</option>
+          </select>
+        </Field> : null}
         {isGroup ? <Field label="End-school group" error={errors.sheet1?.endUserGroupCode?.message}>
           <ReferencePicker kind="group"
             schools={endUserGroupCode && !groups.some(group => group.schoolCode === endUserGroupCode)
@@ -855,12 +867,12 @@ export function CreateOrderForm({
         </Field> : null}
       </Card> : null}
 
-      {step === 2 && orderType === "descriptive" && !isGroup ? (
+      {step === 2 && orderType === "descriptive" && !isMultiple ? (
         <Card className="p-5">
           <div className="mb-4">
             <div>
               <h2 className="text-lg font-semibold text-ink">Order Sheet 2A</h2>
-              <p className="text-sm text-muted">School-wise item quantities for descriptive orders.</p>
+              <p className="text-sm text-muted">Select one school and enter its item quantities.</p>
             </div>
           </div>
           <div className="space-y-4">
@@ -868,7 +880,15 @@ export function CreateOrderForm({
               <ReferencePicker
                 schools={schools}
                 selectedKey={activeDescriptiveSchoolKey}
-                onChange={setSelectedDescriptiveSchoolKey}
+                onChange={optionKey => {
+                  const nextCode = schools.find(school => school.optionKey === optionKey)?.schoolCode;
+                  const currentRows = form.getValues("descriptiveRows");
+                  if (currentRows.length && nextCode !== currentRows[0].schoolCode) {
+                    if (!window.confirm("Changing the school will discard its item quantities. Continue?")) return;
+                    form.setValue("descriptiveRows", []);
+                  }
+                  setSelectedDescriptiveSchoolKey(optionKey);
+                }}
               />
             </Field>
             <ItemSelectionFilters
@@ -959,11 +979,11 @@ export function CreateOrderForm({
         </Card>
       ) : null}
 
-      {step === 2 && isGroup ? (
+      {step === 2 && isMultiple ? (
         <Card className="p-5">
-          <h2 className="text-lg font-semibold text-ink">Descriptive Group Entry</h2>
+          <h2 className="text-lg font-semibold text-ink">Multiple {isGroup ? "Group" : "Schools"} Entry</h2>
           <p className="mb-4 text-sm text-muted">
-            GS participants come from the selected group; Christian-group participants can be edited. All listed schools share the pooled item totals.
+            {isGroup ? "GS participants come from the selected group; Christian-group participants can be edited." : "Select at least two schools."} Enter one shared total per item for all participating schools.
           </p>
           <div className="grid gap-6 xl:grid-cols-2">
             <div>
@@ -1355,11 +1375,11 @@ function ReviewBlock({ values }: { values: CreateOrderInput }) {
         <p className="text-muted">Placed: {values.sheet1.orderPlacedDate}</p>
         <p className="text-muted">Received: {values.sheet1.orderReceivedDate}</p>
         <p className="text-muted">Address: {values.sheet1.shippingToSummary}</p>
-        <p className="text-muted">Type: {values.sheet1.orderType}{values.sheet1.orderType === "descriptive" ? ` / ${values.sheet1.descriptiveMode ?? "school"}` : ""}</p>
+        <p className="text-muted">Type: {orderTypeLabel(values.sheet1)}</p>
       </div>
       <div className="rounded-md border border-line bg-canvas p-4">
         <p className="font-semibold text-ink">Detail rows</p>
-        {values.sheet1.orderType === "descriptive" && values.sheet1.descriptiveMode !== "group" ? (
+        {values.sheet1.orderType === "descriptive" && !isPooledOrder(values.sheet1) ? (
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[520px] text-left">
               <thead className="text-xs uppercase text-muted">

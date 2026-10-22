@@ -1,4 +1,4 @@
-import { isGroupOrder } from "@/lib/order-model";
+import { isGroupOrder, isPooledOrder } from "@/lib/order-model";
 import {
   BillingToType,
   OrderStatus,
@@ -185,6 +185,7 @@ export async function getDashboardData() {
       where: { cancelOrOnHoldStatus: "on_hold" }
     }),
     prisma.orderSheet1.findMany({
+      include: { descriptiveRows: { select: { schoolCode: true } } },
       orderBy: [{ createdAt: "desc" }],
       take: 8
     })
@@ -209,6 +210,7 @@ export async function getDashboardData() {
 
 export async function listOrders() {
   return prisma.orderSheet1.findMany({
+    include: { descriptiveRows: { select: { schoolCode: true } } },
     orderBy: { orderNo: "desc" },
     take: 100
   });
@@ -232,7 +234,7 @@ export async function createOrder(input: CreateOrderInput) {
       schoolCodesTouchedByOrder(prepared)
     );
     const schoolCodeInput = applyPtCodesToOrder(prepared, ptCodeByOriginalCode);
-    const orderInput = schoolCodeInput;
+    const orderInput = createOrderSchema.parse(schoolCodeInput);
     const orderNo = await nextParentOrderNo(tx);
     const shippingToSummary = orderInput.sheet1.shippingToSummary;
 
@@ -253,7 +255,7 @@ export async function createOrder(input: CreateOrderInput) {
         shippingToName: orderInput.sheet1.shippingToName,
         shippingToSummary,
         orderType: orderInput.sheet1.orderType as OrderType,
-        descriptiveMode: orderInput.sheet1.orderType === "descriptive" ? orderInput.sheet1.descriptiveMode ?? "school" : null,
+        descriptiveMode: orderInput.sheet1.orderType === "descriptive" ? orderInput.sheet1.descriptiveMode ?? "individual" : null,
         endUserGroupCode: isGroupOrder(orderInput.sheet1) ? orderInput.sheet1.endUserGroupCode : null,
         orderStatus: "draft",
         booksellerType: orderInput.sheet1.booksellerType || null,
@@ -264,7 +266,7 @@ export async function createOrder(input: CreateOrderInput) {
       }
     });
 
-    if (orderInput.sheet1.orderType === "descriptive" && !isGroupOrder(orderInput.sheet1)) {
+    if (orderInput.sheet1.orderType === "descriptive" && !isPooledOrder(orderInput.sheet1)) {
       await tx.orderSheet2A.createMany({
         data: orderInput.descriptiveRows.map((row) => ({
           orderSheet1Id: order.orderSheet1Id,
@@ -346,7 +348,7 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
       schoolCodesTouchedByOrder(prepared)
     );
     const schoolCodeInput = applyPtCodesToOrder(prepared, ptCodeByOriginalCode);
-    const orderInput = schoolCodeInput;
+    const orderInput = createOrderSchema.parse(schoolCodeInput);
 
     const existing = current;
 
@@ -378,7 +380,7 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
         shippingToName: orderInput.sheet1.shippingToName,
         shippingToSummary,
         orderType: orderInput.sheet1.orderType as OrderType,
-        descriptiveMode: orderInput.sheet1.orderType === "descriptive" ? orderInput.sheet1.descriptiveMode ?? "school" : null,
+        descriptiveMode: orderInput.sheet1.orderType === "descriptive" ? orderInput.sheet1.descriptiveMode ?? "individual" : null,
         endUserGroupCode: isGroupOrder(orderInput.sheet1) ? orderInput.sheet1.endUserGroupCode : null,
         booksellerType: orderInput.sheet1.booksellerType || null,
         booksellerRating: orderInput.sheet1.booksellerRating || null,
@@ -388,7 +390,7 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
       }
     });
 
-    if (orderInput.sheet1.orderType === "descriptive" && !isGroupOrder(orderInput.sheet1)) {
+    if (orderInput.sheet1.orderType === "descriptive" && !isPooledOrder(orderInput.sheet1)) {
       await tx.orderSheet2A.createMany({
         data: orderInput.descriptiveRows.map((row) => ({
           orderSheet1Id,
@@ -457,6 +459,16 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
   return updated;
 }
 
+function assertDescriptiveShape(order: { orderType: string; descriptiveMode: string | null; classification: string; descriptiveRows: { schoolCode: string }[]; combinedSchools: { schoolCode: string }[] }) {
+  if (order.orderType !== "descriptive" || order.classification !== "normal") return;
+  if (order.descriptiveMode === "individual" && new Set(order.descriptiveRows.map(row => row.schoolCode)).size !== 1) {
+    throw new Error("Individual orders require exactly one school.");
+  }
+  if (order.descriptiveMode === "multiple_schools" && new Set(order.combinedSchools.map(row => row.schoolCode)).size < 2) {
+    throw new Error("Multiple school orders require at least two schools.");
+  }
+}
+
 export async function lockOrder(orderSheet1Id: number) {
   const order = await prisma.orderSheet1.findUnique({
     where: { orderSheet1Id },
@@ -473,7 +485,8 @@ export async function lockOrder(orderSheet1Id: number) {
   if (order.orderStatus === "finalized" || order.orderStatus === "cancelled") {
     throw new Error("Finalized or cancelled orders cannot be locked again.");
   }
-  if (order.orderType === "descriptive" && !isGroupOrder(order) && order.descriptiveRows.length === 0) {
+  assertDescriptiveShape(order);
+  if (order.orderType === "descriptive" && !isPooledOrder(order) && order.descriptiveRows.length === 0) {
     throw new Error("Descriptive orders need Order Sheet 2A rows before locking.");
   }
   if (
@@ -484,10 +497,10 @@ export async function lockOrder(orderSheet1Id: number) {
   }
   if (
     order.classification !== "direct_group" &&
-    isGroupOrder(order) &&
+    isPooledOrder(order) &&
     (order.combinedSchools.length === 0 || order.combinedItems.length === 0)
   ) {
-    throw new Error("Descriptive group orders need participating schools and pooled items before locking.");
+    throw new Error("Multiple descriptive orders need participating schools and pooled items before locking.");
   }
   if (order.classification === "direct_group" && (order.groupParticipants.length === 0 || order.groupItems.length === 0)) {
     throw new Error("Direct group orders need participating schools and pooled items before locking.");
@@ -534,7 +547,8 @@ export async function finalizeOrder(orderSheet1Id: number) {
       return tx.orderSheet1.update({ where: { orderSheet1Id }, data: { orderStatus: "finalized" }, include: orderInclude });
     }
 
-    if (order.orderType === "descriptive" && !isGroupOrder(order)) {
+    assertDescriptiveShape(order);
+    if (order.orderType === "descriptive" && !isPooledOrder(order)) {
       if (order.ambiguousSchools.length > 0 || order.ambiguousItems.length > 0 || order.combinedSchools.length > 0 || order.combinedItems.length > 0) {
         throw new Error("Descriptive orders cannot finalize with ambiguous or combined rows.");
       }
@@ -596,12 +610,12 @@ export async function finalizeOrder(orderSheet1Id: number) {
       }
     }
 
-    if (isGroupOrder(order)) {
+    if (isPooledOrder(order)) {
       if (order.descriptiveRows.length > 0 || order.ambiguousSchools.length > 0 || order.ambiguousItems.length > 0) {
-        throw new Error("Descriptive group orders cannot finalize with descriptive or ambiguous rows.");
+        throw new Error("Multiple descriptive orders cannot finalize with descriptive or ambiguous rows.");
       }
       if (order.combinedSchools.length === 0 || order.combinedItems.length === 0) {
-        throw new Error("Descriptive group orders require participating schools and pooled items.");
+        throw new Error("Multiple descriptive orders require participating schools and pooled items.");
       }
 
       for (const row of order.combinedItems) {
@@ -830,7 +844,7 @@ export async function searchOrders(params: URLSearchParams): Promise<SearchOrder
     orderNo: orderNo ? Number(orderNo) : undefined,
     billingToType: billingToType ? (billingToType as BillingToType) : undefined,
     orderType: orderType === "combined" ? "descriptive" : orderType ? (orderType as OrderType) : undefined,
-    descriptiveMode: orderType === "combined" ? "group" : undefined,
+    descriptiveMode: orderType === "combined" ? { in: ["group", "multiple_group", "multiple_schools"] } : undefined,
     classification: classification ? (classification as "normal" | "direct_group" | "group_parent") : undefined,
     orderStatus: orderStatus ? (orderStatus as OrderStatus) : undefined,
     sessionYear: sessionYear || undefined,

@@ -1,3 +1,4 @@
+import { isGroupOrder } from "@/lib/order-model";
 import type { Prisma } from '@prisma/client';
 import type { CreateOrderInput } from '@/lib/validation/orders';
 import { getGroupMembers, normalizeGroupCode } from '@/lib/group-membership';
@@ -13,7 +14,7 @@ type Existing = {
 export async function prepareGsOrder(tx: Prisma.TransactionClient, input: CreateOrderInput, existing?: Existing): Promise<CreateOrderInput> {
   const code = normalizeGroupCode(input.sheet1.endUserGroupCode ?? '');
   const sheet1 = { ...input.sheet1, schoolGroupId: undefined as number | undefined, schoolGroupLocationId: undefined as number | undefined };
-  if (sheet1.orderType !== 'descriptive' || sheet1.descriptiveMode !== 'group') return { ...input, sheet1: { ...sheet1, endUserGroupCode: '' } };
+  if (!isGroupOrder(sheet1)) return { ...input, sheet1: { ...sheet1, endUserGroupCode: '' } };
   const sameGroup = !!existing && normalizeGroupCode(existing.endUserGroupCode ?? '') === code;
   // Historical group and membership snapshots remain editable if the master disappears.
   if (sameGroup && /^GS\d/i.test(code)) {

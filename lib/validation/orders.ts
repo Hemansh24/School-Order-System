@@ -1,3 +1,4 @@
+import { isGroupOrder, isPooledOrder } from "../order-model";
 import { z } from "zod";
 
 export const orderTypeSchema = z.enum(["descriptive", "ambiguous"]);
@@ -34,7 +35,7 @@ export const sheet1Schema = z
     shippingToName: z.string().trim().min(1, "Shipping name is required"),
     shippingToSummary: z.string().trim().min(1, "Shipping address is required"),
     orderType: orderTypeSchema,
-    descriptiveMode: z.enum(["school", "group"]).optional(),
+    descriptiveMode: z.enum(["individual", "multiple_schools", "multiple_group"]).optional(),
     endUserGroupCode: z.string().trim().optional(),
     schoolGroupId: z.number().int().positive().optional(),
     schoolGroupLocationId: z.number().int().positive().optional(),
@@ -111,8 +112,9 @@ export const createOrderSchema = z
   })
   .superRefine((data, ctx) => {
     const { orderType, descriptiveMode } = data.sheet1;
-    const group = orderType === "descriptive" && descriptiveMode === "group";
-    const school = orderType === "descriptive" && !group;
+    const group = isGroupOrder(data.sheet1);
+    const pooled = isPooledOrder(data.sheet1);
+    const school = orderType === "descriptive" && !pooled;
     const issue = (path: string[], message: string) => ctx.addIssue({ code: z.ZodIssueCode.custom, path, message });
     for (const party of ["billing", "shipping"] as const) {
       if (data.sheet1[`${party}ToType`] !== "individual" && !data.sheet1[`${party}ToCode`]) {
@@ -120,13 +122,14 @@ export const createOrderSchema = z
       }
     }
     if (school && !data.descriptiveRows.length) issue(["descriptiveRows"], "Add at least one school item quantity");
-    if (group) {
-      if (!data.sheet1.endUserGroupCode) issue(["sheet1", "endUserGroupCode"], "Select an end-school group");
-      if (!data.combinedSchools.length) issue(["combinedSchools"], "Group orders require participating schools");
-      if (!data.combinedItems.length) issue(["combinedItems"], "Group orders require pooled items");
+    if (school && new Set(data.descriptiveRows.map(row => row.schoolCode)).size > 1) issue(["descriptiveRows"], "Individual orders must contain exactly one school");
+    if (pooled) {
+      if (group && !data.sheet1.endUserGroupCode) issue(["sheet1", "endUserGroupCode"], "Select an end-school group");
+      if (data.combinedSchools.length < (group ? 1 : 2)) issue(["combinedSchools"], group ? "Group orders require participating schools" : "Multiple school orders require at least two schools");
+      if (!data.combinedItems.length) issue(["combinedItems"], "Multiple orders require pooled items");
     }
     if (orderType === "ambiguous" && !data.ambiguousItems.length) issue(["ambiguousItems"], "Add at least one grouped item quantity");
-    if ((!school && data.descriptiveRows.length) || (!group && (data.combinedSchools.length || data.combinedItems.length)) || (orderType !== "ambiguous" && (data.ambiguousSchools.length || data.ambiguousItems.length))) {
+    if ((!school && data.descriptiveRows.length) || (!pooled && (data.combinedSchools.length || data.combinedItems.length)) || (orderType !== "ambiguous" && (data.ambiguousSchools.length || data.ambiguousItems.length))) {
       issue(["sheet1", "orderType"], "Remove rows belonging to another order type or descriptive mode");
     }
     for (const [name, keys] of [

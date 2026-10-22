@@ -1,4 +1,4 @@
-import { isGroupOrder, orderTypeLabel } from "@/lib/order-model";
+import { isPooledOrder, orderTypeLabel } from "@/lib/order-model";
 import Link from "next/link";
 import { ArrowRight, Search } from "lucide-react";
 import { Card, OrderNumber, PageHeader, StatusPill, SubmitButton } from "@/components/ui";
@@ -111,7 +111,7 @@ export default async function ReportsPage({
             <tbody className="divide-y divide-line">
               {orders.map((order) => {
                 const itemNames =
-                  (order.orderType === "descriptive" && !isGroupOrder(order))
+                  (order.orderType === "descriptive" && !isPooledOrder(order))
                     ? order.descriptiveRows.map((row) => row.itemName)
                     : order.orderType === "ambiguous"
                       ? order.ambiguousItems.map((row) => row.itemName)
