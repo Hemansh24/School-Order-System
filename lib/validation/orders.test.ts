@@ -36,10 +36,20 @@ test("all billing/shipping combinations support either order type", () => {
   }
 });
 
-test("ambiguous schools are optional but grouped quantities are required", () => {
+test("ambiguous orders accept only item quantities and reject schools", () => {
   assert.equal(createOrderSchema.safeParse(ambiguous).success, true);
-  assert.equal(createOrderSchema.safeParse({ ...ambiguous, ambiguousSchools: [school] }).success, true);
+  assert.equal(createOrderSchema.safeParse({ ...ambiguous, ambiguousSchools: [school] }).success, false);
   assert.equal(createOrderSchema.safeParse({ ...ambiguous, ambiguousItems: [] }).success, false);
+});
+
+test("older ambiguous orders and drafts hide schools without changing quantities", () => {
+  const legacy = { ...createOrderSchema.parse(ambiguous), ambiguousSchools: [{ ...school, notes: "Historical link" }] };
+  const snapshot = structuredClone(legacy);
+  const editable = normalizeOrderEntry(legacy);
+  assert.deepEqual(editable.ambiguousSchools, []);
+  assert.deepEqual(editable.ambiguousItems, legacy.ambiguousItems);
+  assert.equal(createOrderSchema.safeParse(editable).success, true);
+  assert.deepEqual(legacy, snapshot);
 });
 
 test("group mode requires a group, participants, and pooled quantities", () => {

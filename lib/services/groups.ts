@@ -84,10 +84,13 @@ export async function getGroupMappingData(query = "", page = 1) {
     prisma.schoolGroupSchool.count({ where })
   ]);
   const organisations = await prisma.organisation.findMany({
-    where: { ptCode: { in: mappings.map((mapping) => mapping.ptCode) } },
-    select: { ptCode: true, organisationName: true, groupCode: true }
+    where: { OR: [
+      { ptCode: { in: mappings.map(mapping => mapping.ptCode) } },
+      { prCode: { in: mappings.map(mapping => mapping.ptCode) } }
+    ] },
+    select: { ptCode: true, prCode: true, organisationName: true, groupCode: true }
   });
-  const organisationByPtCode = new Map(organisations.filter((row) => row.ptCode).map((row) => [row.ptCode!, row]));
+  const organisationByPtCode = new Map(organisations.map(row => [row.ptCode ?? row.prCode, row]));
   return { groups, christianGroupCount, mappings, organisationByPtCode, total, page, pageSize };
 }
 

@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { nextCompactCode, nextSequentialCompactCode } from "@/lib/reference-codes";
+import { moveSchoolGroupCodeTx, reservedPtCodes } from "@/lib/pt-codes";
 
 const ORGANISATIONS_PAGE_SIZE = 25;
 type Tx = Prisma.TransactionClient;
@@ -410,6 +411,12 @@ export async function ensurePtCodesForSchoolCodesTx(tx: Tx, schoolCodes: string[
     }
   });
 
+  for (const code of uniqueCodes) {
+    if (/^(PT|PR)-?\d+$/i.test(code) && !schools.some(school => school.schoolCode === code)) {
+      throw new Error(`School code ${code} has changed or no longer exists. Refresh the school selection and retry.`);
+    }
+  }
+
   const cache = await tx.organisation.findMany({
     select: {
       id: true,
@@ -422,6 +429,8 @@ export async function ensurePtCodesForSchoolCodesTx(tx: Tx, schoolCodes: string[
       pinCode: true
     }
   });
+
+  const usedPtCodes = await reservedPtCodes(tx);
 
   for (const school of schools) {
     let organisation =
@@ -471,7 +480,7 @@ export async function ensurePtCodesForSchoolCodesTx(tx: Tx, schoolCodes: string[
         data: {
           ptCode: nextSequentialCompactCode(
             "PT",
-            cache.flatMap((candidate) => (candidate.ptCode ? [candidate.ptCode] : [])),
+            usedPtCodes,
             4
           )
         },
@@ -490,6 +499,7 @@ export async function ensurePtCodesForSchoolCodesTx(tx: Tx, schoolCodes: string[
       const index = cache.findIndex((candidate) => candidate.id === updated.id);
       cache[index] = updated;
       organisation = updated;
+      if (updated.ptCode) usedPtCodes.push(updated.ptCode);
     }
 
     if (organisation.ptCode) {
@@ -511,6 +521,7 @@ export async function ensurePtCodesForSchoolCodesTx(tx: Tx, schoolCodes: string[
       ptCodeByOriginalCode.set(school.schoolCode, organisation.ptCode);
 
       if (school.schoolCode !== organisation.ptCode) {
+        await moveSchoolGroupCodeTx(tx, school.schoolCode, organisation.ptCode);
         await tx.school.update({
           where: { schoolId: school.schoolId },
           data: { schoolCode: organisation.ptCode }

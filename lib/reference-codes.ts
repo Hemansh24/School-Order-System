@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { reservedPtCodes } from "@/lib/pt-codes";
 
 export function nextCode(prefix: string, existingCodes: string[]) {
   const pattern = new RegExp(`^${prefix}-(\\d+)$`);
@@ -61,13 +62,9 @@ export async function nextOrganisationPrCode() {
 }
 
 export async function nextOrganisationPtCode() {
-  const organisations = await prisma.organisation.findMany({
-    where: { ptCode: { not: null } },
-    select: { ptCode: true }
-  });
   return nextSequentialCompactCode(
     "PT",
-    organisations.flatMap((organisation) => (organisation.ptCode ? [organisation.ptCode] : [])),
+    await reservedPtCodes(prisma),
     4
   );
 }

@@ -95,14 +95,7 @@ export default async function EditOrderPage({
             notes: row.notes ?? ""
           }))
         : [],
-    ambiguousSchools:
-      order.orderType === "ambiguous"
-        ? order.ambiguousSchools.map((row) => ({
-            schoolCode: row.schoolCode,
-            schoolName: row.schoolName,
-            notes: row.notes ?? ""
-          }))
-        : [],
+    ambiguousSchools: [],
     ambiguousItems:
       order.orderType === "ambiguous"
         ? order.ambiguousItems.map((row) => ({

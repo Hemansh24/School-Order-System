@@ -174,7 +174,6 @@ export function CreateOrderForm({
   const watchedCombinedItems = form.watch("combinedItems");
 
   const descriptiveRows = useFieldArray({ control: form.control, name: "descriptiveRows" });
-  const ambiguousSchools = useFieldArray({ control: form.control, name: "ambiguousSchools" });
   const ambiguousItems = useFieldArray({ control: form.control, name: "ambiguousItems" });
   const combinedSchools = useFieldArray({ control: form.control, name: "combinedSchools" });
   const combinedItems = useFieldArray({ control: form.control, name: "combinedItems" });
@@ -327,7 +326,6 @@ export function CreateOrderForm({
 
   const activeDescriptiveSchoolKey = selectedDescriptiveSchoolKey || findSchoolOptionByStoredValue(schools, watchedDescriptiveRows[0]?.schoolCode, watchedDescriptiveRows[0]?.schoolName)?.optionKey || "";
   const activeDescriptiveSchool = schools.find(school => school.optionKey === activeDescriptiveSchoolKey);
-  const ambiguousSchoolOptions = schools;
 
   const categoryOptions = useMemo(
     () =>
@@ -431,21 +429,6 @@ export function CreateOrderForm({
     setIsShippingDropdownOpen(true);
     const selected = shippingOptions.find(option => option.code.toLowerCase() === rawCode.trim().toLowerCase());
     if (selected) setShipping(selected.value);
-  }
-
-  function setAmbiguousSchool(index: number, optionKey: string) {
-    const selected = ambiguousSchoolOptions.find((school) => school.optionKey === optionKey);
-    form.setValue(`ambiguousSchools.${index}.schoolCode`, selected?.schoolCode ?? "");
-    form.setValue(`ambiguousSchools.${index}.schoolName`, selected?.schoolName ?? "");
-  }
-
-  function appendAmbiguousSchool() {
-    const firstSchool = ambiguousSchoolOptions[0];
-    ambiguousSchools.append({
-      schoolCode: firstSchool?.schoolCode ?? "",
-      schoolName: firstSchool?.schoolName ?? "",
-      notes: ""
-    });
   }
 
   function setCombinedSchool(index: number, optionKey: string) {
@@ -615,7 +598,7 @@ export function CreateOrderForm({
   return (
     <form onSubmit={form.handleSubmit(submit)} className="space-y-6">
       <div className="grid gap-3 sm:grid-cols-4">
-        {["Order Sheet 1", orderType === "ambiguous" ? "Order Sheet 2B1 + 2B2" : isMultiple ? "Order Sheet 2C1 + 2C2" : "Order Sheet 2A", "Review", "Lock/Finalize"].map(
+        {["Order Sheet 1", orderType === "ambiguous" ? "Order Sheet 2B2 - Item quantities" : isMultiple ? "Order Sheet 2C1 + 2C2" : "Order Sheet 2A", "Review", "Lock/Finalize"].map(
           (label, index) => (
             <button
               key={label}
@@ -918,62 +901,25 @@ export function CreateOrderForm({
       {step === 2 && orderType === "ambiguous" ? (
         <Card className="p-5">
           <h2 className="text-lg font-semibold text-ink">Ambiguous Entry</h2>
-          <p className="mb-4 text-sm text-muted">
-            Known schools can optionally be recorded in Sheet 2B1. Grouped item quantities are recorded in Sheet 2B2.
-          </p>
-          <div className="grid gap-6 xl:grid-cols-2">
-            <div>
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="font-semibold text-ink">Order Sheet 2B1 Schools</h3>
-                <SubmitButton
-                  type="button"
-                  variant="secondary"
-                  onClick={appendAmbiguousSchool}
-                  disabled={ambiguousSchoolOptions.length === 0}
-                >
-                  <Plus className="mr-2 h-4 w-4" /> Add school
-                </SubmitButton>
-              </div>
-              <div className="space-y-3">
-                {ambiguousSchools.fields.map((field, index) => (
-                  <LineRow key={field.id} onRemove={() => ambiguousSchools.remove(index)}>
-                    <ReferencePicker
-                      schools={ambiguousSchoolOptions}
-                      selectedKey={
-                        findSchoolOptionByStoredValue(
-                          ambiguousSchoolOptions,
-                          form.watch(`ambiguousSchools.${index}.schoolCode`),
-                          form.watch(`ambiguousSchools.${index}.schoolName`)
-                        )?.optionKey ?? ""
-                      }
-                      onChange={(optionKey) => setAmbiguousSchool(index, optionKey)}
-                    />
-                  </LineRow>
-                ))}
-              </div>
-            </div>
-            <div>
-              <div className="mb-3">
-                <h3 className="font-semibold text-ink">Order Sheet 2B2 Grouped Items</h3>
-              </div>
-              <ItemSelectionFilters
-                categories={categoryOptions}
-                customisations={customisationOptions}
-                categoryCode={selectedCategoryCode}
-                customisationCode={selectedCustomisationCode}
-                onCategoryChange={setSelectedCategoryCode}
-                onCustomisationChange={setSelectedCustomisationCode}
+          <p className="mb-4 text-sm text-muted">Enter item quantities in Order Sheet 2B2.</p>
+          <div>
+            <ItemSelectionFilters
+              categories={categoryOptions}
+              customisations={customisationOptions}
+              categoryCode={selectedCategoryCode}
+              customisationCode={selectedCustomisationCode}
+              onCategoryChange={setSelectedCategoryCode}
+              onCustomisationChange={setSelectedCustomisationCode}
+            />
+            <div className="mt-4">
+              <ItemQuantityTable
+                items={latestSelectionItems}
+                quantityForItem={(item) =>
+                  watchedAmbiguousItems.find((entry) => entry.itemCode === item.itemCode)
+                    ?.groupedQuantity
+                }
+                onQuantityChange={setAmbiguousItemQuantity}
               />
-              <div className="mt-4">
-                <ItemQuantityTable
-                  items={latestSelectionItems}
-                  quantityForItem={(item) =>
-                    watchedAmbiguousItems.find((entry) => entry.itemCode === item.itemCode)
-                      ?.groupedQuantity
-                  }
-                  onQuantityChange={setAmbiguousItemQuantity}
-                />
-              </div>
             </div>
           </div>
         </Card>
@@ -1407,34 +1353,21 @@ function ReviewBlock({ values }: { values: CreateOrderInput }) {
             </table>
           </div>
         ) : values.sheet1.orderType === "ambiguous" ? (
-          <div className="mt-3 grid gap-4 lg:grid-cols-2">
-            <div>
-              <p className="text-xs font-semibold uppercase text-muted">Sheet 2B1 Schools</p>
-              <div className="mt-2 space-y-2">
-                {values.ambiguousSchools.map((row, index) => (
-                  <div key={`${row.schoolCode}-${index}`} className="rounded-md border border-line bg-white px-3 py-2">
-                    <span className="font-medium text-ink">{row.schoolCode}</span>
-                    <span className="ml-2 text-muted">{row.schoolName}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase text-muted">Sheet 2B2 Grouped Items</p>
-              <div className="mt-2 space-y-2">
-                {values.ambiguousItems.map((row, index) => (
-                  <div
-                    key={`${row.itemCode}-${index}`}
-                    className="flex items-center justify-between gap-3 rounded-md border border-line bg-white px-3 py-2"
-                  >
-                    <span>
-                      <span className="font-medium text-ink">{row.itemCode}</span>
-                      <span className="block text-muted">{row.itemName}</span>
-                    </span>
-                    <span className="font-semibold text-ink">{row.groupedQuantity}</span>
-                  </div>
-                ))}
-              </div>
+          <div className="mt-3">
+            <p className="text-xs font-semibold uppercase text-muted">Sheet 2B2 Item quantities</p>
+            <div className="mt-2 space-y-2">
+              {values.ambiguousItems.map((row, index) => (
+                <div
+                  key={`${row.itemCode}-${index}`}
+                  className="flex items-center justify-between gap-3 rounded-md border border-line bg-white px-3 py-2"
+                >
+                  <span>
+                    <span className="font-medium text-ink">{row.itemCode}</span>
+                    <span className="block text-muted">{row.itemName}</span>
+                  </span>
+                  <span className="font-semibold text-ink">{row.groupedQuantity}</span>
+                </div>
+              ))}
             </div>
           </div>
         ) : (

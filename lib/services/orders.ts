@@ -10,6 +10,7 @@ import { prepareGsOrder } from "@/lib/services/gs-orders";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { ensurePtCodesForSchoolCodesTx } from "@/lib/services/organisations";
+import { orderSchoolCodes, reverseUnusedPtCodesTx, schoolReferenceSelect } from "@/lib/services/school-code-reversal";
 import { createOrderSchema, type CreateOrderInput } from "@/lib/validation/orders";
 
 const orderInclude = {
@@ -104,10 +105,6 @@ function schoolCodesTouchedByOrder(input: CreateOrderInput) {
   }
 
   for (const row of input.descriptiveRows) {
-    schoolCodes.add(row.schoolCode);
-  }
-
-  for (const row of input.ambiguousSchools) {
     schoolCodes.add(row.schoolCode);
   }
 
@@ -227,6 +224,7 @@ export async function createOrder(input: CreateOrderInput) {
   const parsed = createOrderSchema.parse(input);
 
   const created = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(741024)`;
     const prepared = await prepareGsOrder(tx, parsed);
     await assertShippingDestinationExists(tx, prepared);
     const ptCodeByOriginalCode = await ensurePtCodesForSchoolCodesTx(
@@ -280,15 +278,6 @@ export async function createOrder(input: CreateOrderInput) {
         }))
       });
     } else if (orderInput.sheet1.orderType === "ambiguous") {
-      await tx.orderSheet2B1.createMany({
-        data: orderInput.ambiguousSchools.map((row) => ({
-          orderSheet1Id: order.orderSheet1Id,
-          orderNo,
-          schoolCode: row.schoolCode,
-          schoolName: row.schoolName,
-          notes: row.notes || null
-        }))
-      });
       await tx.orderSheet2B2.createMany({
         data: orderInput.ambiguousItems.map((row) => ({
           orderSheet1Id: order.orderSheet1Id,
@@ -337,6 +326,7 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
   const parsed = createOrderSchema.parse(input);
 
   const updated = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(741024)`;
     const current = await tx.orderSheet1.findUnique({ where: { orderSheet1Id }, include: orderInclude });
     if (!current) throw new Error("Order not found.");
     if (current.classification !== "normal") throw new Error("Reporting containers and legacy direct group orders cannot be edited as normal orders.");
@@ -355,7 +345,9 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
     await Promise.all([
       tx.orderSheet3.deleteMany({ where: { orderSheet1Id } }),
       tx.orderSheet2A.deleteMany({ where: { orderSheet1Id } }),
-      tx.orderSheet2B1.deleteMany({ where: { orderSheet1Id } }),
+      ...(current.orderType === "ambiguous" && orderInput.sheet1.orderType === "ambiguous"
+        ? []
+        : [tx.orderSheet2B1.deleteMany({ where: { orderSheet1Id } })]),
       tx.orderSheet2B2.deleteMany({ where: { orderSheet1Id } }),
       tx.orderSheet2C1.deleteMany({ where: { orderSheet1Id } }),
       tx.orderSheet2C2.deleteMany({ where: { orderSheet1Id } })
@@ -404,15 +396,6 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
         }))
       });
     } else if (orderInput.sheet1.orderType === "ambiguous") {
-      await tx.orderSheet2B1.createMany({
-        data: orderInput.ambiguousSchools.map((row) => ({
-          orderSheet1Id,
-          orderNo: existing.orderNo,
-          schoolCode: row.schoolCode,
-          schoolName: row.schoolName,
-          notes: row.notes || null
-        }))
-      });
       await tx.orderSheet2B2.createMany({
         data: orderInput.ambiguousItems.map((row) => ({
           orderSheet1Id,
@@ -470,54 +453,57 @@ function assertDescriptiveShape(order: { orderType: string; descriptiveMode: str
 }
 
 export async function lockOrder(orderSheet1Id: number) {
-  const order = await prisma.orderSheet1.findUnique({
-    where: { orderSheet1Id },
-    include: orderInclude
-  });
+  const result = await prisma.$transaction(async tx => {
+    await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(741024)`;
+    const order = await tx.orderSheet1.findUnique({
+      where: { orderSheet1Id },
+      include: orderInclude
+    });
 
-  if (!order) {
-    throw new Error("Order not found.");
-  }
-  if (order.classification === "group_parent") {
-    const updated = await prisma.orderSheet1.update({ where: { orderSheet1Id }, data: { orderStatus: "locked" } });
-    revalidatePath(`/orders/${orderSheet1Id}`); revalidatePath("/orders"); return updated;
-  }
-  if (order.orderStatus === "finalized" || order.orderStatus === "cancelled") {
-    throw new Error("Finalized or cancelled orders cannot be locked again.");
-  }
-  assertDescriptiveShape(order);
-  if (order.orderType === "descriptive" && !isPooledOrder(order) && order.descriptiveRows.length === 0) {
-    throw new Error("Descriptive orders need Order Sheet 2A rows before locking.");
-  }
-  if (
-    order.orderType === "ambiguous" &&
-    order.ambiguousItems.length === 0
-  ) {
-    throw new Error("Ambiguous orders need grouped items before locking.");
-  }
-  if (
-    order.classification !== "direct_group" &&
-    isPooledOrder(order) &&
-    (order.combinedSchools.length === 0 || order.combinedItems.length === 0)
-  ) {
-    throw new Error("Multiple descriptive orders need participating schools and pooled items before locking.");
-  }
-  if (order.classification === "direct_group" && (order.groupParticipants.length === 0 || order.groupItems.length === 0)) {
-    throw new Error("Direct group orders need participating schools and pooled items before locking.");
-  }
+    if (!order) {
+      throw new Error("Order not found.");
+    }
+    if (order.orderStatus === "finalized" || order.orderStatus === "cancelled") {
+      throw new Error("Finalized or cancelled orders cannot be locked again.");
+    }
+    if (order.classification === "group_parent") {
+      return tx.orderSheet1.update({ where: { orderSheet1Id }, data: { orderStatus: "locked" } });
+    }
+    assertDescriptiveShape(order);
+    if (order.orderType === "descriptive" && !isPooledOrder(order) && order.descriptiveRows.length === 0) {
+      throw new Error("Descriptive orders need Order Sheet 2A rows before locking.");
+    }
+    if (
+      order.orderType === "ambiguous" &&
+      order.ambiguousItems.length === 0
+    ) {
+      throw new Error("Ambiguous orders need grouped items before locking.");
+    }
+    if (
+      order.classification !== "direct_group" &&
+      isPooledOrder(order) &&
+      (order.combinedSchools.length === 0 || order.combinedItems.length === 0)
+    ) {
+      throw new Error("Multiple descriptive orders need participating schools and pooled items before locking.");
+    }
+    if (order.classification === "direct_group" && (order.groupParticipants.length === 0 || order.groupItems.length === 0)) {
+      throw new Error("Direct group orders need participating schools and pooled items before locking.");
+    }
 
-  const updated = await prisma.orderSheet1.update({
-    where: { orderSheet1Id },
-    data: { orderStatus: "locked" }
-  });
+    return tx.orderSheet1.update({
+      where: { orderSheet1Id },
+      data: { orderStatus: "locked" }
+    });
+  }, { timeout: 120000 });
 
   revalidatePath(`/orders/${orderSheet1Id}`);
   revalidatePath("/orders");
-  return updated;
+  return result;
 }
 
 export async function finalizeOrder(orderSheet1Id: number) {
   const finalized = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(741024)`;
     const order = await tx.orderSheet1.findUnique({
       where: { orderSheet1Id },
       include: orderInclude
@@ -658,22 +644,32 @@ export async function updateOrderStatus(
   orderSheet1Id: number,
   orderStatus: Exclude<OrderStatus, "finalized">
 ) {
-  const order = await prisma.orderSheet1.findUnique({ where: { orderSheet1Id } });
-  if (!order) {
-    throw new Error("Order not found.");
-  }
-  if (order.orderStatus === "finalized") {
-    throw new Error("Finalized orders cannot be changed.");
-  }
+  const updated = await prisma.$transaction(async tx => {
+    await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(741024)`;
+    const order = await tx.orderSheet1.findUnique({
+      where: { orderSheet1Id }, select: { ...schoolReferenceSelect, orderStatus: true }
+    });
+    if (!order) throw new Error("Order not found.");
+    if (order.orderStatus === "finalized") throw new Error("Finalized orders cannot be changed.");
+    if (order.orderStatus === "cancelled" && orderStatus !== "cancelled") {
+      throw new Error("Cancelled orders cannot be reopened.");
+    }
+    const result = await tx.orderSheet1.update({ where: { orderSheet1Id }, data: { orderStatus } });
+    if (orderStatus === "cancelled" && order.orderStatus !== "cancelled") {
+      await reverseUnusedPtCodesTx(tx, orderSchoolCodes(order));
+    }
+    return result;
+  }, { timeout: 120000 });
 
-  const updated = await prisma.orderSheet1.update({
-    where: { orderSheet1Id },
-    data: { orderStatus }
-  });
-
-  revalidatePath(`/orders/${orderSheet1Id}`);
-  revalidatePath("/orders");
+  revalidateCancellationPaths(orderSheet1Id);
   return updated;
+}
+
+function revalidateCancellationPaths(orderSheet1Id: number) {
+  for (const path of ["/", "/orders", "/orders/new", "/schools", "/organisations", "/groups", "/reports",
+    `/orders/${orderSheet1Id}`, `/orders/${orderSheet1Id}/finalization`]) {
+    revalidatePath(path);
+  }
 }
 
 export async function markPaymentReceived(orderSheet1Id: number) {
@@ -726,34 +722,27 @@ export async function putOrderOnHold(orderSheet1Id: number) {
 }
 
 export async function cancelHeldOrder(orderSheet1Id: number) {
-  const order = await prisma.orderSheet1.findUnique({
-    where: { orderSheet1Id },
-    include: { finalRows: true }
-  });
-
-  if (!order) {
-    throw new Error("Order not found.");
-  }
-  if (!order.finalRows.some((row) => row.cancelOrOnHoldStatus === "on_hold")) {
-    throw new Error("Only on-hold orders can be cancelled from this action.");
-  }
-
-  await prisma.$transaction([
-    prisma.orderSheet3.updateMany({
+  await prisma.$transaction(async tx => {
+    await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(741024)`;
+    const order = await tx.orderSheet1.findUnique({
+      where: { orderSheet1Id }, select: { ...schoolReferenceSelect, orderStatus: true, finalRows: true }
+    });
+    if (!order) throw new Error("Order not found.");
+    if (order.orderStatus === "cancelled" || !order.finalRows.some(row => row.cancelOrOnHoldStatus === "on_hold")) {
+      throw new Error("Only on-hold orders can be cancelled from this action.");
+    }
+    await tx.orderSheet3.updateMany({
       where: { orderSheet1Id, cancelOrOnHoldStatus: "on_hold" },
       data: { cancelOrOnHoldStatus: "cancelled" }
-    }),
-    prisma.orderSheet1.update({
+    });
+    await tx.orderSheet1.update({
       where: { orderSheet1Id },
       data: { orderStatus: "cancelled" }
-    })
-  ]);
+    });
+    await reverseUnusedPtCodesTx(tx, orderSchoolCodes(order));
+  }, { timeout: 120000 });
 
-  revalidatePath(`/orders/${orderSheet1Id}`);
-  revalidatePath(`/orders/${orderSheet1Id}/finalization`);
-  revalidatePath("/");
-  revalidatePath("/orders");
-  revalidatePath("/reports");
+  revalidateCancellationPaths(orderSheet1Id);
 }
 
 export async function searchOrders(params: URLSearchParams): Promise<SearchOrder[]> {

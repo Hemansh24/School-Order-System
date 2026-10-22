@@ -31,11 +31,33 @@ async function main() {
   assert.equal(ambiguous.expectedDeliveryDate, null);
   assert.equal(ambiguous.orderReceivedDate, null);
   assert.equal(ambiguous.ambiguousSchools.length, 0);
+  // Old school links stay in storage but never participate in quantity entry.
+  const historicalSchool = await prisma.orderSheet2B1.create({ data: {
+    orderSheet1Id: ambiguous.orderSheet1Id, orderNo: ambiguous.orderNo,
+    schoolCode: "HISTORICAL-UNKNOWN", schoolName: "Hidden legacy end school", notes: "Retain history"
+  } });
+  const editedAmbiguous = await updateOrder(ambiguous.orderSheet1Id, {
+    ...ambiguousInput, ambiguousItems: [{ ...itemRef, groupedQuantity: 11 }]
+  });
+  assert.deepEqual(editedAmbiguous.ambiguousSchools, [historicalSchool]);
+  assert.equal(editedAmbiguous.ambiguousItems[0].groupedQuantity, 11);
   await lockOrder(ambiguous.orderSheet1Id);
   const finalizedAmbiguous = await finalizeOrder(ambiguous.orderSheet1Id);
-  assert.deepEqual(finalizedAmbiguous.finalRows.map(row => [row.sourceType, row.quantity]), [["TWO_B2", 7]]);
+  assert.deepEqual(finalizedAmbiguous.finalRows.map(row => [row.sourceType, row.quantity]), [["TWO_B2", 11]]);
+  assert.deepEqual(finalizedAmbiguous.ambiguousSchools, [historicalSchool]);
   await assert.rejects(() => finalizeOrder(ambiguous.orderSheet1Id), /Only locked/);
   await assert.rejects(() => lockOrder(ambiguous.orderSheet1Id), /cannot be locked/);
+
+  const changingType = await createOrder(ambiguousInput);
+  await prisma.orderSheet2B1.create({ data: {
+    orderSheet1Id: changingType.orderSheet1Id, orderNo: changingType.orderNo,
+    schoolCode: "HISTORICAL-UNKNOWN", schoolName: "Discard on explicit type change"
+  } });
+  const changedType = await updateOrder(changingType.orderSheet1Id, createOrderSchema.parse({
+    sheet1: { ...sheet1, orderType: "descriptive", descriptiveMode: "individual" },
+    descriptiveRows: [{ schoolCode: schools[0].schoolCode, schoolName: schools[0].schoolName, ...itemRef, quantity: 2 }]
+  }));
+  assert.equal(changedType.ambiguousSchools.length, 0);
 
   const schoolInput = createOrderSchema.parse({ sheet1: { ...sheet1, orderType: "descriptive", descriptiveMode: "individual" }, descriptiveRows: schools.slice(0, 1).map((school, index) => ({ schoolCode: school.schoolCode, schoolName: school.schoolName, ...itemRef, quantity: index + 3 })) });
   const schoolOrder = await createOrder(schoolInput);

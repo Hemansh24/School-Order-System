@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client';
 import type { CreateOrderInput } from '@/lib/validation/orders';
 import { getGroupMembers, normalizeGroupCode } from '@/lib/group-membership';
 import { nextSequentialCompactCode } from '@/lib/reference-codes';
+import { moveSchoolGroupCodeTx, reservedPtCodes } from '@/lib/pt-codes';
 
 type Existing = {
   schoolGroupId: number | null;
@@ -35,12 +36,20 @@ export async function prepareGsOrder(tx: Prisma.TransactionClient, input: Create
     if (!members.length) throw new Error('This GS group has no member organisations.');
     // Serialize code allocation with the existing maximum-sequence allocator.
     await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(741024)`;
-    const used = (await tx.organisation.findMany({ where: { ptCode: { not: null } }, select: { ptCode: true } })).flatMap(row => row.ptCode ? [row.ptCode] : []);
+    const used = await reservedPtCodes(tx);
     participants = [];
     for (const member of members) {
       const fresh = await tx.organisation.findUniqueOrThrow({ where: { id: member.id } });
       const ptCode = fresh.ptCode ?? nextSequentialCompactCode('PT', used, 4);
       if (!fresh.ptCode) { await tx.organisation.update({ where: { id: member.id }, data: { ptCode } }); used.push(ptCode); }
+      const prSchool = await tx.school.findUnique({ where: { schoolCode: fresh.prCode } });
+      if (prSchool) {
+        if (await tx.school.findUnique({ where: { schoolCode: ptCode } })) {
+          throw new Error(`Separate school records use ${fresh.prCode} and ${ptCode}. Resolve the duplicate schools and retry.`);
+        }
+        await tx.school.update({ where: { schoolId: prSchool.schoolId }, data: { schoolCode: ptCode } });
+      }
+      await moveSchoolGroupCodeTx(tx, fresh.prCode, ptCode);
       await tx.school.upsert({ where: { schoolCode: ptCode }, create: { schoolCode: ptCode, schoolName: member.organisationName, address: member.address, district: member.district, state: member.state, pincode: member.pinCode, phone: member.phone, email: member.email }, update: {} });
       participants.push({ schoolCode: ptCode, schoolName: member.organisationName, notes: '' });
     }

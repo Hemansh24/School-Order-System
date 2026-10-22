@@ -19,31 +19,17 @@ export default async function AmbiguousEntryPage({
   return (
     <>
       <PageHeader
-        title="Ambiguous Entry - Order Sheet 2B1 and 2B2"
-        description="Grouped orders preserve involved schools separately from grouped item quantities."
+        title="Ambiguous Entry - Order Sheet 2B2"
+        description="Record items and their quantities for ambiguous orders."
       />
       {order.orderType !== "ambiguous" ? (
-        <EmptyState>Order Sheet 2B1/2B2 is not available for descriptive orders.</EmptyState>
+        <EmptyState>Order Sheet 2B2 is not available for descriptive orders.</EmptyState>
       ) : (
-        <div className="grid gap-4 xl:grid-cols-2">
-          <Card>
-            <div className="border-b border-line p-4">
-              <h2 className="font-semibold text-ink">Order Sheet 2B1</h2>
-              <p className="text-sm text-muted">Destination schools included in the grouped order.</p>
-            </div>
-            <ul className="divide-y divide-line">
-              {order.ambiguousSchools.map((row) => (
-                <li key={row.orderSheet2B1Id} className="p-4 text-sm">
-                  <span className="font-semibold text-ink">{row.schoolCode}</span>
-                  <span className="ml-2 text-muted">{row.schoolName}</span>
-                </li>
-              ))}
-            </ul>
-          </Card>
+        <div>
           <Card>
             <div className="border-b border-line p-4">
               <h2 className="font-semibold text-ink">Order Sheet 2B2</h2>
-              <p className="text-sm text-muted">Grouped item quantities are not split by school.</p>
+              <p className="text-sm text-muted">Item quantities for this order.</p>
             </div>
             <ul className="divide-y divide-line">
               {order.ambiguousItems.map((row) => (

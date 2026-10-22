@@ -88,8 +88,7 @@ export default async function OrderDetailsPage({
               <FlowStep active label="Order Sheet 2A" />
             ) : order.orderType === "ambiguous" ? (
               <>
-                <FlowStep active label="Order Sheet 2B1 schools" />
-                <FlowStep active label="Order Sheet 2B2 grouped items" />
+                <FlowStep active label="Order Sheet 2B2 item quantities" />
               </>
             ) : (
               <>
@@ -109,8 +108,7 @@ export default async function OrderDetailsPage({
       ) : (order.orderType === "descriptive" && !isPooledOrder(order)) ? (
         <Sheet2ATable rows={order.descriptiveRows} />
       ) : order.orderType === "ambiguous" ? (
-        <div className="mb-6 grid gap-4 xl:grid-cols-2">
-          <Sheet2B1Table rows={order.ambiguousSchools} />
+        <div className="mb-6">
           <Sheet2B2Table rows={order.ambiguousItems} />
         </div>
       ) : (
@@ -131,7 +129,7 @@ export default async function OrderDetailsPage({
           </Link>
         ) : order.orderType === "ambiguous" ? (
           <Link className="font-semibold text-brand-dark" href={`/orders/${order.orderSheet1Id}/ambiguous`}>
-            Open Ambiguous Entry - Sheet 2B1 and 2B2
+            Open Ambiguous Entry - Sheet 2B2
           </Link>
         ) : (
           <Link className="font-semibold text-brand-dark" href={`/orders/${order.orderSheet1Id}/combined`}>
@@ -189,22 +187,6 @@ function Sheet2ATable({
           `${row.itemCode} - ${row.itemName}`,
           row.quantity
         ])}
-      />
-    </Card>
-  );
-}
-
-function Sheet2B1Table({
-  rows
-}: {
-  rows: Array<{ orderSheet2B1Id: number; schoolCode: string; schoolName: string }>;
-}) {
-  return (
-    <Card>
-      <TableTitle title="Order Sheet 2B1" subtitle="Schools included in grouped order" />
-      <SimpleTable
-        headers={["PT/PR Code", "School Name"]}
-        rows={rows.map((row) => [row.schoolCode, row.schoolName])}
       />
     </Card>
   );

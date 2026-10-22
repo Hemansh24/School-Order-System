@@ -105,7 +105,7 @@ export const createOrderSchema = z
   .object({
     sheet1: sheet1Schema,
     descriptiveRows: z.array(sheet2ARowSchema).default([]),
-    ambiguousSchools: z.array(sheet2B1RowSchema).default([]),
+    ambiguousSchools: z.array(sheet2B1RowSchema).max(0, "Ambiguous orders accept item quantities only").default([]),
     ambiguousItems: z.array(sheet2B2RowSchema).default([]),
     combinedSchools: z.array(sheet2C1RowSchema).default([]),
     combinedItems: z.array(sheet2C2RowSchema).default([])

@@ -14,7 +14,7 @@ Next.js App Router application for school-book order processing with the require
 
 - Each order uses one stable `order_no`; editing it before finalization never changes that number.
 - Descriptive orders create only Order Sheet 2A rows.
-- Ambiguous orders create only Order Sheet 2B1 school rows and 2B2 grouped item rows.
+- Ambiguous orders create only Order Sheet 2B2 item quantities; older school links remain hidden historical data.
 - Ambiguous quantities are not forced into school-wise allocations.
 - Finalization creates Order Sheet 3 rows from either 2A or 2B2.
 - Order Sheet 3 has its own `order_sheet_3_id`, plus `source_type` and `source_id`.
@@ -124,7 +124,7 @@ npx tsx scripts/verify-group-logic.ts
 
 Imports preserve record IDs, retire absent GS masters, and save pre-import JSON snapshots under `tmp/group-backups/` (excluded from Git). Raw source columns are stored in group metadata. The approved local `GSO198` correction is applied when `GS0198` exists; correcting the source organisation record separately prevents an organisation refresh from restoring that typo.
 
-Order types are **Descriptive** (known end schools) and **Ambiguous** (end schools unknown). Descriptive Sheet 2 begins with Individual / Multiple. Individual selects exactly one school and its item quantities. Multiple then offers Schools (at least two distinct schools) or Group (one searchable GS or Christian group); both record one shared total per item and finalize pooled quantities without multiplying by participant count. GS groups include every member organisation and allocate PT codes to PR-only members when saved; Christian groups use an editable school list. Saved GS participants remain snapshots. Older orders keep their stored modes and fulfillment sources; editing a legacy multi-school allocation sums quantities by item and asks for confirmation before saving the conversion to shared totals. Ambiguous school lists are optional; grouped item quantities are required.
+Order types are **Descriptive** (known end schools) and **Ambiguous** (end schools unknown). Descriptive Sheet 2 begins with Individual / Multiple. Individual selects exactly one school and its item quantities. Multiple then offers Schools (at least two distinct schools) or Group (one searchable GS or Christian group); both record one shared total per item and finalize pooled quantities without multiplying by participant count. GS groups include every member organisation and allocate PT codes to PR-only members when saved; Christian groups use an editable school list. Saved GS participants remain snapshots. Older orders keep their stored modes and fulfillment sources; editing a legacy multi-school allocation sums quantities by item and asks for confirmation before saving the conversion to shared totals. Ambiguous orders accept only items and positive integer quantities. School selectors and school lists are hidden throughout this workflow. Previously saved school links are retained as hidden history when editing an order that remains ambiguous; explicit order-type changes retain the existing discard behavior.
 
 Sheet 1 requires billing, shipping recipient/address, order type, and placed date. Billing and shipping each support school, vendor, group, or individual/manual entry and are independent of the chosen end schools and order type. Manual recipients need no master record or reference code. Session year, received/delivery dates, and other metadata are optional. Group selection never replaces billing or shipping. Reporting parents retain their tracking-container behavior and cannot be finalized.
 
@@ -168,7 +168,7 @@ npm start
 - `prisma/schema.prisma` - database schema and enum/table mapping.
 - `prisma/migrations/202605180001_init/migration.sql` - initial PostgreSQL migration.
 - `lib/services/orders.ts` - reusable business logic for creation, locking, finalization, status, revision, and search.
-- `lib/validation/orders.ts` - Zod validation for Sheet 1, 2A, 2B1, 2B2, and finalization fields.
+- `lib/validation/orders.ts` - Zod validation for Sheet 1, school-wise and pooled item quantities, and finalization fields.
 - `components/orders/create-order-form.tsx` - step-based creation flow.
 - `app/orders/[id]/page.tsx` - workflow-specific order details page.
 
