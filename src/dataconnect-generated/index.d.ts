@@ -103,6 +103,24 @@ export interface Item_Key {
   __typename?: 'Item_Key';
 }
 
+export interface ListBooksellerDiscountsData {
+  booksellers: ({
+    id: Int64String;
+    booksellerCode: string;
+    booksellerSubCode?: string | null;
+    booksellerName: string;
+    address01?: string | null;
+    incumbentCode?: string | null;
+    sourceRow?: number | null;
+    actualDiscount?: string | null;
+  } & Bookseller_Key)[];
+}
+
+export interface ListBooksellerDiscountsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+
 export interface ListBooksellerSchoolMappingData {
   booksellerSchoolMappings: ({
     id: Int64String;
@@ -134,6 +152,7 @@ export interface ListBooksellersData {
     contactNumber?: string | null;
     email?: string | null;
     vendorType?: string | null;
+    actualDiscount?: string | null;
     remark?: string | null;
   } & Bookseller_Key)[];
 }
@@ -294,6 +313,46 @@ export interface ListSharedSchoolGroupsVariables {
   offset?: number | null;
 }
 
+export interface ListSharedVendorSchoolsData {
+  sharedVendorSchools: ({
+    vendorCode: string;
+    schoolCode: string;
+    syncedAt: TimestampString;
+  } & SharedVendorSchool_Key)[];
+}
+
+export interface ListSharedVendorSchoolsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+
+export interface ListSharedVendorsData {
+  sharedVendors: ({
+    vendorCode: string;
+    preVendorCode?: string | null;
+    booksellerCode?: string | null;
+    vendorName: string;
+    vendorType?: string | null;
+    vendorRating?: string | null;
+    actualDiscount?: string | null;
+    address?: string | null;
+    district?: string | null;
+    state?: string | null;
+    pinCode?: string | null;
+    contactPerson?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    taxId?: string | null;
+    paymentStatus?: string | null;
+    syncedAt: TimestampString;
+  } & SharedVendor_Key)[];
+}
+
+export interface ListSharedVendorsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+
 export interface Organisation_Key {
   id: Int64String;
   __typename?: 'Organisation_Key';
@@ -326,6 +385,15 @@ export interface SearchOrganisationsVariables {
   offset?: number | null;
 }
 
+export interface SetBooksellerActualDiscountData {
+  bookseller_updateMany: number;
+}
+
+export interface SetBooksellerActualDiscountVariables {
+  id: Int64String;
+  actualDiscount?: string | null;
+}
+
 export interface SetChristianGroupActiveData {
   sharedChristianGroup_update?: SharedChristianGroup_Key | null;
 }
@@ -353,6 +421,17 @@ export interface SharedSchoolGroupLocation_Key {
 export interface SharedSchoolGroup_Key {
   id: Int64String;
   __typename?: 'SharedSchoolGroup_Key';
+}
+
+export interface SharedVendorSchool_Key {
+  vendorCode: string;
+  schoolCode: string;
+  __typename?: 'SharedVendorSchool_Key';
+}
+
+export interface SharedVendor_Key {
+  vendorCode: string;
+  __typename?: 'SharedVendor_Key';
 }
 
 export interface UpsertChristianGroupData {
@@ -436,6 +515,50 @@ export interface UpsertSharedSchoolGroupVariables {
   active: boolean;
 }
 
+export interface UpsertSharedVendorData {
+  sharedVendor_upsert: SharedVendor_Key;
+}
+
+export interface UpsertSharedVendorSchoolData {
+  sharedVendorSchool_upsert: SharedVendorSchool_Key;
+}
+
+export interface UpsertSharedVendorSchoolVariables {
+  vendorCode: string;
+  schoolCode: string;
+}
+
+export interface UpsertSharedVendorVariables {
+  vendorCode: string;
+  preVendorCode?: string | null;
+  booksellerCode?: string | null;
+  vendorName: string;
+  vendorType?: string | null;
+  vendorRating?: string | null;
+  actualDiscount?: string | null;
+  address?: string | null;
+  district?: string | null;
+  state?: string | null;
+  pinCode?: string | null;
+  contactPerson?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  taxId?: string | null;
+  paymentStatus?: string | null;
+}
+
+interface SetBooksellerActualDiscountRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SetBooksellerActualDiscountVariables): MutationRef<SetBooksellerActualDiscountData, SetBooksellerActualDiscountVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: SetBooksellerActualDiscountVariables): MutationRef<SetBooksellerActualDiscountData, SetBooksellerActualDiscountVariables>;
+  operationName: string;
+}
+export const setBooksellerActualDiscountRef: SetBooksellerActualDiscountRef;
+
+export function setBooksellerActualDiscount(vars: SetBooksellerActualDiscountVariables): MutationPromise<SetBooksellerActualDiscountData, SetBooksellerActualDiscountVariables>;
+export function setBooksellerActualDiscount(dc: DataConnect, vars: SetBooksellerActualDiscountVariables): MutationPromise<SetBooksellerActualDiscountData, SetBooksellerActualDiscountVariables>;
+
 interface UpsertChristianGroupRef {
   /* Allow users to create refs without passing in DataConnect */
   (vars: UpsertChristianGroupVariables): MutationRef<UpsertChristianGroupData, UpsertChristianGroupVariables>;
@@ -496,6 +619,30 @@ export const upsertSharedSchoolGroupLocationRef: UpsertSharedSchoolGroupLocation
 export function upsertSharedSchoolGroupLocation(vars: UpsertSharedSchoolGroupLocationVariables): MutationPromise<UpsertSharedSchoolGroupLocationData, UpsertSharedSchoolGroupLocationVariables>;
 export function upsertSharedSchoolGroupLocation(dc: DataConnect, vars: UpsertSharedSchoolGroupLocationVariables): MutationPromise<UpsertSharedSchoolGroupLocationData, UpsertSharedSchoolGroupLocationVariables>;
 
+interface UpsertSharedVendorRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertSharedVendorVariables): MutationRef<UpsertSharedVendorData, UpsertSharedVendorVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpsertSharedVendorVariables): MutationRef<UpsertSharedVendorData, UpsertSharedVendorVariables>;
+  operationName: string;
+}
+export const upsertSharedVendorRef: UpsertSharedVendorRef;
+
+export function upsertSharedVendor(vars: UpsertSharedVendorVariables): MutationPromise<UpsertSharedVendorData, UpsertSharedVendorVariables>;
+export function upsertSharedVendor(dc: DataConnect, vars: UpsertSharedVendorVariables): MutationPromise<UpsertSharedVendorData, UpsertSharedVendorVariables>;
+
+interface UpsertSharedVendorSchoolRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertSharedVendorSchoolVariables): MutationRef<UpsertSharedVendorSchoolData, UpsertSharedVendorSchoolVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpsertSharedVendorSchoolVariables): MutationRef<UpsertSharedVendorSchoolData, UpsertSharedVendorSchoolVariables>;
+  operationName: string;
+}
+export const upsertSharedVendorSchoolRef: UpsertSharedVendorSchoolRef;
+
+export function upsertSharedVendorSchool(vars: UpsertSharedVendorSchoolVariables): MutationPromise<UpsertSharedVendorSchoolData, UpsertSharedVendorSchoolVariables>;
+export function upsertSharedVendorSchool(dc: DataConnect, vars: UpsertSharedVendorSchoolVariables): MutationPromise<UpsertSharedVendorSchoolData, UpsertSharedVendorSchoolVariables>;
+
 interface ListOrganisationsRef {
   /* Allow users to create refs without passing in DataConnect */
   (vars?: ListOrganisationsVariables): QueryRef<ListOrganisationsData, ListOrganisationsVariables>;
@@ -531,6 +678,18 @@ export const getOrganisationByPrCodeRef: GetOrganisationByPrCodeRef;
 
 export function getOrganisationByPrCode(vars: GetOrganisationByPrCodeVariables, options?: ExecuteQueryOptions): QueryPromise<GetOrganisationByPrCodeData, GetOrganisationByPrCodeVariables>;
 export function getOrganisationByPrCode(dc: DataConnect, vars: GetOrganisationByPrCodeVariables, options?: ExecuteQueryOptions): QueryPromise<GetOrganisationByPrCodeData, GetOrganisationByPrCodeVariables>;
+
+interface ListBooksellerDiscountsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: ListBooksellerDiscountsVariables): QueryRef<ListBooksellerDiscountsData, ListBooksellerDiscountsVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars?: ListBooksellerDiscountsVariables): QueryRef<ListBooksellerDiscountsData, ListBooksellerDiscountsVariables>;
+  operationName: string;
+}
+export const listBooksellerDiscountsRef: ListBooksellerDiscountsRef;
+
+export function listBooksellerDiscounts(vars?: ListBooksellerDiscountsVariables, options?: ExecuteQueryOptions): QueryPromise<ListBooksellerDiscountsData, ListBooksellerDiscountsVariables>;
+export function listBooksellerDiscounts(dc: DataConnect, vars?: ListBooksellerDiscountsVariables, options?: ExecuteQueryOptions): QueryPromise<ListBooksellerDiscountsData, ListBooksellerDiscountsVariables>;
 
 interface ListBooksellersRef {
   /* Allow users to create refs without passing in DataConnect */
@@ -639,4 +798,28 @@ export const listSharedPreBooksellersRef: ListSharedPreBooksellersRef;
 
 export function listSharedPreBooksellers(vars?: ListSharedPreBooksellersVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedPreBooksellersData, ListSharedPreBooksellersVariables>;
 export function listSharedPreBooksellers(dc: DataConnect, vars?: ListSharedPreBooksellersVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedPreBooksellersData, ListSharedPreBooksellersVariables>;
+
+interface ListSharedVendorsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: ListSharedVendorsVariables): QueryRef<ListSharedVendorsData, ListSharedVendorsVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars?: ListSharedVendorsVariables): QueryRef<ListSharedVendorsData, ListSharedVendorsVariables>;
+  operationName: string;
+}
+export const listSharedVendorsRef: ListSharedVendorsRef;
+
+export function listSharedVendors(vars?: ListSharedVendorsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedVendorsData, ListSharedVendorsVariables>;
+export function listSharedVendors(dc: DataConnect, vars?: ListSharedVendorsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedVendorsData, ListSharedVendorsVariables>;
+
+interface ListSharedVendorSchoolsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: ListSharedVendorSchoolsVariables): QueryRef<ListSharedVendorSchoolsData, ListSharedVendorSchoolsVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars?: ListSharedVendorSchoolsVariables): QueryRef<ListSharedVendorSchoolsData, ListSharedVendorSchoolsVariables>;
+  operationName: string;
+}
+export const listSharedVendorSchoolsRef: ListSharedVendorSchoolsRef;
+
+export function listSharedVendorSchools(vars?: ListSharedVendorSchoolsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedVendorSchoolsData, ListSharedVendorSchoolsVariables>;
+export function listSharedVendorSchools(dc: DataConnect, vars?: ListSharedVendorSchoolsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedVendorSchoolsData, ListSharedVendorSchoolsVariables>;
 

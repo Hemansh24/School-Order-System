@@ -13,6 +13,20 @@ const dataConnectSettings = {
 };
 exports.dataConnectSettings = dataConnectSettings;
 
+const setBooksellerActualDiscountRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'SetBooksellerActualDiscount', inputVars);
+}
+setBooksellerActualDiscountRef.operationName = 'SetBooksellerActualDiscount';
+exports.setBooksellerActualDiscountRef = setBooksellerActualDiscountRef;
+
+exports.setBooksellerActualDiscount = function setBooksellerActualDiscount(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(setBooksellerActualDiscountRef(dcInstance, inputVars));
+}
+;
+
 const upsertChristianGroupRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -83,6 +97,34 @@ exports.upsertSharedSchoolGroupLocation = function upsertSharedSchoolGroupLocati
 }
 ;
 
+const upsertSharedVendorRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertSharedVendor', inputVars);
+}
+upsertSharedVendorRef.operationName = 'UpsertSharedVendor';
+exports.upsertSharedVendorRef = upsertSharedVendorRef;
+
+exports.upsertSharedVendor = function upsertSharedVendor(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertSharedVendorRef(dcInstance, inputVars));
+}
+;
+
+const upsertSharedVendorSchoolRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertSharedVendorSchool', inputVars);
+}
+upsertSharedVendorSchoolRef.operationName = 'UpsertSharedVendorSchool';
+exports.upsertSharedVendorSchoolRef = upsertSharedVendorSchoolRef;
+
+exports.upsertSharedVendorSchool = function upsertSharedVendorSchool(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertSharedVendorSchoolRef(dcInstance, inputVars));
+}
+;
+
 const listOrganisationsRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
   dcInstance._useGeneratedSdk();
@@ -125,6 +167,21 @@ exports.getOrganisationByPrCode = function getOrganisationByPrCode(dcOrVars, var
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(getOrganisationByPrCodeRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listBooksellerDiscountsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListBooksellerDiscounts', inputVars);
+}
+listBooksellerDiscountsRef.operationName = 'ListBooksellerDiscounts';
+exports.listBooksellerDiscountsRef = listBooksellerDiscountsRef;
+
+exports.listBooksellerDiscounts = function listBooksellerDiscounts(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  return executeQuery(listBooksellerDiscountsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
 
@@ -260,5 +317,35 @@ exports.listSharedPreBooksellers = function listSharedPreBooksellers(dcOrVars, v
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
   return executeQuery(listSharedPreBooksellersRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listSharedVendorsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListSharedVendors', inputVars);
+}
+listSharedVendorsRef.operationName = 'ListSharedVendors';
+exports.listSharedVendorsRef = listSharedVendorsRef;
+
+exports.listSharedVendors = function listSharedVendors(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  return executeQuery(listSharedVendorsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listSharedVendorSchoolsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListSharedVendorSchools', inputVars);
+}
+listSharedVendorSchoolsRef.operationName = 'ListSharedVendorSchools';
+exports.listSharedVendorSchoolsRef = listSharedVendorSchoolsRef;
+
+exports.listSharedVendorSchools = function listSharedVendorSchools(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  return executeQuery(listSharedVendorSchoolsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;

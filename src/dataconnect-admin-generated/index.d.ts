@@ -100,6 +100,24 @@ export interface Item_Key {
   __typename?: 'Item_Key';
 }
 
+export interface ListBooksellerDiscountsData {
+  booksellers: ({
+    id: Int64String;
+    booksellerCode: string;
+    booksellerSubCode?: string | null;
+    booksellerName: string;
+    address01?: string | null;
+    incumbentCode?: string | null;
+    sourceRow?: number | null;
+    actualDiscount?: string | null;
+  } & Bookseller_Key)[];
+}
+
+export interface ListBooksellerDiscountsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+
 export interface ListBooksellerSchoolMappingData {
   booksellerSchoolMappings: ({
     id: Int64String;
@@ -131,6 +149,7 @@ export interface ListBooksellersData {
     contactNumber?: string | null;
     email?: string | null;
     vendorType?: string | null;
+    actualDiscount?: string | null;
     remark?: string | null;
   } & Bookseller_Key)[];
 }
@@ -291,6 +310,46 @@ export interface ListSharedSchoolGroupsVariables {
   offset?: number | null;
 }
 
+export interface ListSharedVendorSchoolsData {
+  sharedVendorSchools: ({
+    vendorCode: string;
+    schoolCode: string;
+    syncedAt: TimestampString;
+  } & SharedVendorSchool_Key)[];
+}
+
+export interface ListSharedVendorSchoolsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+
+export interface ListSharedVendorsData {
+  sharedVendors: ({
+    vendorCode: string;
+    preVendorCode?: string | null;
+    booksellerCode?: string | null;
+    vendorName: string;
+    vendorType?: string | null;
+    vendorRating?: string | null;
+    actualDiscount?: string | null;
+    address?: string | null;
+    district?: string | null;
+    state?: string | null;
+    pinCode?: string | null;
+    contactPerson?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    taxId?: string | null;
+    paymentStatus?: string | null;
+    syncedAt: TimestampString;
+  } & SharedVendor_Key)[];
+}
+
+export interface ListSharedVendorsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+
 export interface Organisation_Key {
   id: Int64String;
   __typename?: 'Organisation_Key';
@@ -323,6 +382,15 @@ export interface SearchOrganisationsVariables {
   offset?: number | null;
 }
 
+export interface SetBooksellerActualDiscountData {
+  bookseller_updateMany: number;
+}
+
+export interface SetBooksellerActualDiscountVariables {
+  id: Int64String;
+  actualDiscount?: string | null;
+}
+
 export interface SetChristianGroupActiveData {
   sharedChristianGroup_update?: SharedChristianGroup_Key | null;
 }
@@ -350,6 +418,17 @@ export interface SharedSchoolGroupLocation_Key {
 export interface SharedSchoolGroup_Key {
   id: Int64String;
   __typename?: 'SharedSchoolGroup_Key';
+}
+
+export interface SharedVendorSchool_Key {
+  vendorCode: string;
+  schoolCode: string;
+  __typename?: 'SharedVendorSchool_Key';
+}
+
+export interface SharedVendor_Key {
+  vendorCode: string;
+  __typename?: 'SharedVendor_Key';
 }
 
 export interface UpsertChristianGroupData {
@@ -433,6 +512,43 @@ export interface UpsertSharedSchoolGroupVariables {
   active: boolean;
 }
 
+export interface UpsertSharedVendorData {
+  sharedVendor_upsert: SharedVendor_Key;
+}
+
+export interface UpsertSharedVendorSchoolData {
+  sharedVendorSchool_upsert: SharedVendorSchool_Key;
+}
+
+export interface UpsertSharedVendorSchoolVariables {
+  vendorCode: string;
+  schoolCode: string;
+}
+
+export interface UpsertSharedVendorVariables {
+  vendorCode: string;
+  preVendorCode?: string | null;
+  booksellerCode?: string | null;
+  vendorName: string;
+  vendorType?: string | null;
+  vendorRating?: string | null;
+  actualDiscount?: string | null;
+  address?: string | null;
+  district?: string | null;
+  state?: string | null;
+  pinCode?: string | null;
+  contactPerson?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  taxId?: string | null;
+  paymentStatus?: string | null;
+}
+
+/** Generated Node Admin SDK operation action function for the 'SetBooksellerActualDiscount' Mutation. Allow users to execute without passing in DataConnect. */
+export function setBooksellerActualDiscount(dc: DataConnect, vars: SetBooksellerActualDiscountVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<SetBooksellerActualDiscountData>>;
+/** Generated Node Admin SDK operation action function for the 'SetBooksellerActualDiscount' Mutation. Allow users to pass in custom DataConnect instances. */
+export function setBooksellerActualDiscount(vars: SetBooksellerActualDiscountVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<SetBooksellerActualDiscountData>>;
+
 /** Generated Node Admin SDK operation action function for the 'UpsertChristianGroup' Mutation. Allow users to execute without passing in DataConnect. */
 export function upsertChristianGroup(dc: DataConnect, vars: UpsertChristianGroupVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertChristianGroupData>>;
 /** Generated Node Admin SDK operation action function for the 'UpsertChristianGroup' Mutation. Allow users to pass in custom DataConnect instances. */
@@ -458,6 +574,16 @@ export function upsertSharedSchoolGroupLocation(dc: DataConnect, vars: UpsertSha
 /** Generated Node Admin SDK operation action function for the 'UpsertSharedSchoolGroupLocation' Mutation. Allow users to pass in custom DataConnect instances. */
 export function upsertSharedSchoolGroupLocation(vars: UpsertSharedSchoolGroupLocationVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertSharedSchoolGroupLocationData>>;
 
+/** Generated Node Admin SDK operation action function for the 'UpsertSharedVendor' Mutation. Allow users to execute without passing in DataConnect. */
+export function upsertSharedVendor(dc: DataConnect, vars: UpsertSharedVendorVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertSharedVendorData>>;
+/** Generated Node Admin SDK operation action function for the 'UpsertSharedVendor' Mutation. Allow users to pass in custom DataConnect instances. */
+export function upsertSharedVendor(vars: UpsertSharedVendorVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertSharedVendorData>>;
+
+/** Generated Node Admin SDK operation action function for the 'UpsertSharedVendorSchool' Mutation. Allow users to execute without passing in DataConnect. */
+export function upsertSharedVendorSchool(dc: DataConnect, vars: UpsertSharedVendorSchoolVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertSharedVendorSchoolData>>;
+/** Generated Node Admin SDK operation action function for the 'UpsertSharedVendorSchool' Mutation. Allow users to pass in custom DataConnect instances. */
+export function upsertSharedVendorSchool(vars: UpsertSharedVendorSchoolVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertSharedVendorSchoolData>>;
+
 /** Generated Node Admin SDK operation action function for the 'ListOrganisations' Query. Allow users to execute without passing in DataConnect. */
 export function listOrganisations(dc: DataConnect, vars?: ListOrganisationsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListOrganisationsData>>;
 /** Generated Node Admin SDK operation action function for the 'ListOrganisations' Query. Allow users to pass in custom DataConnect instances. */
@@ -472,6 +598,11 @@ export function searchOrganisations(vars?: SearchOrganisationsVariables, options
 export function getOrganisationByPrCode(dc: DataConnect, vars: GetOrganisationByPrCodeVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetOrganisationByPrCodeData>>;
 /** Generated Node Admin SDK operation action function for the 'GetOrganisationByPrCode' Query. Allow users to pass in custom DataConnect instances. */
 export function getOrganisationByPrCode(vars: GetOrganisationByPrCodeVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetOrganisationByPrCodeData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ListBooksellerDiscounts' Query. Allow users to execute without passing in DataConnect. */
+export function listBooksellerDiscounts(dc: DataConnect, vars?: ListBooksellerDiscountsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListBooksellerDiscountsData>>;
+/** Generated Node Admin SDK operation action function for the 'ListBooksellerDiscounts' Query. Allow users to pass in custom DataConnect instances. */
+export function listBooksellerDiscounts(vars?: ListBooksellerDiscountsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListBooksellerDiscountsData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListBooksellers' Query. Allow users to execute without passing in DataConnect. */
 export function listBooksellers(dc: DataConnect, vars?: ListBooksellersVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListBooksellersData>>;
@@ -517,4 +648,14 @@ export function listSharedChristianGroups(vars?: ListSharedChristianGroupsVariab
 export function listSharedPreBooksellers(dc: DataConnect, vars?: ListSharedPreBooksellersVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSharedPreBooksellersData>>;
 /** Generated Node Admin SDK operation action function for the 'ListSharedPreBooksellers' Query. Allow users to pass in custom DataConnect instances. */
 export function listSharedPreBooksellers(vars?: ListSharedPreBooksellersVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSharedPreBooksellersData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ListSharedVendors' Query. Allow users to execute without passing in DataConnect. */
+export function listSharedVendors(dc: DataConnect, vars?: ListSharedVendorsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSharedVendorsData>>;
+/** Generated Node Admin SDK operation action function for the 'ListSharedVendors' Query. Allow users to pass in custom DataConnect instances. */
+export function listSharedVendors(vars?: ListSharedVendorsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSharedVendorsData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ListSharedVendorSchools' Query. Allow users to execute without passing in DataConnect. */
+export function listSharedVendorSchools(dc: DataConnect, vars?: ListSharedVendorSchoolsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSharedVendorSchoolsData>>;
+/** Generated Node Admin SDK operation action function for the 'ListSharedVendorSchools' Query. Allow users to pass in custom DataConnect instances. */
+export function listSharedVendorSchools(vars?: ListSharedVendorSchoolsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSharedVendorSchoolsData>>;
 

@@ -12,8 +12,10 @@ For each operation, there is a wrapper hook that can be used to call the operati
 
 Here are all of the hooks that get generated:
 ```ts
-import { useUpsertChristianGroup, useSetChristianGroupActive, useUpsertPreBookseller, useUpsertSharedSchoolGroup, useUpsertSharedSchoolGroupLocation, useListOrganisations, useSearchOrganisations, useGetOrganisationByPrCode, useListBooksellers, useGetBooksellerByCode } from '@dataconnect/generated/react';
+import { useSetBooksellerActualDiscount, useUpsertChristianGroup, useSetChristianGroupActive, useUpsertPreBookseller, useUpsertSharedSchoolGroup, useUpsertSharedSchoolGroupLocation, useUpsertSharedVendor, useUpsertSharedVendorSchool, useListOrganisations, useSearchOrganisations } from '@dataconnect/generated/react';
 // The types of these hooks are available in react/index.d.ts
+
+const { data, isPending, isSuccess, isError, error } = useSetBooksellerActualDiscount(setBooksellerActualDiscountVars);
 
 const { data, isPending, isSuccess, isError, error } = useUpsertChristianGroup(upsertChristianGroupVars);
 
@@ -25,15 +27,13 @@ const { data, isPending, isSuccess, isError, error } = useUpsertSharedSchoolGrou
 
 const { data, isPending, isSuccess, isError, error } = useUpsertSharedSchoolGroupLocation(upsertSharedSchoolGroupLocationVars);
 
+const { data, isPending, isSuccess, isError, error } = useUpsertSharedVendor(upsertSharedVendorVars);
+
+const { data, isPending, isSuccess, isError, error } = useUpsertSharedVendorSchool(upsertSharedVendorSchoolVars);
+
 const { data, isPending, isSuccess, isError, error } = useListOrganisations(listOrganisationsVars);
 
 const { data, isPending, isSuccess, isError, error } = useSearchOrganisations(searchOrganisationsVars);
-
-const { data, isPending, isSuccess, isError, error } = useGetOrganisationByPrCode(getOrganisationByPrCodeVars);
-
-const { data, isPending, isSuccess, isError, error } = useListBooksellers(listBooksellersVars);
-
-const { data, isPending, isSuccess, isError, error } = useGetBooksellerByCode(getBooksellerByCodeVars);
 
 ```
 
@@ -72,8 +72,11 @@ If a user is not using a supported framework, they can use the generated SDK dir
 Here's an example of how to use it with the first 5 operations:
 
 ```js
-import { upsertChristianGroup, setChristianGroupActive, upsertPreBookseller, upsertSharedSchoolGroup, upsertSharedSchoolGroupLocation, listOrganisations, searchOrganisations, getOrganisationByPrCode, listBooksellers, getBooksellerByCode } from '@dataconnect/generated';
+import { setBooksellerActualDiscount, upsertChristianGroup, setChristianGroupActive, upsertPreBookseller, upsertSharedSchoolGroup, upsertSharedSchoolGroupLocation, upsertSharedVendor, upsertSharedVendorSchool, listOrganisations, searchOrganisations } from '@dataconnect/generated';
 
+
+// Operation SetBooksellerActualDiscount:  For variables, look at type SetBooksellerActualDiscountVars in ../index.d.ts
+const { data } = await SetBooksellerActualDiscount(dataConnect, setBooksellerActualDiscountVars);
 
 // Operation UpsertChristianGroup:  For variables, look at type UpsertChristianGroupVars in ../index.d.ts
 const { data } = await UpsertChristianGroup(dataConnect, upsertChristianGroupVars);
@@ -90,20 +93,17 @@ const { data } = await UpsertSharedSchoolGroup(dataConnect, upsertSharedSchoolGr
 // Operation UpsertSharedSchoolGroupLocation:  For variables, look at type UpsertSharedSchoolGroupLocationVars in ../index.d.ts
 const { data } = await UpsertSharedSchoolGroupLocation(dataConnect, upsertSharedSchoolGroupLocationVars);
 
+// Operation UpsertSharedVendor:  For variables, look at type UpsertSharedVendorVars in ../index.d.ts
+const { data } = await UpsertSharedVendor(dataConnect, upsertSharedVendorVars);
+
+// Operation UpsertSharedVendorSchool:  For variables, look at type UpsertSharedVendorSchoolVars in ../index.d.ts
+const { data } = await UpsertSharedVendorSchool(dataConnect, upsertSharedVendorSchoolVars);
+
 // Operation ListOrganisations:  For variables, look at type ListOrganisationsVars in ../index.d.ts
 const { data } = await ListOrganisations(dataConnect, listOrganisationsVars);
 
 // Operation SearchOrganisations:  For variables, look at type SearchOrganisationsVars in ../index.d.ts
 const { data } = await SearchOrganisations(dataConnect, searchOrganisationsVars);
-
-// Operation GetOrganisationByPrCode:  For variables, look at type GetOrganisationByPrCodeVars in ../index.d.ts
-const { data } = await GetOrganisationByPrCode(dataConnect, getOrganisationByPrCodeVars);
-
-// Operation ListBooksellers:  For variables, look at type ListBooksellersVars in ../index.d.ts
-const { data } = await ListBooksellers(dataConnect, listBooksellersVars);
-
-// Operation GetBooksellerByCode:  For variables, look at type GetBooksellerByCodeVars in ../index.d.ts
-const { data } = await GetBooksellerByCode(dataConnect, getBooksellerByCodeVars);
 
 
 ```

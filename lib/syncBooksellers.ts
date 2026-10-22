@@ -1,9 +1,13 @@
 import {
   listBooksellerSchoolMapping,
   listBooksellers,
+  listSharedVendorSchools,
+  listSharedVendors,
   connectorConfig,
   type ListBooksellerSchoolMappingData,
-  type ListBooksellersData
+  type ListBooksellersData,
+  type ListSharedVendorSchoolsData,
+  type ListSharedVendorsData
 } from "@dataconnect/generated";
 import type { Prisma } from "@prisma/client";
 import { getApp, getApps, initializeApp } from "firebase/app";
@@ -28,6 +32,8 @@ const FIREBASE_PROJECT_ID =
 type ImportedBookseller = ListBooksellersData["booksellers"][number];
 type ImportedBooksellerSchoolMapping =
   ListBooksellerSchoolMappingData["booksellerSchoolMappings"][number];
+type SharedVendor = ListSharedVendorsData["sharedVendors"][number];
+type SharedVendorSchool = ListSharedVendorSchoolsData["sharedVendorSchools"][number];
 
 const PAGE_SIZE = 500;
 
@@ -95,8 +101,34 @@ async function listAllBooksellerSchoolMappings(dataConnect: ReturnType<typeof ge
   }
 }
 
+async function listAllSharedVendors(dataConnect: ReturnType<typeof getDataConnect>) {
+  const vendors: SharedVendor[] = [];
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    const { data } = await listSharedVendors(dataConnect, { limit: PAGE_SIZE, offset });
+    vendors.push(...data.sharedVendors);
+    if (data.sharedVendors.length < PAGE_SIZE) return vendors;
+  }
+}
+
+async function listAllSharedVendorSchools(dataConnect: ReturnType<typeof getDataConnect>) {
+  const mappings: SharedVendorSchool[] = [];
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    const { data } = await listSharedVendorSchools(dataConnect, { limit: PAGE_SIZE, offset });
+    mappings.push(...data.sharedVendorSchools);
+    if (data.sharedVendorSchools.length < PAGE_SIZE) return mappings;
+  }
+}
+
 export async function replaceVendorsWithImportedBooksellers(): Promise<BooksellerSyncSummary> {
   const dataConnect = getDataConnect(ensureFirebaseApp(), connectorConfig);
+
+  const [sharedVendors, sharedMappings] = await Promise.all([
+    listAllSharedVendors(dataConnect),
+    listAllSharedVendorSchools(dataConnect)
+  ]);
+  if (sharedVendors.length > 0) {
+    return replaceVendorsWithSharedData(sharedVendors, sharedMappings);
+  }
 
   const [importedBooksellers, mappingRows, existingVendors] = await Promise.all([
     listAllBooksellers(dataConnect),
@@ -139,6 +171,7 @@ export async function replaceVendorsWithImportedBooksellers(): Promise<Bookselle
       vendorName: bookseller.booksellerName,
       vendorType: normalizeText(bookseller.vendorType),
       vendorRating: existingVendor?.vendorRating ?? null,
+      actualDiscount: normalizeText(bookseller.actualDiscount),
       address: combineAddress(
         bookseller.address01,
         bookseller.district,
@@ -209,6 +242,80 @@ export async function replaceVendorsWithImportedBooksellers(): Promise<Bookselle
     unmatchedSchoolMappings,
     linkedVendors,
     unlinkedVendors: Math.max(0, nextVendors.length - linkedVendors)
+  };
+}
+
+async function replaceVendorsWithSharedData(vendors: SharedVendor[], mappings: SharedVendorSchool[]): Promise<BooksellerSyncSummary> {
+  let linkedSchoolMappings = 0;
+  let linkedVendors = 0;
+
+  await prisma.$transaction(async (tx) => {
+    for (const vendor of vendors) {
+      await tx.vendor.upsert({
+        where: { vendorCode: vendor.vendorCode },
+        create: {
+          vendorCode: vendor.vendorCode,
+          preVendorCode: vendor.preVendorCode ?? null,
+          booksellerCode: vendor.booksellerCode ?? null,
+          vendorName: vendor.vendorName,
+          vendorType: vendor.vendorType ?? null,
+          vendorRating: vendor.vendorRating ?? null,
+          actualDiscount: vendor.actualDiscount ?? null,
+          address: vendor.address ?? null,
+          district: vendor.district ?? null,
+          state: vendor.state ?? null,
+          pinCode: vendor.pinCode ?? null,
+          contactPerson: vendor.contactPerson ?? null,
+          phone: vendor.phone ?? null,
+          email: vendor.email ?? null,
+          taxId: vendor.taxId ?? null,
+          paymentStatus: vendor.paymentStatus ?? null
+        },
+        update: {
+          preVendorCode: vendor.preVendorCode ?? null,
+          booksellerCode: vendor.booksellerCode ?? null,
+          vendorName: vendor.vendorName,
+          vendorType: vendor.vendorType ?? null,
+          vendorRating: vendor.vendorRating ?? null,
+          actualDiscount: vendor.actualDiscount ?? null,
+          address: vendor.address ?? null,
+          district: vendor.district ?? null,
+          state: vendor.state ?? null,
+          pinCode: vendor.pinCode ?? null,
+          contactPerson: vendor.contactPerson ?? null,
+          phone: vendor.phone ?? null,
+          email: vendor.email ?? null,
+          taxId: vendor.taxId ?? null,
+          paymentStatus: vendor.paymentStatus ?? null
+        }
+      });
+    }
+
+    await tx.vendorSchool.deleteMany();
+    const [localVendors, schools] = await Promise.all([
+      tx.vendor.findMany({ where: { vendorCode: { in: vendors.map((vendor) => vendor.vendorCode) } }, select: { vendorId: true, vendorCode: true } }),
+      tx.school.findMany({ where: { schoolCode: { in: mappings.map((mapping) => mapping.schoolCode) } }, select: { schoolId: true, schoolCode: true } })
+    ]);
+    const vendorIdByCode = new Map(localVendors.map((vendor) => [vendor.vendorCode, vendor.vendorId]));
+    const schoolIdByCode = new Map(schools.map((school) => [school.schoolCode, school.schoolId]));
+    const rows = mappings.flatMap((mapping) => {
+      const vendorId = vendorIdByCode.get(mapping.vendorCode);
+      const schoolId = schoolIdByCode.get(mapping.schoolCode);
+      return vendorId && schoolId ? [{ vendorId, schoolId }] : [];
+    });
+    if (rows.length) await tx.vendorSchool.createMany({ data: rows, skipDuplicates: true });
+    linkedSchoolMappings = rows.length;
+    linkedVendors = new Set(rows.map((row) => row.vendorId)).size;
+  });
+
+  return {
+    importedBooksellers: vendors.length,
+    replacedVendors: vendors.length,
+    importedSchoolMappings: mappings.length,
+    linkedSchoolMappings,
+    unmatchedSchoolMappings: Math.max(0, mappings.length - linkedSchoolMappings),
+    linkedVendors,
+    unlinkedVendors: Math.max(0, vendors.length - linkedVendors)
   };
 }
 

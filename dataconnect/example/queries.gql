@@ -102,6 +102,20 @@ query GetOrganisationByPrCode($prCode: String!)
 }
 
 
+query ListBooksellerDiscounts($limit: Int = 500, $offset: Int = 0)
+@auth(level: NO_ACCESS) {
+  booksellers(orderBy: [{ id: ASC }], limit: $limit, offset: $offset) {
+    id
+    booksellerCode
+    booksellerSubCode
+    booksellerName
+    address01
+    incumbentCode
+    sourceRow
+    actualDiscount
+  }
+}
+
 query ListBooksellers(
   $limit: Int = 500
   $offset: Int = 0
@@ -127,6 +141,7 @@ query ListBooksellers(
     contactNumber
     email
     vendorType
+    actualDiscount
     remark
   }
 }
@@ -302,6 +317,38 @@ query ListSharedPreBooksellers($limit: Int = 500, $offset: Int = 0)
     conversionStatus
     assignedBsCode
     convertedAt
+    syncedAt
+  }
+}
+
+query ListSharedVendors($limit: Int = 500, $offset: Int = 0)
+@auth(level: PUBLIC) {
+  sharedVendors(orderBy: [{ vendorCode: ASC }], limit: $limit, offset: $offset) {
+    vendorCode
+    preVendorCode
+    booksellerCode
+    vendorName
+    vendorType
+    vendorRating
+    actualDiscount
+    address
+    district
+    state
+    pinCode
+    contactPerson
+    phone
+    email
+    taxId
+    paymentStatus
+    syncedAt
+  }
+}
+
+query ListSharedVendorSchools($limit: Int = 500, $offset: Int = 0)
+@auth(level: PUBLIC) {
+  sharedVendorSchools(orderBy: [{ vendorCode: ASC }, { schoolCode: ASC }], limit: $limit, offset: $offset) {
+    vendorCode
+    schoolCode
     syncedAt
   }
 }

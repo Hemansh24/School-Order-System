@@ -13,6 +13,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*ListOrganisations*](#listorganisations)
   - [*SearchOrganisations*](#searchorganisations)
   - [*GetOrganisationByPrCode*](#getorganisationbyprcode)
+  - [*ListBooksellerDiscounts*](#listbooksellerdiscounts)
   - [*ListBooksellers*](#listbooksellers)
   - [*GetBooksellerByCode*](#getbooksellerbycode)
   - [*ListItems*](#listitems)
@@ -22,12 +23,17 @@ This README will guide you through the process of using the generated JavaScript
   - [*ListSharedSchoolGroupLocations*](#listsharedschoolgrouplocations)
   - [*ListSharedChristianGroups*](#listsharedchristiangroups)
   - [*ListSharedPreBooksellers*](#listsharedprebooksellers)
+  - [*ListSharedVendors*](#listsharedvendors)
+  - [*ListSharedVendorSchools*](#listsharedvendorschools)
 - [**Mutations**](#mutations)
+  - [*SetBooksellerActualDiscount*](#setbookselleractualdiscount)
   - [*UpsertChristianGroup*](#upsertchristiangroup)
   - [*SetChristianGroupActive*](#setchristiangroupactive)
   - [*UpsertPreBookseller*](#upsertprebookseller)
   - [*UpsertSharedSchoolGroup*](#upsertsharedschoolgroup)
   - [*UpsertSharedSchoolGroupLocation*](#upsertsharedschoolgrouplocation)
+  - [*UpsertSharedVendor*](#upsertsharedvendor)
+  - [*UpsertSharedVendorSchool*](#upsertsharedvendorschool)
 
 # Accessing the connector
 A connector is a collection of Queries and Mutations. One SDK is generated for each connector - this SDK is generated for the connector `example`. You can find more information about connectors in the [Data Connect documentation](https://firebase.google.com/docs/data-connect#how-does).
@@ -489,6 +495,131 @@ executeQuery(ref).then((response) => {
 });
 ```
 
+## ListBooksellerDiscounts
+You can execute the `ListBooksellerDiscounts` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+listBooksellerDiscounts(vars?: ListBooksellerDiscountsVariables, options?: ExecuteQueryOptions): QueryPromise<ListBooksellerDiscountsData, ListBooksellerDiscountsVariables>;
+
+interface ListBooksellerDiscountsRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: ListBooksellerDiscountsVariables): QueryRef<ListBooksellerDiscountsData, ListBooksellerDiscountsVariables>;
+}
+export const listBooksellerDiscountsRef: ListBooksellerDiscountsRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+listBooksellerDiscounts(dc: DataConnect, vars?: ListBooksellerDiscountsVariables, options?: ExecuteQueryOptions): QueryPromise<ListBooksellerDiscountsData, ListBooksellerDiscountsVariables>;
+
+interface ListBooksellerDiscountsRef {
+  ...
+  (dc: DataConnect, vars?: ListBooksellerDiscountsVariables): QueryRef<ListBooksellerDiscountsData, ListBooksellerDiscountsVariables>;
+}
+export const listBooksellerDiscountsRef: ListBooksellerDiscountsRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listBooksellerDiscountsRef:
+```typescript
+const name = listBooksellerDiscountsRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ListBooksellerDiscounts` query has an optional argument of type `ListBooksellerDiscountsVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface ListBooksellerDiscountsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+```
+### Return Type
+Recall that executing the `ListBooksellerDiscounts` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ListBooksellerDiscountsData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ListBooksellerDiscountsData {
+  booksellers: ({
+    id: Int64String;
+    booksellerCode: string;
+    booksellerSubCode?: string | null;
+    booksellerName: string;
+    address01?: string | null;
+    incumbentCode?: string | null;
+    sourceRow?: number | null;
+    actualDiscount?: string | null;
+  } & Bookseller_Key)[];
+}
+```
+### Using `ListBooksellerDiscounts`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, listBooksellerDiscounts, ListBooksellerDiscountsVariables } from '@dataconnect/generated';
+
+// The `ListBooksellerDiscounts` query has an optional argument of type `ListBooksellerDiscountsVariables`:
+const listBooksellerDiscountsVars: ListBooksellerDiscountsVariables = {
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listBooksellerDiscounts()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await listBooksellerDiscounts(listBooksellerDiscountsVars);
+// Variables can be defined inline as well.
+const { data } = await listBooksellerDiscounts({ limit: ..., offset: ..., });
+// Since all variables are optional for this query, you can omit the `ListBooksellerDiscountsVariables` argument.
+const { data } = await listBooksellerDiscounts();
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await listBooksellerDiscounts(dataConnect, listBooksellerDiscountsVars);
+
+console.log(data.booksellers);
+
+// Or, you can use the `Promise` API.
+listBooksellerDiscounts(listBooksellerDiscountsVars).then((response) => {
+  const data = response.data;
+  console.log(data.booksellers);
+});
+```
+
+### Using `ListBooksellerDiscounts`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, listBooksellerDiscountsRef, ListBooksellerDiscountsVariables } from '@dataconnect/generated';
+
+// The `ListBooksellerDiscounts` query has an optional argument of type `ListBooksellerDiscountsVariables`:
+const listBooksellerDiscountsVars: ListBooksellerDiscountsVariables = {
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listBooksellerDiscountsRef()` function to get a reference to the query.
+const ref = listBooksellerDiscountsRef(listBooksellerDiscountsVars);
+// Variables can be defined inline as well.
+const ref = listBooksellerDiscountsRef({ limit: ..., offset: ..., });
+// Since all variables are optional for this query, you can omit the `ListBooksellerDiscountsVariables` argument.
+const ref = listBooksellerDiscountsRef();
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = listBooksellerDiscountsRef(dataConnect, listBooksellerDiscountsVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.booksellers);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.booksellers);
+});
+```
+
 ## ListBooksellers
 You can execute the `ListBooksellers` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
 ```typescript
@@ -549,6 +680,7 @@ export interface ListBooksellersData {
     contactNumber?: string | null;
     email?: string | null;
     vendorType?: string | null;
+    actualDiscount?: string | null;
     remark?: string | null;
   } & Bookseller_Key)[];
 }
@@ -1647,6 +1779,260 @@ executeQuery(ref).then((response) => {
 });
 ```
 
+## ListSharedVendors
+You can execute the `ListSharedVendors` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+listSharedVendors(vars?: ListSharedVendorsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedVendorsData, ListSharedVendorsVariables>;
+
+interface ListSharedVendorsRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: ListSharedVendorsVariables): QueryRef<ListSharedVendorsData, ListSharedVendorsVariables>;
+}
+export const listSharedVendorsRef: ListSharedVendorsRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+listSharedVendors(dc: DataConnect, vars?: ListSharedVendorsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedVendorsData, ListSharedVendorsVariables>;
+
+interface ListSharedVendorsRef {
+  ...
+  (dc: DataConnect, vars?: ListSharedVendorsVariables): QueryRef<ListSharedVendorsData, ListSharedVendorsVariables>;
+}
+export const listSharedVendorsRef: ListSharedVendorsRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listSharedVendorsRef:
+```typescript
+const name = listSharedVendorsRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ListSharedVendors` query has an optional argument of type `ListSharedVendorsVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface ListSharedVendorsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+```
+### Return Type
+Recall that executing the `ListSharedVendors` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ListSharedVendorsData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ListSharedVendorsData {
+  sharedVendors: ({
+    vendorCode: string;
+    preVendorCode?: string | null;
+    booksellerCode?: string | null;
+    vendorName: string;
+    vendorType?: string | null;
+    vendorRating?: string | null;
+    actualDiscount?: string | null;
+    address?: string | null;
+    district?: string | null;
+    state?: string | null;
+    pinCode?: string | null;
+    contactPerson?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    taxId?: string | null;
+    paymentStatus?: string | null;
+    syncedAt: TimestampString;
+  } & SharedVendor_Key)[];
+}
+```
+### Using `ListSharedVendors`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, listSharedVendors, ListSharedVendorsVariables } from '@dataconnect/generated';
+
+// The `ListSharedVendors` query has an optional argument of type `ListSharedVendorsVariables`:
+const listSharedVendorsVars: ListSharedVendorsVariables = {
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listSharedVendors()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await listSharedVendors(listSharedVendorsVars);
+// Variables can be defined inline as well.
+const { data } = await listSharedVendors({ limit: ..., offset: ..., });
+// Since all variables are optional for this query, you can omit the `ListSharedVendorsVariables` argument.
+const { data } = await listSharedVendors();
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await listSharedVendors(dataConnect, listSharedVendorsVars);
+
+console.log(data.sharedVendors);
+
+// Or, you can use the `Promise` API.
+listSharedVendors(listSharedVendorsVars).then((response) => {
+  const data = response.data;
+  console.log(data.sharedVendors);
+});
+```
+
+### Using `ListSharedVendors`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, listSharedVendorsRef, ListSharedVendorsVariables } from '@dataconnect/generated';
+
+// The `ListSharedVendors` query has an optional argument of type `ListSharedVendorsVariables`:
+const listSharedVendorsVars: ListSharedVendorsVariables = {
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listSharedVendorsRef()` function to get a reference to the query.
+const ref = listSharedVendorsRef(listSharedVendorsVars);
+// Variables can be defined inline as well.
+const ref = listSharedVendorsRef({ limit: ..., offset: ..., });
+// Since all variables are optional for this query, you can omit the `ListSharedVendorsVariables` argument.
+const ref = listSharedVendorsRef();
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = listSharedVendorsRef(dataConnect, listSharedVendorsVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.sharedVendors);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.sharedVendors);
+});
+```
+
+## ListSharedVendorSchools
+You can execute the `ListSharedVendorSchools` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+listSharedVendorSchools(vars?: ListSharedVendorSchoolsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedVendorSchoolsData, ListSharedVendorSchoolsVariables>;
+
+interface ListSharedVendorSchoolsRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: ListSharedVendorSchoolsVariables): QueryRef<ListSharedVendorSchoolsData, ListSharedVendorSchoolsVariables>;
+}
+export const listSharedVendorSchoolsRef: ListSharedVendorSchoolsRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+listSharedVendorSchools(dc: DataConnect, vars?: ListSharedVendorSchoolsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedVendorSchoolsData, ListSharedVendorSchoolsVariables>;
+
+interface ListSharedVendorSchoolsRef {
+  ...
+  (dc: DataConnect, vars?: ListSharedVendorSchoolsVariables): QueryRef<ListSharedVendorSchoolsData, ListSharedVendorSchoolsVariables>;
+}
+export const listSharedVendorSchoolsRef: ListSharedVendorSchoolsRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listSharedVendorSchoolsRef:
+```typescript
+const name = listSharedVendorSchoolsRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ListSharedVendorSchools` query has an optional argument of type `ListSharedVendorSchoolsVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface ListSharedVendorSchoolsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+```
+### Return Type
+Recall that executing the `ListSharedVendorSchools` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ListSharedVendorSchoolsData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ListSharedVendorSchoolsData {
+  sharedVendorSchools: ({
+    vendorCode: string;
+    schoolCode: string;
+    syncedAt: TimestampString;
+  } & SharedVendorSchool_Key)[];
+}
+```
+### Using `ListSharedVendorSchools`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, listSharedVendorSchools, ListSharedVendorSchoolsVariables } from '@dataconnect/generated';
+
+// The `ListSharedVendorSchools` query has an optional argument of type `ListSharedVendorSchoolsVariables`:
+const listSharedVendorSchoolsVars: ListSharedVendorSchoolsVariables = {
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listSharedVendorSchools()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await listSharedVendorSchools(listSharedVendorSchoolsVars);
+// Variables can be defined inline as well.
+const { data } = await listSharedVendorSchools({ limit: ..., offset: ..., });
+// Since all variables are optional for this query, you can omit the `ListSharedVendorSchoolsVariables` argument.
+const { data } = await listSharedVendorSchools();
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await listSharedVendorSchools(dataConnect, listSharedVendorSchoolsVars);
+
+console.log(data.sharedVendorSchools);
+
+// Or, you can use the `Promise` API.
+listSharedVendorSchools(listSharedVendorSchoolsVars).then((response) => {
+  const data = response.data;
+  console.log(data.sharedVendorSchools);
+});
+```
+
+### Using `ListSharedVendorSchools`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, listSharedVendorSchoolsRef, ListSharedVendorSchoolsVariables } from '@dataconnect/generated';
+
+// The `ListSharedVendorSchools` query has an optional argument of type `ListSharedVendorSchoolsVariables`:
+const listSharedVendorSchoolsVars: ListSharedVendorSchoolsVariables = {
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listSharedVendorSchoolsRef()` function to get a reference to the query.
+const ref = listSharedVendorSchoolsRef(listSharedVendorSchoolsVars);
+// Variables can be defined inline as well.
+const ref = listSharedVendorSchoolsRef({ limit: ..., offset: ..., });
+// Since all variables are optional for this query, you can omit the `ListSharedVendorSchoolsVariables` argument.
+const ref = listSharedVendorSchoolsRef();
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = listSharedVendorSchoolsRef(dataConnect, listSharedVendorSchoolsVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.sharedVendorSchools);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.sharedVendorSchools);
+});
+```
+
 # Mutations
 
 There are two ways to execute a Data Connect Mutation using the generated Web SDK:
@@ -1661,6 +2047,118 @@ The following is true for both the action shortcut function and the `MutationRef
 - Both functions can be called with or without passing in a `DataConnect` instance as an argument. If no `DataConnect` argument is passed in, then the generated SDK will call `getDataConnect(connectorConfig)` behind the scenes for you.
 
 Below are examples of how to use the `example` connector's generated functions to execute each mutation. You can also follow the examples from the [Data Connect documentation](https://firebase.google.com/docs/data-connect/web-sdk#using-mutations).
+
+## SetBooksellerActualDiscount
+You can execute the `SetBooksellerActualDiscount` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+setBooksellerActualDiscount(vars: SetBooksellerActualDiscountVariables): MutationPromise<SetBooksellerActualDiscountData, SetBooksellerActualDiscountVariables>;
+
+interface SetBooksellerActualDiscountRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: SetBooksellerActualDiscountVariables): MutationRef<SetBooksellerActualDiscountData, SetBooksellerActualDiscountVariables>;
+}
+export const setBooksellerActualDiscountRef: SetBooksellerActualDiscountRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+setBooksellerActualDiscount(dc: DataConnect, vars: SetBooksellerActualDiscountVariables): MutationPromise<SetBooksellerActualDiscountData, SetBooksellerActualDiscountVariables>;
+
+interface SetBooksellerActualDiscountRef {
+  ...
+  (dc: DataConnect, vars: SetBooksellerActualDiscountVariables): MutationRef<SetBooksellerActualDiscountData, SetBooksellerActualDiscountVariables>;
+}
+export const setBooksellerActualDiscountRef: SetBooksellerActualDiscountRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the setBooksellerActualDiscountRef:
+```typescript
+const name = setBooksellerActualDiscountRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `SetBooksellerActualDiscount` mutation requires an argument of type `SetBooksellerActualDiscountVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface SetBooksellerActualDiscountVariables {
+  id: Int64String;
+  actualDiscount?: string | null;
+}
+```
+### Return Type
+Recall that executing the `SetBooksellerActualDiscount` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `SetBooksellerActualDiscountData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface SetBooksellerActualDiscountData {
+  bookseller_updateMany: number;
+}
+```
+### Using `SetBooksellerActualDiscount`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, setBooksellerActualDiscount, SetBooksellerActualDiscountVariables } from '@dataconnect/generated';
+
+// The `SetBooksellerActualDiscount` mutation requires an argument of type `SetBooksellerActualDiscountVariables`:
+const setBooksellerActualDiscountVars: SetBooksellerActualDiscountVariables = {
+  id: ..., 
+  actualDiscount: ..., // optional
+};
+
+// Call the `setBooksellerActualDiscount()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await setBooksellerActualDiscount(setBooksellerActualDiscountVars);
+// Variables can be defined inline as well.
+const { data } = await setBooksellerActualDiscount({ id: ..., actualDiscount: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await setBooksellerActualDiscount(dataConnect, setBooksellerActualDiscountVars);
+
+console.log(data.bookseller_updateMany);
+
+// Or, you can use the `Promise` API.
+setBooksellerActualDiscount(setBooksellerActualDiscountVars).then((response) => {
+  const data = response.data;
+  console.log(data.bookseller_updateMany);
+});
+```
+
+### Using `SetBooksellerActualDiscount`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, setBooksellerActualDiscountRef, SetBooksellerActualDiscountVariables } from '@dataconnect/generated';
+
+// The `SetBooksellerActualDiscount` mutation requires an argument of type `SetBooksellerActualDiscountVariables`:
+const setBooksellerActualDiscountVars: SetBooksellerActualDiscountVariables = {
+  id: ..., 
+  actualDiscount: ..., // optional
+};
+
+// Call the `setBooksellerActualDiscountRef()` function to get a reference to the mutation.
+const ref = setBooksellerActualDiscountRef(setBooksellerActualDiscountVars);
+// Variables can be defined inline as well.
+const ref = setBooksellerActualDiscountRef({ id: ..., actualDiscount: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = setBooksellerActualDiscountRef(dataConnect, setBooksellerActualDiscountVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.bookseller_updateMany);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.bookseller_updateMany);
+});
+```
 
 ## UpsertChristianGroup
 You can execute the `UpsertChristianGroup` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
@@ -2354,6 +2852,272 @@ console.log(data.sharedSchoolGroupLocation_upsert);
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.sharedSchoolGroupLocation_upsert);
+});
+```
+
+## UpsertSharedVendor
+You can execute the `UpsertSharedVendor` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+upsertSharedVendor(vars: UpsertSharedVendorVariables): MutationPromise<UpsertSharedVendorData, UpsertSharedVendorVariables>;
+
+interface UpsertSharedVendorRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertSharedVendorVariables): MutationRef<UpsertSharedVendorData, UpsertSharedVendorVariables>;
+}
+export const upsertSharedVendorRef: UpsertSharedVendorRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+upsertSharedVendor(dc: DataConnect, vars: UpsertSharedVendorVariables): MutationPromise<UpsertSharedVendorData, UpsertSharedVendorVariables>;
+
+interface UpsertSharedVendorRef {
+  ...
+  (dc: DataConnect, vars: UpsertSharedVendorVariables): MutationRef<UpsertSharedVendorData, UpsertSharedVendorVariables>;
+}
+export const upsertSharedVendorRef: UpsertSharedVendorRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the upsertSharedVendorRef:
+```typescript
+const name = upsertSharedVendorRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `UpsertSharedVendor` mutation requires an argument of type `UpsertSharedVendorVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface UpsertSharedVendorVariables {
+  vendorCode: string;
+  preVendorCode?: string | null;
+  booksellerCode?: string | null;
+  vendorName: string;
+  vendorType?: string | null;
+  vendorRating?: string | null;
+  actualDiscount?: string | null;
+  address?: string | null;
+  district?: string | null;
+  state?: string | null;
+  pinCode?: string | null;
+  contactPerson?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  taxId?: string | null;
+  paymentStatus?: string | null;
+}
+```
+### Return Type
+Recall that executing the `UpsertSharedVendor` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `UpsertSharedVendorData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface UpsertSharedVendorData {
+  sharedVendor_upsert: SharedVendor_Key;
+}
+```
+### Using `UpsertSharedVendor`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, upsertSharedVendor, UpsertSharedVendorVariables } from '@dataconnect/generated';
+
+// The `UpsertSharedVendor` mutation requires an argument of type `UpsertSharedVendorVariables`:
+const upsertSharedVendorVars: UpsertSharedVendorVariables = {
+  vendorCode: ..., 
+  preVendorCode: ..., // optional
+  booksellerCode: ..., // optional
+  vendorName: ..., 
+  vendorType: ..., // optional
+  vendorRating: ..., // optional
+  actualDiscount: ..., // optional
+  address: ..., // optional
+  district: ..., // optional
+  state: ..., // optional
+  pinCode: ..., // optional
+  contactPerson: ..., // optional
+  phone: ..., // optional
+  email: ..., // optional
+  taxId: ..., // optional
+  paymentStatus: ..., // optional
+};
+
+// Call the `upsertSharedVendor()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await upsertSharedVendor(upsertSharedVendorVars);
+// Variables can be defined inline as well.
+const { data } = await upsertSharedVendor({ vendorCode: ..., preVendorCode: ..., booksellerCode: ..., vendorName: ..., vendorType: ..., vendorRating: ..., actualDiscount: ..., address: ..., district: ..., state: ..., pinCode: ..., contactPerson: ..., phone: ..., email: ..., taxId: ..., paymentStatus: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await upsertSharedVendor(dataConnect, upsertSharedVendorVars);
+
+console.log(data.sharedVendor_upsert);
+
+// Or, you can use the `Promise` API.
+upsertSharedVendor(upsertSharedVendorVars).then((response) => {
+  const data = response.data;
+  console.log(data.sharedVendor_upsert);
+});
+```
+
+### Using `UpsertSharedVendor`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, upsertSharedVendorRef, UpsertSharedVendorVariables } from '@dataconnect/generated';
+
+// The `UpsertSharedVendor` mutation requires an argument of type `UpsertSharedVendorVariables`:
+const upsertSharedVendorVars: UpsertSharedVendorVariables = {
+  vendorCode: ..., 
+  preVendorCode: ..., // optional
+  booksellerCode: ..., // optional
+  vendorName: ..., 
+  vendorType: ..., // optional
+  vendorRating: ..., // optional
+  actualDiscount: ..., // optional
+  address: ..., // optional
+  district: ..., // optional
+  state: ..., // optional
+  pinCode: ..., // optional
+  contactPerson: ..., // optional
+  phone: ..., // optional
+  email: ..., // optional
+  taxId: ..., // optional
+  paymentStatus: ..., // optional
+};
+
+// Call the `upsertSharedVendorRef()` function to get a reference to the mutation.
+const ref = upsertSharedVendorRef(upsertSharedVendorVars);
+// Variables can be defined inline as well.
+const ref = upsertSharedVendorRef({ vendorCode: ..., preVendorCode: ..., booksellerCode: ..., vendorName: ..., vendorType: ..., vendorRating: ..., actualDiscount: ..., address: ..., district: ..., state: ..., pinCode: ..., contactPerson: ..., phone: ..., email: ..., taxId: ..., paymentStatus: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = upsertSharedVendorRef(dataConnect, upsertSharedVendorVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.sharedVendor_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.sharedVendor_upsert);
+});
+```
+
+## UpsertSharedVendorSchool
+You can execute the `UpsertSharedVendorSchool` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+upsertSharedVendorSchool(vars: UpsertSharedVendorSchoolVariables): MutationPromise<UpsertSharedVendorSchoolData, UpsertSharedVendorSchoolVariables>;
+
+interface UpsertSharedVendorSchoolRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertSharedVendorSchoolVariables): MutationRef<UpsertSharedVendorSchoolData, UpsertSharedVendorSchoolVariables>;
+}
+export const upsertSharedVendorSchoolRef: UpsertSharedVendorSchoolRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+upsertSharedVendorSchool(dc: DataConnect, vars: UpsertSharedVendorSchoolVariables): MutationPromise<UpsertSharedVendorSchoolData, UpsertSharedVendorSchoolVariables>;
+
+interface UpsertSharedVendorSchoolRef {
+  ...
+  (dc: DataConnect, vars: UpsertSharedVendorSchoolVariables): MutationRef<UpsertSharedVendorSchoolData, UpsertSharedVendorSchoolVariables>;
+}
+export const upsertSharedVendorSchoolRef: UpsertSharedVendorSchoolRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the upsertSharedVendorSchoolRef:
+```typescript
+const name = upsertSharedVendorSchoolRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `UpsertSharedVendorSchool` mutation requires an argument of type `UpsertSharedVendorSchoolVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface UpsertSharedVendorSchoolVariables {
+  vendorCode: string;
+  schoolCode: string;
+}
+```
+### Return Type
+Recall that executing the `UpsertSharedVendorSchool` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `UpsertSharedVendorSchoolData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface UpsertSharedVendorSchoolData {
+  sharedVendorSchool_upsert: SharedVendorSchool_Key;
+}
+```
+### Using `UpsertSharedVendorSchool`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, upsertSharedVendorSchool, UpsertSharedVendorSchoolVariables } from '@dataconnect/generated';
+
+// The `UpsertSharedVendorSchool` mutation requires an argument of type `UpsertSharedVendorSchoolVariables`:
+const upsertSharedVendorSchoolVars: UpsertSharedVendorSchoolVariables = {
+  vendorCode: ..., 
+  schoolCode: ..., 
+};
+
+// Call the `upsertSharedVendorSchool()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await upsertSharedVendorSchool(upsertSharedVendorSchoolVars);
+// Variables can be defined inline as well.
+const { data } = await upsertSharedVendorSchool({ vendorCode: ..., schoolCode: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await upsertSharedVendorSchool(dataConnect, upsertSharedVendorSchoolVars);
+
+console.log(data.sharedVendorSchool_upsert);
+
+// Or, you can use the `Promise` API.
+upsertSharedVendorSchool(upsertSharedVendorSchoolVars).then((response) => {
+  const data = response.data;
+  console.log(data.sharedVendorSchool_upsert);
+});
+```
+
+### Using `UpsertSharedVendorSchool`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, upsertSharedVendorSchoolRef, UpsertSharedVendorSchoolVariables } from '@dataconnect/generated';
+
+// The `UpsertSharedVendorSchool` mutation requires an argument of type `UpsertSharedVendorSchoolVariables`:
+const upsertSharedVendorSchoolVars: UpsertSharedVendorSchoolVariables = {
+  vendorCode: ..., 
+  schoolCode: ..., 
+};
+
+// Call the `upsertSharedVendorSchoolRef()` function to get a reference to the mutation.
+const ref = upsertSharedVendorSchoolRef(upsertSharedVendorSchoolVars);
+// Variables can be defined inline as well.
+const ref = upsertSharedVendorSchoolRef({ vendorCode: ..., schoolCode: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = upsertSharedVendorSchoolRef(dataConnect, upsertSharedVendorSchoolVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.sharedVendorSchool_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.sharedVendorSchool_upsert);
 });
 ```
 

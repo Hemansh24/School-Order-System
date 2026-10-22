@@ -20,6 +20,7 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*ListOrganisations*](#listorganisations)
   - [*SearchOrganisations*](#searchorganisations)
   - [*GetOrganisationByPrCode*](#getorganisationbyprcode)
+  - [*ListBooksellerDiscounts*](#listbooksellerdiscounts)
   - [*ListBooksellers*](#listbooksellers)
   - [*GetBooksellerByCode*](#getbooksellerbycode)
   - [*ListItems*](#listitems)
@@ -29,12 +30,17 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*ListSharedSchoolGroupLocations*](#listsharedschoolgrouplocations)
   - [*ListSharedChristianGroups*](#listsharedchristiangroups)
   - [*ListSharedPreBooksellers*](#listsharedprebooksellers)
+  - [*ListSharedVendors*](#listsharedvendors)
+  - [*ListSharedVendorSchools*](#listsharedvendorschools)
 - [**Mutations**](#mutations)
+  - [*SetBooksellerActualDiscount*](#setbookselleractualdiscount)
   - [*UpsertChristianGroup*](#upsertchristiangroup)
   - [*SetChristianGroupActive*](#setchristiangroupactive)
   - [*UpsertPreBookseller*](#upsertprebookseller)
   - [*UpsertSharedSchoolGroup*](#upsertsharedschoolgroup)
   - [*UpsertSharedSchoolGroupLocation*](#upsertsharedschoolgrouplocation)
+  - [*UpsertSharedVendor*](#upsertsharedvendor)
+  - [*UpsertSharedVendorSchool*](#upsertsharedvendorschool)
 
 # TanStack Query Firebase & TanStack React Query
 This SDK provides [React](https://react.dev/) hooks generated specific to your application, for the operations found in the connector `example`. These hooks are generated using [TanStack Query Firebase](https://react-query-firebase.invertase.dev/) by our partners at Invertase, a library built on top of [TanStack React Query v5](https://tanstack.com/query/v5/docs/framework/react/overview).
@@ -456,6 +462,105 @@ export default function GetOrganisationByPrCodeComponent() {
 }
 ```
 
+## ListBooksellerDiscounts
+You can execute the `ListBooksellerDiscounts` Query using the following Query hook function, which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts):
+
+```javascript
+useListBooksellerDiscounts(dc: DataConnect, vars?: ListBooksellerDiscountsVariables, options?: useDataConnectQueryOptions<ListBooksellerDiscountsData>): UseDataConnectQueryResult<ListBooksellerDiscountsData, ListBooksellerDiscountsVariables>;
+```
+You can also pass in a `DataConnect` instance to the Query hook function.
+```javascript
+useListBooksellerDiscounts(vars?: ListBooksellerDiscountsVariables, options?: useDataConnectQueryOptions<ListBooksellerDiscountsData>): UseDataConnectQueryResult<ListBooksellerDiscountsData, ListBooksellerDiscountsVariables>;
+```
+
+### Variables
+The `ListBooksellerDiscounts` Query has an optional argument of type `ListBooksellerDiscountsVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface ListBooksellerDiscountsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+```
+### Return Type
+Recall that calling the `ListBooksellerDiscounts` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
+
+To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
+
+To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListBooksellerDiscounts` Query is of type `ListBooksellerDiscountsData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface ListBooksellerDiscountsData {
+  booksellers: ({
+    id: Int64String;
+    booksellerCode: string;
+    booksellerSubCode?: string | null;
+    booksellerName: string;
+    address01?: string | null;
+    incumbentCode?: string | null;
+    sourceRow?: number | null;
+    actualDiscount?: string | null;
+  } & Bookseller_Key)[];
+}
+```
+
+To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
+
+### Using `ListBooksellerDiscounts`'s Query hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, ListBooksellerDiscountsVariables } from '@dataconnect/generated';
+import { useListBooksellerDiscounts } from '@dataconnect/generated/react'
+
+export default function ListBooksellerDiscountsComponent() {
+  // The `useListBooksellerDiscounts` Query hook has an optional argument of type `ListBooksellerDiscountsVariables`:
+  const listBooksellerDiscountsVars: ListBooksellerDiscountsVariables = {
+    limit: ..., // optional
+    offset: ..., // optional
+  };
+
+  // You don't have to do anything to "execute" the Query.
+  // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
+  const query = useListBooksellerDiscounts(listBooksellerDiscountsVars);
+  // Variables can be defined inline as well.
+  const query = useListBooksellerDiscounts({ limit: ..., offset: ..., });
+  // Since all variables are optional for this Query, you can omit the `ListBooksellerDiscountsVariables` argument.
+  // (as long as you don't want to provide any `options`!)
+  const query = useListBooksellerDiscounts();
+
+  // You can also pass in a `DataConnect` instance to the Query hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const query = useListBooksellerDiscounts(dataConnect, listBooksellerDiscountsVars);
+
+  // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
+  const options = { staleTime: 5 * 1000 };
+  const query = useListBooksellerDiscounts(listBooksellerDiscountsVars, options);
+  // If you'd like to provide options without providing any variables, you must
+  // pass `undefined` where you would normally pass the variables.
+  const query = useListBooksellerDiscounts(undefined, options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = { staleTime: 5 * 1000 };
+  const query = useListBooksellerDiscounts(dataConnect, listBooksellerDiscountsVars /** or undefined */, options);
+
+  // Then, you can render your component dynamically based on the status of the Query.
+  if (query.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (query.isError) {
+    return <div>Error: {query.error.message}</div>;
+  }
+
+  // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
+  if (query.isSuccess) {
+    console.log(query.data.booksellers);
+  }
+  return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
 ## ListBooksellers
 You can execute the `ListBooksellers` Query using the following Query hook function, which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts):
 
@@ -500,6 +605,7 @@ export interface ListBooksellersData {
     contactNumber?: string | null;
     email?: string | null;
     vendorType?: string | null;
+    actualDiscount?: string | null;
     remark?: string | null;
   } & Bookseller_Key)[];
 }
@@ -1378,6 +1484,208 @@ export default function ListSharedPreBooksellersComponent() {
 }
 ```
 
+## ListSharedVendors
+You can execute the `ListSharedVendors` Query using the following Query hook function, which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts):
+
+```javascript
+useListSharedVendors(dc: DataConnect, vars?: ListSharedVendorsVariables, options?: useDataConnectQueryOptions<ListSharedVendorsData>): UseDataConnectQueryResult<ListSharedVendorsData, ListSharedVendorsVariables>;
+```
+You can also pass in a `DataConnect` instance to the Query hook function.
+```javascript
+useListSharedVendors(vars?: ListSharedVendorsVariables, options?: useDataConnectQueryOptions<ListSharedVendorsData>): UseDataConnectQueryResult<ListSharedVendorsData, ListSharedVendorsVariables>;
+```
+
+### Variables
+The `ListSharedVendors` Query has an optional argument of type `ListSharedVendorsVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface ListSharedVendorsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+```
+### Return Type
+Recall that calling the `ListSharedVendors` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
+
+To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
+
+To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListSharedVendors` Query is of type `ListSharedVendorsData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface ListSharedVendorsData {
+  sharedVendors: ({
+    vendorCode: string;
+    preVendorCode?: string | null;
+    booksellerCode?: string | null;
+    vendorName: string;
+    vendorType?: string | null;
+    vendorRating?: string | null;
+    actualDiscount?: string | null;
+    address?: string | null;
+    district?: string | null;
+    state?: string | null;
+    pinCode?: string | null;
+    contactPerson?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    taxId?: string | null;
+    paymentStatus?: string | null;
+    syncedAt: TimestampString;
+  } & SharedVendor_Key)[];
+}
+```
+
+To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
+
+### Using `ListSharedVendors`'s Query hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, ListSharedVendorsVariables } from '@dataconnect/generated';
+import { useListSharedVendors } from '@dataconnect/generated/react'
+
+export default function ListSharedVendorsComponent() {
+  // The `useListSharedVendors` Query hook has an optional argument of type `ListSharedVendorsVariables`:
+  const listSharedVendorsVars: ListSharedVendorsVariables = {
+    limit: ..., // optional
+    offset: ..., // optional
+  };
+
+  // You don't have to do anything to "execute" the Query.
+  // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
+  const query = useListSharedVendors(listSharedVendorsVars);
+  // Variables can be defined inline as well.
+  const query = useListSharedVendors({ limit: ..., offset: ..., });
+  // Since all variables are optional for this Query, you can omit the `ListSharedVendorsVariables` argument.
+  // (as long as you don't want to provide any `options`!)
+  const query = useListSharedVendors();
+
+  // You can also pass in a `DataConnect` instance to the Query hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const query = useListSharedVendors(dataConnect, listSharedVendorsVars);
+
+  // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
+  const options = { staleTime: 5 * 1000 };
+  const query = useListSharedVendors(listSharedVendorsVars, options);
+  // If you'd like to provide options without providing any variables, you must
+  // pass `undefined` where you would normally pass the variables.
+  const query = useListSharedVendors(undefined, options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = { staleTime: 5 * 1000 };
+  const query = useListSharedVendors(dataConnect, listSharedVendorsVars /** or undefined */, options);
+
+  // Then, you can render your component dynamically based on the status of the Query.
+  if (query.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (query.isError) {
+    return <div>Error: {query.error.message}</div>;
+  }
+
+  // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
+  if (query.isSuccess) {
+    console.log(query.data.sharedVendors);
+  }
+  return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## ListSharedVendorSchools
+You can execute the `ListSharedVendorSchools` Query using the following Query hook function, which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts):
+
+```javascript
+useListSharedVendorSchools(dc: DataConnect, vars?: ListSharedVendorSchoolsVariables, options?: useDataConnectQueryOptions<ListSharedVendorSchoolsData>): UseDataConnectQueryResult<ListSharedVendorSchoolsData, ListSharedVendorSchoolsVariables>;
+```
+You can also pass in a `DataConnect` instance to the Query hook function.
+```javascript
+useListSharedVendorSchools(vars?: ListSharedVendorSchoolsVariables, options?: useDataConnectQueryOptions<ListSharedVendorSchoolsData>): UseDataConnectQueryResult<ListSharedVendorSchoolsData, ListSharedVendorSchoolsVariables>;
+```
+
+### Variables
+The `ListSharedVendorSchools` Query has an optional argument of type `ListSharedVendorSchoolsVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface ListSharedVendorSchoolsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+```
+### Return Type
+Recall that calling the `ListSharedVendorSchools` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
+
+To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
+
+To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListSharedVendorSchools` Query is of type `ListSharedVendorSchoolsData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface ListSharedVendorSchoolsData {
+  sharedVendorSchools: ({
+    vendorCode: string;
+    schoolCode: string;
+    syncedAt: TimestampString;
+  } & SharedVendorSchool_Key)[];
+}
+```
+
+To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
+
+### Using `ListSharedVendorSchools`'s Query hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, ListSharedVendorSchoolsVariables } from '@dataconnect/generated';
+import { useListSharedVendorSchools } from '@dataconnect/generated/react'
+
+export default function ListSharedVendorSchoolsComponent() {
+  // The `useListSharedVendorSchools` Query hook has an optional argument of type `ListSharedVendorSchoolsVariables`:
+  const listSharedVendorSchoolsVars: ListSharedVendorSchoolsVariables = {
+    limit: ..., // optional
+    offset: ..., // optional
+  };
+
+  // You don't have to do anything to "execute" the Query.
+  // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
+  const query = useListSharedVendorSchools(listSharedVendorSchoolsVars);
+  // Variables can be defined inline as well.
+  const query = useListSharedVendorSchools({ limit: ..., offset: ..., });
+  // Since all variables are optional for this Query, you can omit the `ListSharedVendorSchoolsVariables` argument.
+  // (as long as you don't want to provide any `options`!)
+  const query = useListSharedVendorSchools();
+
+  // You can also pass in a `DataConnect` instance to the Query hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const query = useListSharedVendorSchools(dataConnect, listSharedVendorSchoolsVars);
+
+  // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
+  const options = { staleTime: 5 * 1000 };
+  const query = useListSharedVendorSchools(listSharedVendorSchoolsVars, options);
+  // If you'd like to provide options without providing any variables, you must
+  // pass `undefined` where you would normally pass the variables.
+  const query = useListSharedVendorSchools(undefined, options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = { staleTime: 5 * 1000 };
+  const query = useListSharedVendorSchools(dataConnect, listSharedVendorSchoolsVars /** or undefined */, options);
+
+  // Then, you can render your component dynamically based on the status of the Query.
+  if (query.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (query.isError) {
+    return <div>Error: {query.error.message}</div>;
+  }
+
+  // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
+  if (query.isSuccess) {
+    console.log(query.data.sharedVendorSchools);
+  }
+  return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
 # Mutations
 
 The React generated SDK provides Mutations hook functions that call and return [`useDataConnectMutation`](https://react-query-firebase.invertase.dev/react/data-connect/mutations) hooks from TanStack Query Firebase.
@@ -1402,6 +1710,102 @@ Here's a general overview of how to use the generated Mutation hooks in your cod
   - ***Special case:*** If the Mutation has no arguments (or all optional arguments and you wish to provide none), and you want to pass `options` to `UseMutationResult.mutate()`, you must pass `undefined` where you would normally pass the Mutation's arguments, and then may provide the options argument.
 
 Below are examples of how to use the `example` connector's generated Mutation hook functions to execute each Mutation. You can also follow the examples from the [Data Connect documentation](https://firebase.google.com/docs/data-connect/web-sdk#operations-react-angular).
+
+## SetBooksellerActualDiscount
+You can execute the `SetBooksellerActualDiscount` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts)):
+```javascript
+useSetBooksellerActualDiscount(options?: useDataConnectMutationOptions<SetBooksellerActualDiscountData, FirebaseError, SetBooksellerActualDiscountVariables>): UseDataConnectMutationResult<SetBooksellerActualDiscountData, SetBooksellerActualDiscountVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useSetBooksellerActualDiscount(dc: DataConnect, options?: useDataConnectMutationOptions<SetBooksellerActualDiscountData, FirebaseError, SetBooksellerActualDiscountVariables>): UseDataConnectMutationResult<SetBooksellerActualDiscountData, SetBooksellerActualDiscountVariables>;
+```
+
+### Variables
+The `SetBooksellerActualDiscount` Mutation requires an argument of type `SetBooksellerActualDiscountVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface SetBooksellerActualDiscountVariables {
+  id: Int64String;
+  actualDiscount?: string | null;
+}
+```
+### Return Type
+Recall that calling the `SetBooksellerActualDiscount` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `SetBooksellerActualDiscount` Mutation is of type `SetBooksellerActualDiscountData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface SetBooksellerActualDiscountData {
+  bookseller_updateMany: number;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `SetBooksellerActualDiscount`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, SetBooksellerActualDiscountVariables } from '@dataconnect/generated';
+import { useSetBooksellerActualDiscount } from '@dataconnect/generated/react'
+
+export default function SetBooksellerActualDiscountComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useSetBooksellerActualDiscount();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useSetBooksellerActualDiscount(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useSetBooksellerActualDiscount(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useSetBooksellerActualDiscount(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useSetBooksellerActualDiscount` Mutation requires an argument of type `SetBooksellerActualDiscountVariables`:
+  const setBooksellerActualDiscountVars: SetBooksellerActualDiscountVariables = {
+    id: ..., 
+    actualDiscount: ..., // optional
+  };
+  mutation.mutate(setBooksellerActualDiscountVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., actualDiscount: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(setBooksellerActualDiscountVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.bookseller_updateMany);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
 
 ## UpsertChristianGroup
 You can execute the `UpsertChristianGroup` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts)):
@@ -1968,6 +2372,226 @@ export default function UpsertSharedSchoolGroupLocationComponent() {
   // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
   if (mutation.isSuccess) {
     console.log(mutation.data.sharedSchoolGroupLocation_upsert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## UpsertSharedVendor
+You can execute the `UpsertSharedVendor` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts)):
+```javascript
+useUpsertSharedVendor(options?: useDataConnectMutationOptions<UpsertSharedVendorData, FirebaseError, UpsertSharedVendorVariables>): UseDataConnectMutationResult<UpsertSharedVendorData, UpsertSharedVendorVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useUpsertSharedVendor(dc: DataConnect, options?: useDataConnectMutationOptions<UpsertSharedVendorData, FirebaseError, UpsertSharedVendorVariables>): UseDataConnectMutationResult<UpsertSharedVendorData, UpsertSharedVendorVariables>;
+```
+
+### Variables
+The `UpsertSharedVendor` Mutation requires an argument of type `UpsertSharedVendorVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface UpsertSharedVendorVariables {
+  vendorCode: string;
+  preVendorCode?: string | null;
+  booksellerCode?: string | null;
+  vendorName: string;
+  vendorType?: string | null;
+  vendorRating?: string | null;
+  actualDiscount?: string | null;
+  address?: string | null;
+  district?: string | null;
+  state?: string | null;
+  pinCode?: string | null;
+  contactPerson?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  taxId?: string | null;
+  paymentStatus?: string | null;
+}
+```
+### Return Type
+Recall that calling the `UpsertSharedVendor` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpsertSharedVendor` Mutation is of type `UpsertSharedVendorData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface UpsertSharedVendorData {
+  sharedVendor_upsert: SharedVendor_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `UpsertSharedVendor`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, UpsertSharedVendorVariables } from '@dataconnect/generated';
+import { useUpsertSharedVendor } from '@dataconnect/generated/react'
+
+export default function UpsertSharedVendorComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useUpsertSharedVendor();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useUpsertSharedVendor(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpsertSharedVendor(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpsertSharedVendor(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useUpsertSharedVendor` Mutation requires an argument of type `UpsertSharedVendorVariables`:
+  const upsertSharedVendorVars: UpsertSharedVendorVariables = {
+    vendorCode: ..., 
+    preVendorCode: ..., // optional
+    booksellerCode: ..., // optional
+    vendorName: ..., 
+    vendorType: ..., // optional
+    vendorRating: ..., // optional
+    actualDiscount: ..., // optional
+    address: ..., // optional
+    district: ..., // optional
+    state: ..., // optional
+    pinCode: ..., // optional
+    contactPerson: ..., // optional
+    phone: ..., // optional
+    email: ..., // optional
+    taxId: ..., // optional
+    paymentStatus: ..., // optional
+  };
+  mutation.mutate(upsertSharedVendorVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ vendorCode: ..., preVendorCode: ..., booksellerCode: ..., vendorName: ..., vendorType: ..., vendorRating: ..., actualDiscount: ..., address: ..., district: ..., state: ..., pinCode: ..., contactPerson: ..., phone: ..., email: ..., taxId: ..., paymentStatus: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(upsertSharedVendorVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.sharedVendor_upsert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## UpsertSharedVendorSchool
+You can execute the `UpsertSharedVendorSchool` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts)):
+```javascript
+useUpsertSharedVendorSchool(options?: useDataConnectMutationOptions<UpsertSharedVendorSchoolData, FirebaseError, UpsertSharedVendorSchoolVariables>): UseDataConnectMutationResult<UpsertSharedVendorSchoolData, UpsertSharedVendorSchoolVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useUpsertSharedVendorSchool(dc: DataConnect, options?: useDataConnectMutationOptions<UpsertSharedVendorSchoolData, FirebaseError, UpsertSharedVendorSchoolVariables>): UseDataConnectMutationResult<UpsertSharedVendorSchoolData, UpsertSharedVendorSchoolVariables>;
+```
+
+### Variables
+The `UpsertSharedVendorSchool` Mutation requires an argument of type `UpsertSharedVendorSchoolVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface UpsertSharedVendorSchoolVariables {
+  vendorCode: string;
+  schoolCode: string;
+}
+```
+### Return Type
+Recall that calling the `UpsertSharedVendorSchool` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpsertSharedVendorSchool` Mutation is of type `UpsertSharedVendorSchoolData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface UpsertSharedVendorSchoolData {
+  sharedVendorSchool_upsert: SharedVendorSchool_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `UpsertSharedVendorSchool`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, UpsertSharedVendorSchoolVariables } from '@dataconnect/generated';
+import { useUpsertSharedVendorSchool } from '@dataconnect/generated/react'
+
+export default function UpsertSharedVendorSchoolComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useUpsertSharedVendorSchool();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useUpsertSharedVendorSchool(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpsertSharedVendorSchool(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpsertSharedVendorSchool(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useUpsertSharedVendorSchool` Mutation requires an argument of type `UpsertSharedVendorSchoolVariables`:
+  const upsertSharedVendorSchoolVars: UpsertSharedVendorSchoolVariables = {
+    vendorCode: ..., 
+    schoolCode: ..., 
+  };
+  mutation.mutate(upsertSharedVendorSchoolVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ vendorCode: ..., schoolCode: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(upsertSharedVendorSchoolVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.sharedVendorSchool_upsert);
   }
   return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
 }

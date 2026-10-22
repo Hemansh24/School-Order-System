@@ -1,3 +1,12 @@
+mutation SetBooksellerActualDiscount($id: Int64!, $actualDiscount: String)
+@auth(level: NO_ACCESS) {
+  bookseller_updateMany(where: { id: { eq: $id } }, data: {
+    actualDiscount: $actualDiscount
+    updatedAt_expr: "request.time"
+    syncedAt_expr: "request.time"
+  })
+}
+
 mutation UpsertChristianGroup(
   $groupCode: String!
   $organisationName: String!
@@ -136,6 +145,54 @@ mutation UpsertSharedSchoolGroupLocation(
     state: $state
     pincode: $pincode
     centralizedDecision: $centralizedDecision
+    syncedAt_expr: "request.time"
+  })
+}
+
+mutation UpsertSharedVendor(
+  $vendorCode: String!
+  $preVendorCode: String
+  $booksellerCode: String
+  $vendorName: String!
+  $vendorType: String
+  $vendorRating: String
+  $actualDiscount: String
+  $address: String
+  $district: String
+  $state: String
+  $pinCode: String
+  $contactPerson: String
+  $phone: String
+  $email: String
+  $taxId: String
+  $paymentStatus: String
+) @auth(level: NO_ACCESS) {
+  sharedVendor_upsert(data: {
+    vendorCode: $vendorCode
+    preVendorCode: $preVendorCode
+    booksellerCode: $booksellerCode
+    vendorName: $vendorName
+    vendorType: $vendorType
+    vendorRating: $vendorRating
+    actualDiscount: $actualDiscount
+    address: $address
+    district: $district
+    state: $state
+    pinCode: $pinCode
+    contactPerson: $contactPerson
+    phone: $phone
+    email: $email
+    taxId: $taxId
+    paymentStatus: $paymentStatus
+    syncedAt_expr: "request.time"
+  })
+}
+
+mutation UpsertSharedVendorSchool($vendorCode: String!, $schoolCode: String!)
+@auth(level: NO_ACCESS) {
+  sharedVendorSchool_upsert(data: {
+    vendorCode: $vendorCode
+    schoolCode: $schoolCode
     syncedAt_expr: "request.time"
   })
 }

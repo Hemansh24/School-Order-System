@@ -7,6 +7,13 @@ const connectorConfig = {
 };
 exports.connectorConfig = connectorConfig;
 
+function setBooksellerActualDiscount(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('SetBooksellerActualDiscount', inputVars, inputOpts);
+}
+exports.setBooksellerActualDiscount = setBooksellerActualDiscount;
+
 function upsertChristianGroup(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
   dcInstance.useGen(true);
@@ -42,6 +49,20 @@ function upsertSharedSchoolGroupLocation(dcOrVarsOrOptions, varsOrOptions, optio
 }
 exports.upsertSharedSchoolGroupLocation = upsertSharedSchoolGroupLocation;
 
+function upsertSharedVendor(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('UpsertSharedVendor', inputVars, inputOpts);
+}
+exports.upsertSharedVendor = upsertSharedVendor;
+
+function upsertSharedVendorSchool(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('UpsertSharedVendorSchool', inputVars, inputOpts);
+}
+exports.upsertSharedVendorSchool = upsertSharedVendorSchool;
+
 function listOrganisations(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, false);
   dcInstance.useGen(true);
@@ -62,6 +83,13 @@ function getOrganisationByPrCode(dcOrVarsOrOptions, varsOrOptions, options) {
   return dcInstance.executeQuery('GetOrganisationByPrCode', inputVars, inputOpts);
 }
 exports.getOrganisationByPrCode = getOrganisationByPrCode;
+
+function listBooksellerDiscounts(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, false);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('ListBooksellerDiscounts', inputVars, inputOpts);
+}
+exports.listBooksellerDiscounts = listBooksellerDiscounts;
 
 function listBooksellers(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, false);
@@ -125,4 +153,18 @@ function listSharedPreBooksellers(dcOrVarsOrOptions, varsOrOptions, options) {
   return dcInstance.executeQuery('ListSharedPreBooksellers', inputVars, inputOpts);
 }
 exports.listSharedPreBooksellers = listSharedPreBooksellers;
+
+function listSharedVendors(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, false);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('ListSharedVendors', inputVars, inputOpts);
+}
+exports.listSharedVendors = listSharedVendors;
+
+function listSharedVendorSchools(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, false);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('ListSharedVendorSchools', inputVars, inputOpts);
+}
+exports.listSharedVendorSchools = listSharedVendorSchools;
 

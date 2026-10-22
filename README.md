@@ -74,6 +74,23 @@ The import order is significant: schools must exist before bookseller-school map
 
 `schools:sync` always imports the shared Firebase/Data Connect organisations and their PT codes. Local Organisation records are not used for this shared master-data import, so they cannot prevent bookseller-to-school mappings from being created.
 
+### Bookseller actual discounts
+
+`actual_discount` is nullable source text in shared `booksellers` and local `vendors`; values such as `45% Gross` are preserved. The Vendors page displays this field read-only.
+
+Preview, then apply the discount-only import after deploying the Data Connect schema/operations and applying Prisma migrations:
+
+```bash
+npx tsx scripts/import-bookseller-discounts.ts
+npx tsx scripts/import-bookseller-discounts.ts --apply
+```
+
+The importer reads the linked Bookseller tab with Sheets read credentials and uses Firebase Admin credentials (Application Default Credentials or `FIREBASE_ADMIN_SERVICE_ACCOUNT_FILE`) for shared updates. An authenticated connector export, including headers, can be used with `--file tmp/bookseller-discounts.json`. It updates matching records in place, verifies shared writes before updating local vendors, and saves a backup under `tmp/bookseller-discount-backups/`. Duplicate code/subcode matches require verified source-row identity; unmatched records are reported and retained. A repeated import changes only differing values. If a shared update fails, local updates do not run; fix the failure and rerun to resume.
+
+Duplicate source keys can also be resolved by matching both address and incumbent code when historical source-row numbers differ. Unmatched duplicate locations are reported, never assigned another location's discount.
+
+Run matching checks with `node --import tsx --test lib/bookseller-discounts.test.ts`.
+
 ### Christian group master data
 
 Christian C1 groups follow the same Firebase-first pattern as schools, vendors, and items. A trusted publisher environment reads the `Christian-Group Sheet` and writes its canonical copy to Firebase:

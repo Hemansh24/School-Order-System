@@ -55,6 +55,7 @@ export default async function VendorsPage({ searchParams }: { searchParams: Prom
                 <th className="px-4 py-3">Name</th>
                 <th className="px-4 py-3">Type</th>
                 <th className="px-4 py-3">Rating</th>
+                <th className="px-4 py-3">Actual Discount</th>
                 <th className="px-4 py-3">Linked Schools</th>
                 <th className="px-4 py-3">Contact</th>
                 <th className="px-4 py-3">Action</th>
@@ -68,6 +69,7 @@ export default async function VendorsPage({ searchParams }: { searchParams: Prom
                   <td className="px-4 py-3">{vendor.vendorName}</td>
                   <td className="px-4 py-3 text-muted">{vendor.vendorType}</td>
                   <td className="px-4 py-3 text-muted">{vendor.vendorRating}</td>
+                  <td className="px-4 py-3 text-muted whitespace-nowrap">{vendor.actualDiscount ?? "—"}</td>
                   <td className="px-4 py-3 text-muted">
                     {vendor.vendorSchools.length > 0
                       ? vendor.vendorSchools.map((row) => row.school.schoolName).join(", ")

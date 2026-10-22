@@ -56,6 +56,7 @@ type Bookseller
   email: String
 
   vendorType: String @col(name: "vendor_type")
+  actualDiscount: String @col(name: "actual_discount", dataType: "text")
   remark: String
 
   sourceRow: Int @col(name: "source_row")
@@ -195,5 +196,33 @@ type SharedPreBookseller
   conversionStatus: String! @col(name: "conversion_status")
   assignedBsCode: String @col(name: "assigned_bs_code")
   convertedAt: Timestamp @col(name: "converted_at")
+  syncedAt: Timestamp! @col(name: "synced_at")
+}
+
+type SharedVendor
+@table(name: "shared_vendors", key: ["vendorCode"]) {
+  vendorCode: String! @col(name: "vendor_code")
+  preVendorCode: String @col(name: "pre_vendor_code")
+  booksellerCode: String @col(name: "bookseller_code")
+  vendorName: String! @col(name: "vendor_name")
+  vendorType: String @col(name: "vendor_type")
+  vendorRating: String @col(name: "vendor_rating")
+  actualDiscount: String @col(name: "actual_discount")
+  address: String
+  district: String
+  state: String
+  pinCode: String @col(name: "pin_code")
+  contactPerson: String @col(name: "contact_person")
+  phone: String
+  email: String
+  taxId: String @col(name: "tax_id")
+  paymentStatus: String @col(name: "payment_status")
+  syncedAt: Timestamp! @col(name: "synced_at")
+}
+
+type SharedVendorSchool
+@table(name: "shared_vendor_schools", key: ["vendorCode", "schoolCode"]) {
+  vendorCode: String! @col(name: "vendor_code")
+  schoolCode: String! @col(name: "school_code")
   syncedAt: Timestamp! @col(name: "synced_at")
 }

@@ -1,9 +1,12 @@
-import { UpsertChristianGroupData, UpsertChristianGroupVariables, SetChristianGroupActiveData, SetChristianGroupActiveVariables, UpsertPreBooksellerData, UpsertPreBooksellerVariables, UpsertSharedSchoolGroupData, UpsertSharedSchoolGroupVariables, UpsertSharedSchoolGroupLocationData, UpsertSharedSchoolGroupLocationVariables, ListOrganisationsData, ListOrganisationsVariables, SearchOrganisationsData, SearchOrganisationsVariables, GetOrganisationByPrCodeData, GetOrganisationByPrCodeVariables, ListBooksellersData, ListBooksellersVariables, GetBooksellerByCodeData, GetBooksellerByCodeVariables, ListItemsData, ListItemsVariables, GetItemByCodeData, GetItemByCodeVariables, ListBooksellerSchoolMappingData, ListBooksellerSchoolMappingVariables, ListSharedSchoolGroupsData, ListSharedSchoolGroupsVariables, ListSharedSchoolGroupLocationsData, ListSharedSchoolGroupLocationsVariables, ListSharedChristianGroupsData, ListSharedChristianGroupsVariables, ListSharedPreBooksellersData, ListSharedPreBooksellersVariables } from '../';
+import { SetBooksellerActualDiscountData, SetBooksellerActualDiscountVariables, UpsertChristianGroupData, UpsertChristianGroupVariables, SetChristianGroupActiveData, SetChristianGroupActiveVariables, UpsertPreBooksellerData, UpsertPreBooksellerVariables, UpsertSharedSchoolGroupData, UpsertSharedSchoolGroupVariables, UpsertSharedSchoolGroupLocationData, UpsertSharedSchoolGroupLocationVariables, UpsertSharedVendorData, UpsertSharedVendorVariables, UpsertSharedVendorSchoolData, UpsertSharedVendorSchoolVariables, ListOrganisationsData, ListOrganisationsVariables, SearchOrganisationsData, SearchOrganisationsVariables, GetOrganisationByPrCodeData, GetOrganisationByPrCodeVariables, ListBooksellerDiscountsData, ListBooksellerDiscountsVariables, ListBooksellersData, ListBooksellersVariables, GetBooksellerByCodeData, GetBooksellerByCodeVariables, ListItemsData, ListItemsVariables, GetItemByCodeData, GetItemByCodeVariables, ListBooksellerSchoolMappingData, ListBooksellerSchoolMappingVariables, ListSharedSchoolGroupsData, ListSharedSchoolGroupsVariables, ListSharedSchoolGroupLocationsData, ListSharedSchoolGroupLocationsVariables, ListSharedChristianGroupsData, ListSharedChristianGroupsVariables, ListSharedPreBooksellersData, ListSharedPreBooksellersVariables, ListSharedVendorsData, ListSharedVendorsVariables, ListSharedVendorSchoolsData, ListSharedVendorSchoolsVariables } from '../';
 import { UseDataConnectQueryResult, useDataConnectQueryOptions, UseDataConnectMutationResult, useDataConnectMutationOptions} from '@tanstack-query-firebase/react/data-connect';
 import { UseQueryResult, UseMutationResult} from '@tanstack/react-query';
 import { DataConnect } from 'firebase/data-connect';
 import { FirebaseError } from 'firebase/app';
 
+
+export function useSetBooksellerActualDiscount(options?: useDataConnectMutationOptions<SetBooksellerActualDiscountData, FirebaseError, SetBooksellerActualDiscountVariables>): UseDataConnectMutationResult<SetBooksellerActualDiscountData, SetBooksellerActualDiscountVariables>;
+export function useSetBooksellerActualDiscount(dc: DataConnect, options?: useDataConnectMutationOptions<SetBooksellerActualDiscountData, FirebaseError, SetBooksellerActualDiscountVariables>): UseDataConnectMutationResult<SetBooksellerActualDiscountData, SetBooksellerActualDiscountVariables>;
 
 export function useUpsertChristianGroup(options?: useDataConnectMutationOptions<UpsertChristianGroupData, FirebaseError, UpsertChristianGroupVariables>): UseDataConnectMutationResult<UpsertChristianGroupData, UpsertChristianGroupVariables>;
 export function useUpsertChristianGroup(dc: DataConnect, options?: useDataConnectMutationOptions<UpsertChristianGroupData, FirebaseError, UpsertChristianGroupVariables>): UseDataConnectMutationResult<UpsertChristianGroupData, UpsertChristianGroupVariables>;
@@ -20,6 +23,12 @@ export function useUpsertSharedSchoolGroup(dc: DataConnect, options?: useDataCon
 export function useUpsertSharedSchoolGroupLocation(options?: useDataConnectMutationOptions<UpsertSharedSchoolGroupLocationData, FirebaseError, UpsertSharedSchoolGroupLocationVariables>): UseDataConnectMutationResult<UpsertSharedSchoolGroupLocationData, UpsertSharedSchoolGroupLocationVariables>;
 export function useUpsertSharedSchoolGroupLocation(dc: DataConnect, options?: useDataConnectMutationOptions<UpsertSharedSchoolGroupLocationData, FirebaseError, UpsertSharedSchoolGroupLocationVariables>): UseDataConnectMutationResult<UpsertSharedSchoolGroupLocationData, UpsertSharedSchoolGroupLocationVariables>;
 
+export function useUpsertSharedVendor(options?: useDataConnectMutationOptions<UpsertSharedVendorData, FirebaseError, UpsertSharedVendorVariables>): UseDataConnectMutationResult<UpsertSharedVendorData, UpsertSharedVendorVariables>;
+export function useUpsertSharedVendor(dc: DataConnect, options?: useDataConnectMutationOptions<UpsertSharedVendorData, FirebaseError, UpsertSharedVendorVariables>): UseDataConnectMutationResult<UpsertSharedVendorData, UpsertSharedVendorVariables>;
+
+export function useUpsertSharedVendorSchool(options?: useDataConnectMutationOptions<UpsertSharedVendorSchoolData, FirebaseError, UpsertSharedVendorSchoolVariables>): UseDataConnectMutationResult<UpsertSharedVendorSchoolData, UpsertSharedVendorSchoolVariables>;
+export function useUpsertSharedVendorSchool(dc: DataConnect, options?: useDataConnectMutationOptions<UpsertSharedVendorSchoolData, FirebaseError, UpsertSharedVendorSchoolVariables>): UseDataConnectMutationResult<UpsertSharedVendorSchoolData, UpsertSharedVendorSchoolVariables>;
+
 export function useListOrganisations(vars?: ListOrganisationsVariables, options?: useDataConnectQueryOptions<ListOrganisationsData>): UseDataConnectQueryResult<ListOrganisationsData, ListOrganisationsVariables>;
 export function useListOrganisations(dc: DataConnect, vars?: ListOrganisationsVariables, options?: useDataConnectQueryOptions<ListOrganisationsData>): UseDataConnectQueryResult<ListOrganisationsData, ListOrganisationsVariables>;
 
@@ -28,6 +37,9 @@ export function useSearchOrganisations(dc: DataConnect, vars?: SearchOrganisatio
 
 export function useGetOrganisationByPrCode(vars: GetOrganisationByPrCodeVariables, options?: useDataConnectQueryOptions<GetOrganisationByPrCodeData>): UseDataConnectQueryResult<GetOrganisationByPrCodeData, GetOrganisationByPrCodeVariables>;
 export function useGetOrganisationByPrCode(dc: DataConnect, vars: GetOrganisationByPrCodeVariables, options?: useDataConnectQueryOptions<GetOrganisationByPrCodeData>): UseDataConnectQueryResult<GetOrganisationByPrCodeData, GetOrganisationByPrCodeVariables>;
+
+export function useListBooksellerDiscounts(vars?: ListBooksellerDiscountsVariables, options?: useDataConnectQueryOptions<ListBooksellerDiscountsData>): UseDataConnectQueryResult<ListBooksellerDiscountsData, ListBooksellerDiscountsVariables>;
+export function useListBooksellerDiscounts(dc: DataConnect, vars?: ListBooksellerDiscountsVariables, options?: useDataConnectQueryOptions<ListBooksellerDiscountsData>): UseDataConnectQueryResult<ListBooksellerDiscountsData, ListBooksellerDiscountsVariables>;
 
 export function useListBooksellers(vars?: ListBooksellersVariables, options?: useDataConnectQueryOptions<ListBooksellersData>): UseDataConnectQueryResult<ListBooksellersData, ListBooksellersVariables>;
 export function useListBooksellers(dc: DataConnect, vars?: ListBooksellersVariables, options?: useDataConnectQueryOptions<ListBooksellersData>): UseDataConnectQueryResult<ListBooksellersData, ListBooksellersVariables>;
@@ -55,3 +67,9 @@ export function useListSharedChristianGroups(dc: DataConnect, vars?: ListSharedC
 
 export function useListSharedPreBooksellers(vars?: ListSharedPreBooksellersVariables, options?: useDataConnectQueryOptions<ListSharedPreBooksellersData>): UseDataConnectQueryResult<ListSharedPreBooksellersData, ListSharedPreBooksellersVariables>;
 export function useListSharedPreBooksellers(dc: DataConnect, vars?: ListSharedPreBooksellersVariables, options?: useDataConnectQueryOptions<ListSharedPreBooksellersData>): UseDataConnectQueryResult<ListSharedPreBooksellersData, ListSharedPreBooksellersVariables>;
+
+export function useListSharedVendors(vars?: ListSharedVendorsVariables, options?: useDataConnectQueryOptions<ListSharedVendorsData>): UseDataConnectQueryResult<ListSharedVendorsData, ListSharedVendorsVariables>;
+export function useListSharedVendors(dc: DataConnect, vars?: ListSharedVendorsVariables, options?: useDataConnectQueryOptions<ListSharedVendorsData>): UseDataConnectQueryResult<ListSharedVendorsData, ListSharedVendorsVariables>;
+
+export function useListSharedVendorSchools(vars?: ListSharedVendorSchoolsVariables, options?: useDataConnectQueryOptions<ListSharedVendorSchoolsData>): UseDataConnectQueryResult<ListSharedVendorSchoolsData, ListSharedVendorSchoolsVariables>;
+export function useListSharedVendorSchools(dc: DataConnect, vars?: ListSharedVendorSchoolsVariables, options?: useDataConnectQueryOptions<ListSharedVendorSchoolsData>): UseDataConnectQueryResult<ListSharedVendorSchoolsData, ListSharedVendorSchoolsVariables>;

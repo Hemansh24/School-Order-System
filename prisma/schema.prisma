@@ -175,6 +175,7 @@ model Vendor {
   vendorName    String   @map("vendor_name")
   vendorType    String?  @map("vendor_type")
   vendorRating  String?  @map("vendor_rating")
+  actualDiscount String? @map("actual_discount")
   address       String?
   district      String?
   state         String?
