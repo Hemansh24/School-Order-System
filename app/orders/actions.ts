@@ -12,6 +12,23 @@ import {
   updateOrderStatus
 } from "@/lib/services/orders";
 import { createOrderSchema, type CreateOrderInput } from "@/lib/validation/orders";
+import { z } from "zod";
+import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/prisma";
+import { convertGsMemberTx } from "@/lib/services/gs-orders";
+
+export async function convertGsMemberAction(input: { groupCode: string; prCode: string }): Promise<
+  { ok: true; prCode: string; ptCode: string; schoolName: string } | { ok: false; message: string }
+> {
+  try {
+    const parsed = z.object({ groupCode: z.string().trim().min(1), prCode: z.string().trim().min(1) }).parse(input);
+    const result = await prisma.$transaction(tx => convertGsMemberTx(tx, parsed.groupCode, parsed.prCode), { timeout: 120000 });
+    for (const path of ["/organisations", "/schools", "/groups", "/orders"]) revalidatePath(path, "layout");
+    return { ok: true, ...result };
+  } catch (error) {
+    return { ok: false, message: formatActionError(error, { fallback: "Could not convert this school to a PT code. Please try again." }) };
+  }
+}
 
 export type ActionState = {
   ok: boolean;

@@ -536,7 +536,12 @@ export async function ensurePtCodesForSchoolCodesTx(tx: Tx, schoolCodes: string[
 async function loadFilteredOrganisations(filters: OrganisationLookupFilters) {
   const workingStatus = toWorkingStatusFilter(filters.workingStatus);
   const where: Prisma.OrganisationWhereInput = {
-    ...(filters.prCode && { prCode: { contains: filters.prCode, mode: "insensitive" } }),
+    ...(filters.prCode && {
+      OR: [
+        { prCode: { contains: filters.prCode, mode: "insensitive" } },
+        { ptCode: { contains: filters.prCode, mode: "insensitive" } }
+      ]
+    }),
     ...(filters.organisationName && {
       organisationName: { contains: filters.organisationName, mode: "insensitive" }
     }),

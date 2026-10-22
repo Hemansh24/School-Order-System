@@ -5,7 +5,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
-import { createOrderAction, updateOrderAction } from "@/app/orders/actions";
+import { convertGsMemberAction, createOrderAction, updateOrderAction } from "@/app/orders/actions";
 import { Card, SubmitButton } from "@/components/ui";
 import { compareEditionCodes, DEFAULT_LANGUAGE_CODE } from "@/lib/item-code";
 import { hasLegacySchoolAllocations, isPooledOrder, orderTypeLabel, type DescriptiveMode } from "@/lib/order-model";
@@ -80,8 +80,8 @@ function isSavedOrderDraft(value: unknown): value is CreateOrderInput {
 }
 
 export function CreateOrderForm({
-  schools,
-  groups,
+  schools: sourceSchools,
+  groups: sourceGroups,
   vendors,
   items,
   initialValues,
@@ -93,6 +93,16 @@ export function CreateOrderForm({
   const [step, setStep] = useState(1);
   const [legacySchoolConversion, setLegacySchoolConversion] = useState(requiresLegacyConversion);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [convertedCodes, setConvertedCodes] = useState<Record<string, string>>({});
+  const [convertingPrCode, setConvertingPrCode] = useState<string | null>(null);
+  const conversionInFlight = useRef(false);
+  const [conversionError, setConversionError] = useState<{ prCode: string; message: string } | null>(null);
+  const ptCodes = useMemo(() => ({
+    ...Object.fromEntries(sourceGroups.flatMap(group => (group.members ?? []).flatMap(member => member.ptCode ? [[member.prCode, member.ptCode]] : []))),
+    ...convertedCodes
+  }), [sourceGroups, convertedCodes]);
+  const schools = useMemo(() => sourceSchools.map(school => ({ ...school, schoolCode: ptCodes[school.schoolCode] ?? school.schoolCode })), [sourceSchools, ptCodes]);
+  const groups = useMemo(() => sourceGroups.map(group => ({ ...group, members: group.members?.map(member => ({ ...member, schoolCode: ptCodes[member.prCode] ?? member.schoolCode, ptCode: ptCodes[member.prCode] ?? member.ptCode })) })), [sourceGroups, ptCodes]);
   const [selectedDescriptiveSchoolKey, setSelectedDescriptiveSchoolKey] = useState("");
   const [selectedCategoryCode, setSelectedCategoryCode] = useState(items[0]?.categoryCode ?? "");
   const [selectedCustomisationCode, setSelectedCustomisationCode] = useState(
@@ -173,11 +183,48 @@ export function CreateOrderForm({
   const watchedDescriptiveRows = form.watch("descriptiveRows");
   const watchedAmbiguousItems = form.watch("ambiguousItems");
   const watchedCombinedItems = form.watch("combinedItems");
+  const watchedCombinedSchools = form.watch("combinedSchools");
 
   const descriptiveRows = useFieldArray({ control: form.control, name: "descriptiveRows" });
   const ambiguousItems = useFieldArray({ control: form.control, name: "ambiguousItems" });
   const combinedSchools = useFieldArray({ control: form.control, name: "combinedSchools" });
   const combinedItems = useFieldArray({ control: form.control, name: "combinedItems" });
+
+  useEffect(() => {
+    if (!isDraftReady) return;
+    for (const name of ["combinedSchools", "descriptiveRows", "ambiguousSchools"] as const) {
+      const rows = form.getValues(name);
+      if (rows.some(row => ptCodes[row.schoolCode] && ptCodes[row.schoolCode] !== row.schoolCode)) {
+        form.setValue(name, rows.map(row => ({ ...row, schoolCode: ptCodes[row.schoolCode] ?? row.schoolCode })), { shouldDirty: true, shouldValidate: true });
+      }
+    }
+    for (const party of ["billing", "shipping"] as const) {
+      const code = form.getValues(`sheet1.${party}ToCode`);
+      if (form.getValues(`sheet1.${party}ToType`) === "school" && ptCodes[code] && ptCodes[code] !== code) {
+        form.setValue(`sheet1.${party}ToCode`, ptCodes[code], { shouldDirty: true, shouldValidate: true });
+      }
+    }
+  }, [ptCodes, isDraftReady, form]);
+
+  async function convertSchool(prCode: string) {
+    if (conversionInFlight.current) return;
+    conversionInFlight.current = true;
+    setConvertingPrCode(prCode);
+    setConversionError(null);
+    try {
+      const result = await convertGsMemberAction({ groupCode: form.getValues("sheet1.endUserGroupCode") ?? "", prCode });
+      if (!result.ok) {
+        setConversionError({ prCode, message: result.message });
+        return;
+      }
+      setConvertedCodes(previous => ({ ...previous, [result.prCode]: result.ptCode }));
+    } catch {
+      setConversionError({ prCode, message: "Could not convert this school. Please try again." });
+    } finally {
+      conversionInFlight.current = false;
+      setConvertingPrCode(null);
+    }
+  }
 
   useEffect(() => {
     if (!isNewOrder) {
@@ -256,6 +303,11 @@ export function CreateOrderForm({
   const appliedContactCode = useRef<string | null>(null);
   useEffect(() => {
     if (!isDraftReady) return;
+    if (billingToType === "school" && ptCodes[billingToCode] && ptCodes[billingToCode] !== billingToCode) {
+      // A code assignment keeps the same payer and its manually entered numbers.
+      appliedContactCode.current = `school:${ptCodes[billingToCode].trim().toLowerCase()}`;
+      return;
+    }
     const key = `${billingToType}:${billingToCode.trim().toLowerCase()}`;
     if (appliedContactCode.current === key) return;
     const firstSelection = appliedContactCode.current === null;
@@ -264,8 +316,16 @@ export function CreateOrderForm({
     if (firstSelection && form.getValues("sheet1.contactNumbers") !== undefined) return;
     const numbers = selectedBillingOption?.contactNumbers ?? [];
     form.setValue("sheet1.contactNumbers", numbers.length ? [...numbers] : [""], { shouldValidate: true });
-  }, [billingToType, billingToCode, selectedBillingOption, isDraftReady, form]);
-  const gsParticipantsReadOnly = isGroup && (!!selectedGs || (!!initialValues && /^GS\d/i.test(endUserGroupCode) && endUserGroupCode === initialValues.sheet1.endUserGroupCode));
+  }, [billingToType, billingToCode, selectedBillingOption, isDraftReady, form, ptCodes]);
+  const hasGsParticipants = isGroup && (!!selectedGs || (!!initialValues && /^GS\d/i.test(endUserGroupCode) && endUserGroupCode === initialValues.sheet1.endUserGroupCode));
+  const gsSchoolOptions = [...new Map([
+    ...(selectedGs?.members ?? []).map(member => ({ schoolCode: member.schoolCode, schoolName: member.schoolName, notes: "" })),
+    ...(hasGsParticipants && endUserGroupCode === initialValues?.sheet1.endUserGroupCode ? initialValues.combinedSchools : []),
+    ...(hasGsParticipants ? watchedCombinedSchools : [])
+  ].map(school => {
+    const schoolCode = ptCodes[school.schoolCode] ?? school.schoolCode;
+    return [schoolCode, { ...school, schoolCode }] as const;
+  })).values()];
   const appliedGs = useRef<string | null>(null);
   useEffect(() => {
     if (!isDraftReady) return;
@@ -551,6 +611,7 @@ export function CreateOrderForm({
   }
 
   async function submit(values: CreateOrderInput) {
+    if (conversionInFlight.current) return;
     if (legacySchoolConversion && !window.confirm("This older order stores per-school quantities. Saving will replace those allocations with shared item totals. Continue?")) return;
     setServerError(null);
     startTransition(async () => {
@@ -596,7 +657,7 @@ export function CreateOrderForm({
   }
 
   const errors = form.formState.errors;
-  const canSubmit = step === 4 && form.formState.isValid && !isPending;
+  const canSubmit = step === 4 && form.formState.isValid && !isPending && !convertingPrCode;
 
   return (
     <form onSubmit={form.handleSubmit(submit)} className="space-y-6">
@@ -935,18 +996,45 @@ export function CreateOrderForm({
         <Card className="p-5">
           <h2 className="text-lg font-semibold text-ink">Multiple {isGroup ? "Group" : "Schools"} Entry</h2>
           <p className="mb-4 text-sm text-muted">
-            {isGroup ? "GS participants come from the selected group; Christian-group participants can be edited." : "Select at least two schools."} Enter one shared total per item for all participating schools.
+            {isGroup ? "Choose the schools participating in this order. GS schools come from the selected group." : "Select at least two schools."} Enter one shared total per item for all participating schools.
           </p>
           <div className="grid gap-6 xl:grid-cols-2">
             <div>
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="font-semibold text-ink">Order Sheet 2C1 Participating Schools</h3>
-                {!gsParticipantsReadOnly ? <SubmitButton type="button" variant="secondary" onClick={appendCombinedSchool} disabled={combinedSchools.fields.length >= schools.length}>
+                {!hasGsParticipants ? <SubmitButton type="button" variant="secondary" onClick={appendCombinedSchool} disabled={combinedSchools.fields.length >= schools.length}>
                   <Plus className="mr-2 h-4 w-4" /> Add school
                 </SubmitButton> : null}
               </div>
               <div className="space-y-3">
-                {gsParticipantsReadOnly ? <><p className="text-sm text-muted">{selectedGs ? `All ${combinedSchools.fields.length} linked organisations are included. PR-only members receive PT codes when saved.` : "Saved GS participants are preserved."}</p>{combinedSchools.fields.map((field, index) => <div key={field.id} className="rounded border border-line p-3 text-sm">{form.watch(`combinedSchools.${index}.schoolCode`)} — {form.watch(`combinedSchools.${index}.schoolName`)}</div>)}</> : combinedSchools.fields.map((field, index) => (
+                {hasGsParticipants ? <>
+                  <p className="text-sm text-muted">{watchedCombinedSchools.length} of {gsSchoolOptions.length} schools selected. Uncheck schools that are not participating. Selected PR-only members receive PT codes when saved.</p>
+                  <p className="text-sm text-muted">Use Convert to PT to assign a code now. The PT code stays assigned even if you discard this order.</p>
+                  <div className="flex gap-3">
+                    <button type="button" className="focus-ring text-sm font-semibold text-brand-dark" onClick={() => form.setValue("combinedSchools", gsSchoolOptions, { shouldDirty: true, shouldValidate: true })}>Select all</button>
+                    <button type="button" className="focus-ring text-sm font-semibold text-brand-dark" onClick={() => form.setValue("combinedSchools", [], { shouldDirty: true, shouldValidate: true })}>Deselect all</button>
+                  </div>
+                  {gsSchoolOptions.map(school => {
+                    const member = selectedGs?.members?.find(member => member.schoolCode === school.schoolCode);
+                    return <div key={member?.prCode ?? school.schoolCode} className="rounded border border-line p-3 text-sm">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <label className="flex items-start gap-3">
+                          <input type="checkbox" className="focus-ring mt-1" checked={watchedCombinedSchools.some(row => row.schoolCode === school.schoolCode)} onChange={event => {
+                            const rows = form.getValues("combinedSchools");
+                            form.setValue("combinedSchools", event.target.checked ? [...rows, school] : rows.filter(row => row.schoolCode !== school.schoolCode), { shouldDirty: true, shouldValidate: true });
+                          }} />
+                          <span>{school.schoolCode} — {school.schoolName}
+                            {member?.ptCode ? <span className="block text-xs text-muted">PR: {member.prCode}</span> : null}
+                          </span>
+                        </label>
+                        {member && !member.ptCode ? <button type="button" className="focus-ring shrink-0 rounded border border-line px-3 py-1 text-sm font-semibold text-brand-dark disabled:opacity-50" disabled={!!convertingPrCode || isPending} onClick={() => convertSchool(member.prCode)}>
+                          {convertingPrCode === member.prCode ? "Converting..." : "Convert to PT"}
+                        </button> : null}
+                      </div>
+                      {conversionError && conversionError.prCode === member?.prCode ? <p role="alert" className="mt-2 text-sm text-red-700">{conversionError.message}</p> : null}
+                    </div>;
+                  })}
+                </> : combinedSchools.fields.map((field, index) => (
                   <LineRow key={field.id} onRemove={() => combinedSchools.remove(index)}>
                     <ReferencePicker
                       schools={schools.filter((school) => {

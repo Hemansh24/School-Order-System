@@ -12,7 +12,7 @@ const dates = { sessionYear: '2026-2027', orderPlacedDate: '2026-10-13', orderRe
 const input = (groupId: number, locationId?: number): CreateOrderInput => ({
   sheet1: { ...dates, billingToType: 'individual', billingToCode: '', billingToName: 'Manual payer', shippingToType: 'individual', shippingToCode: '', shippingToName: 'Test group', shippingToSummary: 'Test address', orderType: 'descriptive', descriptiveMode: 'multiple_group', endUserGroupCode: code, pendingPayment: false, schoolGroupId: groupId, schoolGroupLocationId: locationId },
   descriptiveRows: [], ambiguousSchools: [], ambiguousItems: [],
-  combinedSchools: [{ schoolCode: 'PT-UNRELATED', schoolName: 'Forged participant' }],
+  combinedSchools: [{ schoolCode: 'PR999999991', schoolName: 'PR-only test school' }],
   combinedItems: [{ itemCode: 'TEST', itemName: 'Test', pooledQuantity: 1 }]
 });
 async function main() {
@@ -43,7 +43,7 @@ async function main() {
       assert.equal((await prepareGsOrder(tx, input(group.schoolGroupId, -1))).sheet1.schoolGroupLocationId, undefined);
       const snapshot = { endUserGroupCode: code, schoolGroupId: group.schoolGroupId, schoolGroupLocationId: location.schoolGroupLocationId, billingToCode: code, shippingToCode: code, billingToName: 'Saved name', shippingToName: 'Saved name', shippingToSummary: 'Saved address', combinedSchools: prepared.combinedSchools.map(row => ({ ...row, notes: null })) };
       await tx.organisation.update({ where: { prCode: pr }, data: { groupCode: null } });
-      const preserved = await prepareGsOrder(tx, input(group.schoolGroupId, location.schoolGroupLocationId), snapshot);
+      const preserved = await prepareGsOrder(tx, { ...input(group.schoolGroupId, location.schoolGroupLocationId), combinedSchools: prepared.combinedSchools }, snapshot);
       assert.equal(preserved.sheet1.shippingToSummary, 'Test address');
       assert.deepEqual(preserved.combinedSchools.map(row => row.schoolCode), prepared.combinedSchools.map(row => row.schoolCode));
       await tx.organisation.update({ where: { prCode: pr }, data: { groupCode: code } });

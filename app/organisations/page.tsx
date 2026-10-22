@@ -55,9 +55,9 @@ export default async function OrganisationsPage({
         <form action="/organisations" className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <TextInput
             name="prCode"
-            label="PR Code"
+            label="PR / PT Code"
             defaultValue={data.filters.prCode}
-            placeholder="PR000123"
+            placeholder="PR000123 or PT0001"
           />
           <TextInput
             name="organisationName"
