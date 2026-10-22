@@ -26,6 +26,7 @@ type VendorRef = {
   vendorName: string;
   vendorType: string | null;
   vendorRating: string | null;
+  actualDiscount: string | null;
   contactNumbers?: string[];
   addressSummary: string;
   schools: SchoolRef[];
@@ -223,6 +224,7 @@ export function CreateOrderForm({
           name: school.schoolName,
           type: "",
           rating: "",
+          actualDiscount: null,
           addressSummary: school.addressSummary,
           contactNumbers: school.contactNumbers ?? [],
           isGroup: groups.some((group) => group.optionKey === school.optionKey),
@@ -234,6 +236,7 @@ export function CreateOrderForm({
             name: vendor.vendorName,
             type: vendor.vendorType ?? "",
           rating: vendor.vendorRating ?? "",
+          actualDiscount: vendor.actualDiscount,
           addressSummary: vendor.addressSummary,
           contactNumbers: vendor.contactNumbers ?? [],
           isGroup: false,
@@ -676,6 +679,9 @@ export function CreateOrderForm({
                   placeholder="Select a reference or choose manual entry"
                 />
                 {billingToType !== "individual" && form.watch("sheet1.billingToName") ? <p className="mt-1 text-sm text-muted">{form.watch("sheet1.billingToName")}</p> : null}
+                {billingToType === "vendor" && selectedBillingOption?.actualDiscount?.trim() ? (
+                  <p className="mt-1 text-sm text-muted">Actual Discount: {selectedBillingOption.actualDiscount}</p>
+                ) : null}
                 {isBillingDropdownOpen && billingToType !== "individual" ? (
                   <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-white shadow-lg">
                     {filteredBillingOptions.length > 0 ? (
