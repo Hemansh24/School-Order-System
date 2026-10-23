@@ -129,6 +129,6 @@ test("validates optional dates only when supplied", () => {
 
 test("legacy combined orders retain descriptive group semantics", () => {
   assert.equal(isGroupOrder({ orderType: "combined" }), true);
-  assert.equal(orderTypeLabel({ orderType: "combined" }), "Descriptive / Multiple / Group");
+  assert.equal(orderTypeLabel({ orderType: "combined" }), "Descriptive / Group");
   assert.equal(isGroupOrder({ orderType: "descriptive", descriptiveMode: "individual" }), false);
 });

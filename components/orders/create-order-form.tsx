@@ -10,6 +10,7 @@ import { Card, SubmitButton } from "@/components/ui";
 import { compareEditionCodes, DEFAULT_LANGUAGE_CODE } from "@/lib/item-code";
 import { hasLegacySchoolAllocations, isPooledOrder, orderTypeLabel, type DescriptiveMode } from "@/lib/order-model";
 import { normalizeOrderEntry } from "@/lib/order-entry";
+import { getCurrentSessionYear } from "@/lib/session-year";
 import { createOrderSchema, type CreateOrderInput } from "@/lib/validation/orders";
 
 type SchoolRef = {
@@ -27,6 +28,7 @@ type VendorRef = {
   vendorType: string | null;
   vendorRating: string | null;
   actualDiscount: string | null;
+  committedDiscount: string | null;
   contactNumbers?: string[];
   addressSummary: string;
   schools: SchoolRef[];
@@ -79,6 +81,25 @@ function isSavedOrderDraft(value: unknown): value is CreateOrderInput {
   );
 }
 
+function ConcealedDiscount({ discount }: { discount: string }) {
+  const [isVisible, setIsVisible] = useState(false);
+
+  return (
+    <div className="mt-1 text-sm text-muted">
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          className="focus-ring"
+          checked={isVisible}
+          onChange={event => setIsVisible(event.target.checked)}
+        />
+        Show discount
+      </label>
+      {isVisible ? <p className="mt-1">Discount: {discount}</p> : null}
+    </div>
+  );
+}
+
 export function CreateOrderForm({
   schools: sourceSchools,
   groups: sourceGroups,
@@ -118,7 +139,7 @@ export function CreateOrderForm({
   const newOrderDefaults = useMemo<CreateOrderInput>(
     () => ({
       sheet1: {
-        sessionYear: "",
+        sessionYear: getCurrentSessionYear(),
         orderPlacedDate: today,
         orderReceivedDate: "",
         expectedDeliveryDate: "",
@@ -239,7 +260,7 @@ export function CreateOrderForm({
           setLegacySchoolConversion(hasLegacySchoolAllocations({ ...parsedDraft.sheet1, descriptiveRows: parsedDraft.descriptiveRows }) || !!(parsedDraft as CreateOrderInput & { legacySchoolConversion?: boolean }).legacySchoolConversion);
           form.reset(normalizeOrderEntry({
             ...parsedDraft,
-            sheet1: { ...parsedDraft.sheet1, orderPlacedDate: parsedDraft.sheet1.orderPlacedDate || parsedDraft.sheet1.orderReceivedDate }
+            sheet1: { ...parsedDraft.sheet1, sessionYear: getCurrentSessionYear(), orderPlacedDate: parsedDraft.sheet1.orderPlacedDate || parsedDraft.sheet1.orderReceivedDate }
           }));
         }
       }
@@ -271,7 +292,7 @@ export function CreateOrderForm({
           name: school.schoolName,
           type: "",
           rating: "",
-          actualDiscount: null,
+          discount: null,
           addressSummary: school.addressSummary,
           contactNumbers: school.contactNumbers ?? [],
           isGroup: groups.some((group) => group.optionKey === school.optionKey),
@@ -283,7 +304,7 @@ export function CreateOrderForm({
             name: vendor.vendorName,
             type: vendor.vendorType ?? "",
           rating: vendor.vendorRating ?? "",
-          actualDiscount: vendor.actualDiscount,
+          discount: vendor.actualDiscount?.trim() || vendor.committedDiscount?.trim() || null,
           addressSummary: vendor.addressSummary,
           contactNumbers: vendor.contactNumbers ?? [],
           isGroup: false,
@@ -684,7 +705,7 @@ export function CreateOrderForm({
       </div>
 
       {legacySchoolConversion ? <p className="rounded-md border border-line bg-canvas p-3 text-sm text-ink">
-        This older order has quantities per school. Its item quantities are shown as shared totals here; saving will convert it to Multiple / Schools.
+        This older order has quantities per school. Its item quantities are shown as shared totals here; saving will convert it to Multiple Schools.
       </p> : null}
 
       {serverError ? (
@@ -698,7 +719,8 @@ export function CreateOrderForm({
           <h2 className="mb-4 text-lg font-semibold text-ink">Order Sheet 1</h2>
           <div className="grid gap-4 md:grid-cols-3">
             <Field label="Session Year" error={errors.sheet1?.sessionYear?.message}>
-              <input className={inputClass} {...form.register("sheet1.sessionYear")} />
+              <input readOnly={isNewOrder} className={inputClass} {...form.register("sheet1.sessionYear")} />
+              {isNewOrder ? <p className="mt-1 text-xs text-muted">Set automatically for use in the next academic year.</p> : null}
             </Field>
             <Field label="Order Placed Date" error={errors.sheet1?.orderPlacedDate?.message}>
               <input type="date" className={inputClass} {...form.register("sheet1.orderPlacedDate")} />
@@ -740,8 +762,8 @@ export function CreateOrderForm({
                   placeholder="Select a reference or choose manual entry"
                 />
                 {billingToType !== "individual" && form.watch("sheet1.billingToName") ? <p className="mt-1 text-sm text-muted">{form.watch("sheet1.billingToName")}</p> : null}
-                {billingToType === "vendor" && selectedBillingOption?.actualDiscount?.trim() ? (
-                  <p className="mt-1 text-sm text-muted">Actual Discount: {selectedBillingOption.actualDiscount}</p>
+                {billingToType === "vendor" && selectedBillingOption?.discount ? (
+                  <ConcealedDiscount key={JSON.stringify([selectedBillingOption.code, selectedBillingOption.discount])} discount={selectedBillingOption.discount} />
                 ) : null}
                 {isBillingDropdownOpen && billingToType !== "individual" ? (
                   <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-white shadow-lg">
@@ -890,15 +912,12 @@ export function CreateOrderForm({
 
       {step === 2 && orderType === "descriptive" ? <Card className="mb-4 p-5">
         <Field label="Descriptive entry">
-          <select className={inputClass} value={isMultiple ? "multiple" : "individual"} onChange={event => changeEntry("descriptive", event.target.value === "individual" ? "individual" : "multiple_schools")}>
-            <option value="individual">Individual</option><option value="multiple">Multiple</option>
+          <select className={inputClass} value={descriptiveMode} onChange={event => changeEntry("descriptive", event.target.value as DescriptiveMode)}>
+            <option value="individual">Individual</option>
+            <option value="multiple_schools">Multiple Schools</option>
+            <option value="multiple_group">Group</option>
           </select>
         </Field>
-        {isMultiple ? <Field label="Multiple entry">
-          <select className={inputClass} value={descriptiveMode} onChange={event => changeEntry("descriptive", event.target.value as DescriptiveMode)}>
-            <option value="multiple_schools">Schools</option><option value="multiple_group">Group</option>
-          </select>
-        </Field> : null}
         {isGroup ? <Field label="End-school group" error={errors.sheet1?.endUserGroupCode?.message}>
           <ReferencePicker kind="group"
             schools={endUserGroupCode && !groups.some(group => group.schoolCode === endUserGroupCode)
@@ -994,7 +1013,7 @@ export function CreateOrderForm({
 
       {step === 2 && isMultiple ? (
         <Card className="p-5">
-          <h2 className="text-lg font-semibold text-ink">Multiple {isGroup ? "Group" : "Schools"} Entry</h2>
+          <h2 className="text-lg font-semibold text-ink">{isGroup ? "Group" : "Multiple Schools"} Entry</h2>
           <p className="mb-4 text-sm text-muted">
             {isGroup ? "Choose the schools participating in this order. GS schools come from the selected group." : "Select at least two schools."} Enter one shared total per item for all participating schools.
           </p>

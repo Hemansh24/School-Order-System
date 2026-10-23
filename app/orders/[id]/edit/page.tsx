@@ -143,6 +143,7 @@ export default async function EditOrderPage({
           vendorType: vendor.vendorType,
           vendorRating: vendor.vendorRating,
           actualDiscount: vendor.actualDiscount,
+          committedDiscount: vendor.committedDiscount,
           contactNumbers: extractContactNumbers(vendor.phone),
           addressSummary: formatVendorAddress(vendor.address),
           schools: toSchoolOptions(vendor.vendorSchools.map((row) => row.school))

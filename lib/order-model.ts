@@ -23,5 +23,5 @@ export function entryModeForOrder(order: OrderMode): DescriptiveMode {
 export function orderTypeLabel(order: OrderMode) {
   if (order.orderType === "ambiguous") return "Ambiguous";
   const mode = entryModeForOrder(order);
-  return mode === "multiple_group" ? "Descriptive / Multiple / Group" : mode === "multiple_schools" ? "Descriptive / Multiple / Schools" : "Descriptive / Individual";
+  return mode === "multiple_group" ? "Descriptive / Group" : mode === "multiple_schools" ? "Descriptive / Multiple Schools" : "Descriptive / Individual";
 }

@@ -1,9 +1,10 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { getCurrentSessionYear } from "@/lib/session-year";
 import { createDirectGroupOrder, createParentGroupOrder } from "@/lib/services/group-orders";
 
 function input(formData: FormData) {
-  return { sessionYear: String(formData.get("sessionYear") || "2026-2027"), orderPlacedDate: String(formData.get("orderPlacedDate")), orderReceivedDate: String(formData.get("orderReceivedDate")), expectedDeliveryDate: String(formData.get("expectedDeliveryDate")), notes: String(formData.get("notes") || "") };
+  return { sessionYear: getCurrentSessionYear(), orderPlacedDate: String(formData.get("orderPlacedDate")), orderReceivedDate: String(formData.get("orderReceivedDate")), expectedDeliveryDate: String(formData.get("expectedDeliveryDate")), notes: String(formData.get("notes") || "") };
 }
 export async function createDirectGroupOrderAction(formData: FormData) {
   const ptCodes = String(formData.get("ptCodes") || "").split(/[\s,]+/).filter(Boolean);

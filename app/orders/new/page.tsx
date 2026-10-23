@@ -55,6 +55,7 @@ export default async function CreateOrderPage() {
           vendorType: vendor.vendorType,
           vendorRating: vendor.vendorRating,
           actualDiscount: vendor.actualDiscount,
+          committedDiscount: vendor.committedDiscount,
           contactNumbers: extractContactNumbers(vendor.phone),
           addressSummary: formatVendorAddress(vendor.address),
           schools: toSchoolOptions(vendor.vendorSchools.map((row) => row.school))

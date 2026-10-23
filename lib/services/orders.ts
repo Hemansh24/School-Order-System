@@ -1,4 +1,5 @@
 import { isGroupOrder, isPooledOrder } from "@/lib/order-model";
+import { getCurrentSessionYear } from "@/lib/session-year";
 import {
   BillingToType,
   OrderStatus,
@@ -239,7 +240,7 @@ export async function createOrder(input: CreateOrderInput) {
     const order = await tx.orderSheet1.create({
       data: {
         orderNo,
-        sessionYear: orderInput.sheet1.sessionYear || null,
+        sessionYear: getCurrentSessionYear(),
         orderPlacedDate: toDate(orderInput.sheet1.orderPlacedDate),
         orderReceivedDate: orderInput.sheet1.orderReceivedDate ? toDate(orderInput.sheet1.orderReceivedDate) : null,
         expectedDeliveryDate: orderInput.sheet1.expectedDeliveryDate ? toDate(orderInput.sheet1.expectedDeliveryDate) : null,

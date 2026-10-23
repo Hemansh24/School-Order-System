@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { compareEditionCodes, DEFAULT_LANGUAGE_CODE } from "@/lib/item-code";
 
 export async function getReferenceData() {
-  const [schools, vendors, items, groupLocations, christianGroups] = await Promise.all([
+  const [schools, vendors, items, groupLocations, christianGroups, preBooksellers] = await Promise.all([
     prisma.school.findMany({
       orderBy: { schoolName: "asc" }
     }),
@@ -24,10 +24,25 @@ export async function getReferenceData() {
     prisma.schoolGroup.findMany({
       where: { sourceType: "CHRISTIAN", active: true },
       orderBy: { groupCode: "asc" }
+    }),
+    prisma.preBookseller.findMany({
+      select: { pbsCode: true, sourceBsCode: true, assignedBsCode: true, convertedVendorId: true, committedDiscount: true }
     })
   ]);
 
-  return { schools, vendors, items, groupLocations, christianGroups };
+  const byVendorId = new Map(preBooksellers.flatMap(row => row.convertedVendorId == null ? [] : [[row.convertedVendorId, row] as const]));
+  const byPbsCode = new Map(preBooksellers.map(row => [row.pbsCode, row]));
+  const byAssignedCode = new Map(preBooksellers.flatMap(row => row.assignedBsCode ? [[row.assignedBsCode, row] as const] : []));
+  const bySourceCode = new Map(preBooksellers.flatMap(row => row.sourceBsCode ? [[row.sourceBsCode, row] as const] : []));
+  const vendorsWithDiscounts = vendors.map(vendor => {
+    const preBookseller = byVendorId.get(vendor.vendorId)
+      ?? (vendor.preVendorCode ? byPbsCode.get(vendor.preVendorCode) : undefined)
+      ?? byAssignedCode.get(vendor.vendorCode)
+      ?? bySourceCode.get(vendor.vendorCode);
+    return { ...vendor, committedDiscount: preBookseller?.committedDiscount ?? null };
+  });
+
+  return { schools, vendors: vendorsWithDiscounts, items, groupLocations, christianGroups };
 }
 
 export async function getItemCategories() {
