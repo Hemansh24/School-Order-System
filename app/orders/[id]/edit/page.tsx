@@ -81,6 +81,10 @@ export default async function EditOrderPage({
       booksellerType: order.booksellerType ?? "",
       booksellerRating: order.booksellerRating ?? "",
       pendingPayment: order.pendingPayment,
+      commissionEnabled: order.commissionPartyCode !== null,
+      commissionPartyType: order.commissionPartyType === "individual" ? undefined : order.commissionPartyType ?? undefined,
+      commissionPartyCode: order.commissionPartyCode ?? "",
+      commissionPercentage: order.commissionPercentage?.toNumber(),
       contactNumbers: order.contactNumbers,
       notes: order.notes ?? ""
     },
@@ -163,6 +167,7 @@ export default async function EditOrderPage({
         initialValues={initialValues}
         requiresLegacyConversion={hasLegacySchoolAllocations(order)}
         orderSheet1Id={order.orderSheet1Id}
+        orderCreatedAt={order.createdAt.toISOString()}
         submitLabel="Save Changes"
       />
     </>

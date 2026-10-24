@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Card, EmptyState, OrderNumber, PageHeader, StatusPill } from "@/components/ui";
 import { OrderActionButtons } from "@/components/orders/order-action-buttons";
 import { getOrder } from "@/lib/services/orders";
+import { getOrderEnteredDate } from "@/lib/order-dates";
 
 export const dynamic = "force-dynamic";
 
@@ -73,11 +74,14 @@ export default async function OrderDetailsPage({
             </Info>
             {isGroupOrder(order) ? <Info label="End-school group">{order.endUserGroupCode ?? "Saved group"}</Info> : null}
             <Info label="Contact numbers">{order.contactNumbers.join(", ") || "—"}</Info>
+            <Info label="Commission">{order.commissionPartyCode ?? "—"}</Info>
+            <Info label="Percentage">{order.commissionPercentage !== null ? `${order.commissionPercentage.toString()}%` : "—"}</Info>
             <Info label="Classification"><span className="capitalize">{order.classification.replaceAll("_", " ")}</span></Info>
             <Info label="Session Year">{order.sessionYear ?? "Not set"}</Info>
             <Info label="Order Placed">{order.orderPlacedDate.toLocaleDateString()}</Info>
             <Info label="Order Received">{order.orderReceivedDate?.toLocaleDateString() ?? "Not set"}</Info>
-            <Info label="Expected Delivery">{order.expectedDeliveryDate?.toLocaleDateString() ?? "Not set"}</Info>
+            <Info label="Order Expected Date">{order.expectedDeliveryDate?.toLocaleDateString() ?? "Not set"}</Info>
+            <Info label="Order Entered Date">{getOrderEnteredDate(order.createdAt)}</Info>
           </div>
         </Card>
         <Card className="p-5">

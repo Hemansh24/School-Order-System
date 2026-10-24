@@ -46,6 +46,13 @@ export const sheet1Schema = z
       "Enter a valid contact number (7–15 digits)"
     )).optional(),
     pendingPayment: z.boolean().default(false),
+    commissionEnabled: z.boolean().optional(),
+    commissionPartyType: z.enum(["school", "vendor", "group"]).optional(),
+    commissionPartyCode: z.string().trim().optional(),
+    commissionPercentage: z.preprocess(
+      value => value === null || (typeof value === "string" && !value.trim()) ? undefined : value,
+      z.coerce.number().finite().min(0).max(100).optional()
+    ),
     notes: z.string().optional()
   })
   .refine(
@@ -61,7 +68,19 @@ export const sheet1Schema = z
       message: "Expected delivery date cannot be before order received date",
       path: ["expectedDeliveryDate"]
     }
-  );
+  )
+  .superRefine((data, ctx) => {
+    if (!data.commissionEnabled) return;
+    if (!data.commissionPartyType || !data.commissionPartyCode) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["commissionPartyCode"], message: "Select a commissioned party from the existing records" });
+    }
+    if (data.commissionPercentage === undefined) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["commissionPercentage"], message: "Percentage is required" });
+    }
+  })
+  .transform(data => data.commissionEnabled ? data : {
+    ...data, commissionPartyType: undefined, commissionPartyCode: undefined, commissionPercentage: undefined
+  });
 
 export const sheet2ARowSchema = z.object({
   schoolCode: z.string().min(1, "School code is required"),

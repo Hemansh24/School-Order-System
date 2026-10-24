@@ -289,6 +289,9 @@ model OrderSheet1 {
   booksellerType       String?       @map("bookseller_type")
   booksellerRating     String?       @map("bookseller_rating")
   pendingPayment       Boolean       @default(false) @map("pending_payment")
+  commissionPartyType  BillingToType? @map("commission_party_type")
+  commissionPartyCode  String?       @map("commission_party_code")
+  commissionPercentage Decimal?     @map("commission_percentage")
   contactNumbers       String[]      @default([]) @map("contact_numbers")
   notes                String?
   createdAt            DateTime      @default(now()) @map("created_at")

@@ -13,6 +13,7 @@ import { prisma } from "@/lib/prisma";
 import { ensurePtCodesForSchoolCodesTx } from "@/lib/services/organisations";
 import { orderSchoolCodes, reverseUnusedPtCodesTx, schoolReferenceSelect } from "@/lib/services/school-code-reversal";
 import { createOrderSchema, type CreateOrderInput } from "@/lib/validation/orders";
+import { resolveCommissionData } from "@/lib/services/order-commission";
 
 const orderInclude = {
   descriptiveRows: true,
@@ -127,6 +128,9 @@ function applyPtCodesToOrder(
   return {
     sheet1: {
       ...input.sheet1,
+      commissionPartyCode: input.sheet1.commissionPartyType === "school" && input.sheet1.commissionPartyCode
+        ? mappedCode(input.sheet1.commissionPartyCode)
+        : input.sheet1.commissionPartyCode,
       billingToCode:
         input.sheet1.billingToType === "school"
           ? mappedCode(input.sheet1.billingToCode)
@@ -234,12 +238,14 @@ export async function createOrder(input: CreateOrderInput) {
     );
     const schoolCodeInput = applyPtCodesToOrder(prepared, ptCodeByOriginalCode);
     const orderInput = createOrderSchema.parse(schoolCodeInput);
+    const commissionData = await resolveCommissionData(tx, orderInput.sheet1);
     const orderNo = await nextParentOrderNo(tx);
     const shippingToSummary = orderInput.sheet1.shippingToSummary;
 
     const order = await tx.orderSheet1.create({
       data: {
         orderNo,
+        ...commissionData,
         sessionYear: getCurrentSessionYear(),
         orderPlacedDate: toDate(orderInput.sheet1.orderPlacedDate),
         orderReceivedDate: orderInput.sheet1.orderReceivedDate ? toDate(orderInput.sheet1.orderReceivedDate) : null,
@@ -340,6 +346,7 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
     );
     const schoolCodeInput = applyPtCodesToOrder(prepared, ptCodeByOriginalCode);
     const orderInput = createOrderSchema.parse(schoolCodeInput);
+    const commissionData = await resolveCommissionData(tx, orderInput.sheet1, current);
 
     const existing = current;
 
@@ -360,6 +367,7 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
       where: { orderSheet1Id },
       data: {
         sessionYear: orderInput.sheet1.sessionYear || null,
+        ...commissionData,
         orderPlacedDate: toDate(orderInput.sheet1.orderPlacedDate),
         orderReceivedDate: orderInput.sheet1.orderReceivedDate ? toDate(orderInput.sheet1.orderReceivedDate) : null,
         expectedDeliveryDate: orderInput.sheet1.expectedDeliveryDate ? toDate(orderInput.sheet1.expectedDeliveryDate) : null,

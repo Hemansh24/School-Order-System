@@ -29,6 +29,8 @@ export default async function OrdersPage() {
                 <th className="px-4 py-3">Classification</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Payment</th>
+                <th className="px-4 py-3">Commission</th>
+                <th className="px-4 py-3">Percentage</th>
                 <th className="px-4 py-3">Open</th>
               </tr>
             </thead>
@@ -56,6 +58,8 @@ export default async function OrdersPage() {
                       <StatusPill value="received" />
                     )}
                   </td>
+                  <td className="px-4 py-3">{order.commissionPartyCode ?? "—"}</td>
+                  <td className="px-4 py-3">{order.commissionPercentage !== null ? `${order.commissionPercentage.toString()}%` : "—"}</td>
                   <td className="px-4 py-3">
                     <Link
                       href={`/orders/${order.orderSheet1Id}`}

@@ -11,6 +11,7 @@ import { compareEditionCodes, DEFAULT_LANGUAGE_CODE } from "@/lib/item-code";
 import { hasLegacySchoolAllocations, isPooledOrder, orderTypeLabel, type DescriptiveMode } from "@/lib/order-model";
 import { normalizeOrderEntry } from "@/lib/order-entry";
 import { getCurrentSessionYear } from "@/lib/session-year";
+import { getOrderEnteredDate } from "@/lib/order-dates";
 import { createOrderSchema, type CreateOrderInput } from "@/lib/validation/orders";
 
 type SchoolRef = {
@@ -53,6 +54,7 @@ type Props = {
   items: ItemRef[];
   initialValues?: CreateOrderInput;
   orderSheet1Id?: number;
+  orderCreatedAt?: string;
   submitLabel?: string;
   requiresLegacyConversion?: boolean;
 };
@@ -107,6 +109,7 @@ export function CreateOrderForm({
   items,
   initialValues,
   orderSheet1Id,
+  orderCreatedAt,
   submitLabel = "Create Order",
   requiresLegacyConversion = false
 }: Props) {
@@ -134,6 +137,32 @@ export function CreateOrderForm({
   const [isPending, startTransition] = useTransition();
   const isNewOrder = orderSheet1Id === undefined && initialValues === undefined;
   const [isDraftReady, setIsDraftReady] = useState(!isNewOrder);
+  const [currentEntryDate, setCurrentEntryDate] = useState("");
+  const orderEnteredDate = orderCreatedAt
+    ? getOrderEnteredDate(new Date(orderCreatedAt))
+    : currentEntryDate;
+
+  useEffect(() => {
+    if (orderCreatedAt) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const refresh = () => {
+      const now = new Date();
+      const day = getOrderEnteredDate(now);
+      setCurrentEntryDate(day);
+      const nextMidnight = new Date(`${day}T00:00:00+05:30`).getTime() + 86_400_000;
+      timer = setTimeout(refresh, nextMidnight - now.getTime() + 50);
+    };
+    refresh();
+    window.addEventListener("focus", refreshOnFocus);
+    function refreshOnFocus() {
+      clearTimeout(timer);
+      refresh();
+    }
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("focus", refreshOnFocus);
+    };
+  }, [orderCreatedAt]);
 
   const today = new Date().toISOString().slice(0, 10);
   const newOrderDefaults = useMemo<CreateOrderInput>(
@@ -156,6 +185,8 @@ export function CreateOrderForm({
         booksellerType: "",
         booksellerRating: "",
         pendingPayment: false,
+        commissionEnabled: false,
+        commissionPartyCode: "",
         contactNumbers: [""],
         notes: ""
       },
@@ -191,6 +222,21 @@ export function CreateOrderForm({
   });
 
   const orderType = form.watch("sheet1.orderType");
+  const commissionEnabled = form.watch("sheet1.commissionEnabled") ?? false;
+  const commissionPartyCode = form.watch("sheet1.commissionPartyCode") ?? "";
+  const commissionPartyType = form.watch("sheet1.commissionPartyType");
+  const commissionPercentage = form.watch("sheet1.commissionPercentage");
+  const [isCommissionDropdownOpen, setIsCommissionDropdownOpen] = useState(false);
+  const commissionOptions = useMemo(() => [...new Map([
+    ...schools.map(school => ({ type: "school" as const, code: school.schoolCode, name: school.schoolName })),
+    ...vendors.map(vendor => ({ type: "vendor" as const, code: vendor.vendorCode, name: vendor.vendorName })),
+    ...groups.map(group => ({ type: "group" as const, code: group.schoolCode, name: group.schoolName }))
+  ].map(option => [`${option.type}:${option.code}`, option])).values()], [schools, vendors, groups]);
+  const selectedCommissionOption = commissionOptions.find(option => option.type === commissionPartyType && option.code === commissionPartyCode);
+  const filteredCommissionOptions = commissionOptions.filter(option => {
+    const query = commissionPartyCode.trim().toLowerCase();
+    return !query || option.code.toLowerCase().includes(query) || option.name.toLowerCase().includes(query);
+  }).slice(0, 50);
   const billingToType = form.watch("sheet1.billingToType");
   const billingToCode = form.watch("sheet1.billingToCode");
   const shippingToType = form.watch("sheet1.shippingToType");
@@ -224,6 +270,10 @@ export function CreateOrderForm({
       if (form.getValues(`sheet1.${party}ToType`) === "school" && ptCodes[code] && ptCodes[code] !== code) {
         form.setValue(`sheet1.${party}ToCode`, ptCodes[code], { shouldDirty: true, shouldValidate: true });
       }
+    }
+    const commissionCode = form.getValues("sheet1.commissionPartyCode");
+    if (form.getValues("sheet1.commissionPartyType") === "school" && commissionCode && ptCodes[commissionCode] && ptCodes[commissionCode] !== commissionCode) {
+      form.setValue("sheet1.commissionPartyCode", ptCodes[commissionCode], { shouldDirty: true, shouldValidate: true });
     }
   }, [ptCodes, isDraftReady, form]);
 
@@ -674,6 +724,7 @@ export function CreateOrderForm({
     setSelectedCustomisationCode(items[0]?.customisationCode ?? "");
     setIsBillingDropdownOpen(false);
     setIsShippingDropdownOpen(false);
+    setIsCommissionDropdownOpen(false);
     window.sessionStorage.removeItem(ORDER_DRAFT_STORAGE_KEY);
   }
 
@@ -724,6 +775,7 @@ export function CreateOrderForm({
             </Field>
             <Field label="Order Placed Date" error={errors.sheet1?.orderPlacedDate?.message}>
               <input type="date" className={inputClass} {...form.register("sheet1.orderPlacedDate")} />
+              <p className="mt-1 text-xs text-muted">When the other party gave the order to us.</p>
             </Field>
             <Field label="Order Received Date" error={errors.sheet1?.orderReceivedDate?.message}>
               <input
@@ -731,9 +783,15 @@ export function CreateOrderForm({
                 className={inputClass}
                 {...form.register("sheet1.orderReceivedDate")}
               />
+              <p className="mt-1 text-xs text-muted">When the order was introduced to us.</p>
             </Field>
-            <Field label="Expected Delivery Date" error={errors.sheet1?.expectedDeliveryDate?.message}>
+            <Field label="Order Expected Date" error={errors.sheet1?.expectedDeliveryDate?.message}>
               <input type="date" className={inputClass} {...form.register("sheet1.expectedDeliveryDate")} />
+              <p className="mt-1 text-xs text-muted">When the other party expects delivery.</p>
+            </Field>
+            <Field label="Order Entered Date">
+              <input type="date" readOnly className={inputClass} value={orderEnteredDate} />
+              <p className="mt-1 text-xs text-muted">{orderCreatedAt ? "Recorded automatically when this order was first saved (India time)." : "Set automatically when the order is first saved (India time)."}</p>
             </Field>
             <Field label="Billing To Type">
               <select className={inputClass} value={billingPartyType} onChange={event => {
@@ -898,6 +956,54 @@ export function CreateOrderForm({
                 </SubmitButton>
               ) : null}
             </div>
+          </div>
+          <div className="mt-4 space-y-3 rounded-md border border-line p-4">
+            <label className="flex items-center gap-2 text-sm font-medium text-ink">
+              <input type="checkbox" className="focus-ring h-4 w-4" checked={commissionEnabled} onChange={event => {
+                form.setValue("sheet1.commissionEnabled", event.target.checked, { shouldDirty: true });
+                if (!event.target.checked) {
+                  form.setValue("sheet1.commissionPartyType", undefined);
+                  form.setValue("sheet1.commissionPartyCode", "");
+                  form.setValue("sheet1.commissionPercentage", undefined);
+                  form.clearErrors(["sheet1.commissionPartyCode", "sheet1.commissionPartyType", "sheet1.commissionPercentage"]);
+                  setIsCommissionDropdownOpen(false);
+                }
+                void form.trigger("sheet1");
+              }} />
+              Add commission
+            </label>
+            {commissionEnabled ? <div className="grid gap-4 md:grid-cols-2">
+              <Field label="Commission" error={errors.sheet1?.commissionPartyCode?.message ?? errors.sheet1?.commissionPartyType?.message}>
+                <div className="relative">
+                  <input className={inputClass} value={commissionPartyCode} placeholder="Search party code or name"
+                    onFocus={() => setIsCommissionDropdownOpen(true)}
+                    onBlur={() => window.setTimeout(() => setIsCommissionDropdownOpen(false), 150)}
+                    onChange={event => {
+                      form.setValue("sheet1.commissionPartyType", undefined, { shouldDirty: true });
+                      form.setValue("sheet1.commissionPartyCode", event.target.value, { shouldDirty: true, shouldValidate: true });
+                      setIsCommissionDropdownOpen(true);
+                    }} />
+                  {selectedCommissionOption ? <p className="mt-1 text-sm text-muted">{selectedCommissionOption.name}</p> : null}
+                  {isCommissionDropdownOpen ? <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-white shadow-lg">
+                    {filteredCommissionOptions.length ? filteredCommissionOptions.map(option => <button
+                      key={`${option.type}:${option.code}`} type="button" className="block w-full px-3 py-2 text-left text-sm hover:bg-canvas focus:bg-canvas"
+                      onClick={() => {
+                        form.setValue("sheet1.commissionPartyType", option.type, { shouldDirty: true });
+                        form.setValue("sheet1.commissionPartyCode", option.code, { shouldDirty: true, shouldValidate: true });
+                        setIsCommissionDropdownOpen(false);
+                      }}>
+                      <span className="font-semibold">{option.code}</span> <span className="text-muted">{option.name} ({option.type === "vendor" ? "Bookseller" : option.type})</span>
+                    </button>) : <p className="px-3 py-2 text-sm text-muted">No commissioned parties found.</p>}
+                  </div> : null}
+                </div>
+              </Field>
+              <Field label="Percentage" error={errors.sheet1?.commissionPercentage?.message}>
+                <input type="number" min="0" max="100" step="any" className={inputClass} placeholder="e.g. 7.5"
+                  value={commissionPercentage ?? ""}
+                  onChange={event => form.setValue("sheet1.commissionPercentage", event.target.value === "" ? undefined : Number(event.target.value), { shouldDirty: true, shouldValidate: true })} />
+                <p className="mt-1 text-xs text-muted">Enter a percentage from 0 to 100.</p>
+              </Field>
+            </div> : null}
           </div>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <Field label="Shipping Address" error={errors.sheet1?.shippingToSummary?.message}>
@@ -1096,7 +1202,7 @@ export function CreateOrderForm({
       {step === 3 ? (
         <Card className="p-5">
           <h2 className="mb-3 text-lg font-semibold text-ink">Review</h2>
-          <ReviewBlock values={form.getValues()} />
+          <ReviewBlock values={form.getValues()} orderEnteredDate={orderEnteredDate} />
         </Card>
       ) : null}
 
@@ -1423,7 +1529,7 @@ function LineRow({
   );
 }
 
-function ReviewBlock({ values }: { values: CreateOrderInput }) {
+function ReviewBlock({ values, orderEnteredDate }: { values: CreateOrderInput; orderEnteredDate: string }) {
   return (
     <div className="grid gap-4 text-sm xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
       <div className="rounded-md border border-line bg-canvas p-4">
@@ -1431,8 +1537,11 @@ function ReviewBlock({ values }: { values: CreateOrderInput }) {
         <p className="mt-2 text-muted">Billing: {values.sheet1.billingToName}</p>
         <p className="text-muted">Shipping: {values.sheet1.shippingToName}</p>
         <p className="text-muted">Contact numbers: {values.sheet1.contactNumbers?.filter(number => number.trim()).join(", ") || "—"}</p>
+        {values.sheet1.commissionEnabled ? <p className="text-muted">Commission: {values.sheet1.commissionPartyCode} · {values.sheet1.commissionPercentage}%</p> : null}
         <p className="text-muted">Placed: {values.sheet1.orderPlacedDate}</p>
         <p className="text-muted">Received: {values.sheet1.orderReceivedDate}</p>
+        <p className="text-muted">Expected: {values.sheet1.expectedDeliveryDate}</p>
+        <p className="text-muted">Order Entered Date: {orderEnteredDate}</p>
         <p className="text-muted">Address: {values.sheet1.shippingToSummary}</p>
         <p className="text-muted">Type: {orderTypeLabel(values.sheet1)}</p>
       </div>
