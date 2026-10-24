@@ -6,6 +6,7 @@ export async function reservedPtCodes(tx: Prisma.TransactionClient): Promise<str
   const rows = await tx.$queryRaw<Array<{ code: string }>>`
     SELECT code FROM (
       SELECT pt_code AS code FROM organisations
+      UNION SELECT pt_code FROM pt_code_usage_history
       UNION SELECT school_code FROM schools
       UNION SELECT pt_code FROM school_group_schools
       UNION SELECT billing_to_code FROM order_sheet_1 WHERE billing_to_type = 'school'

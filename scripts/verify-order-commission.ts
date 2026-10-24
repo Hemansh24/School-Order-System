@@ -36,6 +36,13 @@ async function main() {
   const enabled = await updateOrder(created.orderSheet1Id, input);
   assert.equal(enabled.commissionPercentage?.toString(), "7.5");
   await assert.rejects(createOrder({ ...input, sheet1: { ...input.sheet1, commissionPartyCode: "COMMISSION-UNKNOWN" } }), /must exist/);
+  const manualInput = { ...input, sheet1: { ...input.sheet1, commissionPartyType: "individual" as const, commissionPartyCode: "External Agent / ABC-42" } };
+  const manual = await createOrder(manualInput);
+  assert.equal(manual.commissionPartyType, "individual");
+  assert.equal((await getOrder(manual.orderSheet1Id))?.commissionPartyCode, "External Agent / ABC-42");
+  const manualEdit = await updateOrder(manual.orderSheet1Id, { ...manualInput, sheet1: { ...manualInput.sheet1, commissionPartyCode: "Another external agent", commissionPercentage: 12.5 } });
+  assert.equal(manualEdit.commissionPartyCode, "Another external agent");
+  assert.equal(manualEdit.commissionPercentage?.toString(), "12.5");
   await assert.rejects(prisma.orderSheet1.update({ where: { orderSheet1Id: created.orderSheet1Id }, data: { commissionPercentage: 101 } }), /order_commission_valid/);
 
   for (const mode of ["individual", "multiple_schools"] as const) {

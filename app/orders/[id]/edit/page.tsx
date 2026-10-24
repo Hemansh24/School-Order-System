@@ -82,7 +82,7 @@ export default async function EditOrderPage({
       booksellerRating: order.booksellerRating ?? "",
       pendingPayment: order.pendingPayment,
       commissionEnabled: order.commissionPartyCode !== null,
-      commissionPartyType: order.commissionPartyType === "individual" ? undefined : order.commissionPartyType ?? undefined,
+      commissionPartyType: order.commissionPartyType ?? undefined,
       commissionPartyCode: order.commissionPartyCode ?? "",
       commissionPercentage: order.commissionPercentage?.toNumber(),
       contactNumbers: order.contactNumbers,

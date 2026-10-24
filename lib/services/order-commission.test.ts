@@ -4,7 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { createOrderSchema } from "../validation/orders";
 import { resolveCommissionData } from "./order-commission";
 
-function input(type: "school" | "vendor" | "group" = "vendor", code = "BS001") {
+function input(type: "school" | "vendor" | "group" | "individual" = "vendor", code = "BS001") {
   return createOrderSchema.parse({ sheet1: {
     orderPlacedDate: "2026-10-24", orderType: "ambiguous",
     billingToType: "individual", billingToName: "Payer",
@@ -12,6 +12,16 @@ function input(type: "school" | "vendor" | "group" = "vendor", code = "BS001") {
     commissionEnabled: true, commissionPartyType: type, commissionPartyCode: code, commissionPercentage: 7.5
   }, ambiguousItems: [{ itemCode: "ITEM1", itemName: "Book", groupedQuantity: 1 }] }).sheet1;
 }
+
+test("manual names and codes save without querying existing parties", async () => {
+  const tx = {} as Prisma.TransactionClient;
+  const manual = input("individual", "  External Agent / ABC-42  ");
+  const expected = { commissionPartyType: "individual", commissionPartyCode: "External Agent / ABC-42", commissionPercentage: 7.5 };
+  assert.deepEqual(await resolveCommissionData(tx, manual), expected);
+  assert.deepEqual(await resolveCommissionData(tx, { ...manual, commissionPartyType: undefined }), expected);
+  assert.deepEqual(await resolveCommissionData(tx, { ...manual, commissionPartyCode: "Another agent" }), { ...expected, commissionPartyCode: "Another agent" });
+  await assert.rejects(resolveCommissionData(tx, { ...manual, commissionPartyCode: " " }), /name or code/);
+});
 
 test("commission validates every existing party type and rejects unknown codes", async () => {
   for (const [type, model, method] of [["school", "school", "findUnique"], ["vendor", "vendor", "findFirst"], ["group", "schoolGroup", "findUnique"]] as const) {

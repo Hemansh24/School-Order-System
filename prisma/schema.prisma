@@ -47,6 +47,15 @@ enum CancelOrOnHoldStatus {
   on_hold
 }
 
+// Each pair records order usage during a session, not the PT introduction year.
+model PtCodeUsageHistory {
+  ptCode      String @map("pt_code")
+  sessionYear String @map("session_year")
+
+  @@id([ptCode, sessionYear])
+  @@map("pt_code_usage_history")
+}
+
 model School {
   schoolId      Int      @id @default(autoincrement()) @map("school_id")
   schoolCode    String   @unique @map("school_code")

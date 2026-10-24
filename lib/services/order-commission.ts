@@ -6,7 +6,7 @@ type SavedCommission = {
   commissionPartyCode: string | null;
 };
 
-/** Validate a new selection, while allowing an unchanged historical reference. */
+/** Accept manual parties and validate explicitly selected existing references. */
 export async function resolveCommissionData(
   tx: Prisma.TransactionClient,
   sheet1: CreateOrderInput["sheet1"],
@@ -15,11 +15,13 @@ export async function resolveCommissionData(
   if (!sheet1.commissionEnabled) {
     return { commissionPartyType: null, commissionPartyCode: null, commissionPercentage: null };
   }
-  const { commissionPartyType: type, commissionPartyCode: code, commissionPercentage: percentage } = sheet1;
-  if (!type || !code || percentage === undefined || !Number.isFinite(percentage) || percentage < 0 || percentage > 100) {
-    throw new Error("Select a commissioned party and enter a percentage from 0 to 100.");
+  const type = sheet1.commissionPartyType ?? "individual";
+  const code = sheet1.commissionPartyCode?.trim();
+  const percentage = sheet1.commissionPercentage;
+  if (!code || percentage === undefined || !Number.isFinite(percentage) || percentage < 0 || percentage > 100) {
+    throw new Error("Enter a commissioned party name or code and a percentage from 0 to 100.");
   }
-  if (current?.commissionPartyType !== type || current?.commissionPartyCode !== code) {
+  if (type !== "individual" && (current?.commissionPartyType !== type || current?.commissionPartyCode !== code)) {
     let exists: unknown;
     if (type === "school") {
       exists = await tx.school.findUnique({ where: { schoolCode: code }, select: { schoolId: true } });

@@ -13,6 +13,8 @@ import { normalizeOrderEntry } from "@/lib/order-entry";
 import { getCurrentSessionYear } from "@/lib/session-year";
 import { getOrderEnteredDate } from "@/lib/order-dates";
 import { createOrderSchema, type CreateOrderInput } from "@/lib/validation/orders";
+import { distinctEndUsers } from "@/lib/end-user-type";
+import { EndUserTypesPreview } from "@/components/orders/end-user-types-preview";
 
 type SchoolRef = {
   optionKey: string;
@@ -975,15 +977,16 @@ export function CreateOrderForm({
             {commissionEnabled ? <div className="grid gap-4 md:grid-cols-2">
               <Field label="Commission" error={errors.sheet1?.commissionPartyCode?.message ?? errors.sheet1?.commissionPartyType?.message}>
                 <div className="relative">
-                  <input className={inputClass} value={commissionPartyCode} placeholder="Search party code or name"
+                  <input className={inputClass} value={commissionPartyCode} placeholder="Enter a name or code, or search existing parties"
                     onFocus={() => setIsCommissionDropdownOpen(true)}
                     onBlur={() => window.setTimeout(() => setIsCommissionDropdownOpen(false), 150)}
                     onChange={event => {
-                      form.setValue("sheet1.commissionPartyType", undefined, { shouldDirty: true });
+                      form.setValue("sheet1.commissionPartyType", "individual", { shouldDirty: true });
                       form.setValue("sheet1.commissionPartyCode", event.target.value, { shouldDirty: true, shouldValidate: true });
                       setIsCommissionDropdownOpen(true);
                     }} />
                   {selectedCommissionOption ? <p className="mt-1 text-sm text-muted">{selectedCommissionOption.name}</p> : null}
+                  <p className="mt-1 text-xs text-muted">Select an existing party or enter any other commissioned party’s name or code.</p>
                   {isCommissionDropdownOpen ? <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-white shadow-lg">
                     {filteredCommissionOptions.length ? filteredCommissionOptions.map(option => <button
                       key={`${option.type}:${option.code}`} type="button" className="block w-full px-3 py-2 text-left text-sm hover:bg-canvas focus:bg-canvas"
@@ -993,7 +996,7 @@ export function CreateOrderForm({
                         setIsCommissionDropdownOpen(false);
                       }}>
                       <span className="font-semibold">{option.code}</span> <span className="text-muted">{option.name} ({option.type === "vendor" ? "Bookseller" : option.type})</span>
-                    </button>) : <p className="px-3 py-2 text-sm text-muted">No commissioned parties found.</p>}
+                    </button>) : <p className="px-3 py-2 text-sm text-muted">No matching parties. You can save the text entered above.</p>}
                   </div> : null}
                 </div>
               </Field>
@@ -1194,6 +1197,12 @@ export function CreateOrderForm({
           </div>
         </Card>
       ) : null}
+
+      {step >= 2 && orderType === "descriptive" ? <EndUserTypesPreview
+        schools={distinctEndUsers(isMultiple ? watchedCombinedSchools : activeDescriptiveSchool ? [activeDescriptiveSchool] : watchedDescriptiveRows)}
+        sessionYear={form.watch("sheet1.sessionYear")}
+        orderSheet1Id={orderSheet1Id}
+      /> : null}
 
       {step === 2 ? <div className="space-y-1 text-sm text-red-700">
         {[errors.descriptiveRows, errors.ambiguousSchools, errors.ambiguousItems, errors.combinedSchools, errors.combinedItems].map((error, index) => error?.message || error?.root?.message ? <p key={index}>{error.message ?? error.root?.message}</p> : null)}

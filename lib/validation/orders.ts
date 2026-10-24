@@ -47,7 +47,7 @@ export const sheet1Schema = z
     )).optional(),
     pendingPayment: z.boolean().default(false),
     commissionEnabled: z.boolean().optional(),
-    commissionPartyType: z.enum(["school", "vendor", "group"]).optional(),
+    commissionPartyType: z.enum(["school", "vendor", "group", "individual"]).optional(),
     commissionPartyCode: z.string().trim().optional(),
     commissionPercentage: z.preprocess(
       value => value === null || (typeof value === "string" && !value.trim()) ? undefined : value,
@@ -71,8 +71,8 @@ export const sheet1Schema = z
   )
   .superRefine((data, ctx) => {
     if (!data.commissionEnabled) return;
-    if (!data.commissionPartyType || !data.commissionPartyCode) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["commissionPartyCode"], message: "Select a commissioned party from the existing records" });
+    if (!data.commissionPartyCode) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["commissionPartyCode"], message: "Enter a commissioned party name or code" });
     }
     if (data.commissionPercentage === undefined) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["commissionPercentage"], message: "Percentage is required" });

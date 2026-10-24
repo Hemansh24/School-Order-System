@@ -5,6 +5,9 @@ import { Card, EmptyState, OrderNumber, PageHeader, StatusPill } from "@/compone
 import { OrderActionButtons } from "@/components/orders/order-action-buttons";
 import { getOrder } from "@/lib/services/orders";
 import { getOrderEnteredDate } from "@/lib/order-dates";
+import { savedOrderEndUsers, type EndUserClassification } from "@/lib/end-user-type";
+import { getEndUserTypes } from "@/lib/services/end-user-types";
+import { EndUserTypes } from "@/components/orders/end-user-types";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +20,14 @@ export default async function OrderDetailsPage({
   const order = await getOrder(Number(id));
   if (!order) {
     notFound();
+  }
+  const endUsers = savedOrderEndUsers(order);
+  let endUserTypes: Record<string, EndUserClassification> | undefined;
+  let endUserTypeError: string | undefined;
+  try {
+    endUserTypes = await getEndUserTypes(endUsers.map(row => row.schoolCode), order.sessionYear ?? "");
+  } catch {
+    endUserTypeError = "Type of End User is unavailable. Please reload to try again.";
   }
   const fulfillmentStatus = order.finalRows.some((row) => row.cancelOrOnHoldStatus === "cancelled")
     ? "cancelled"
@@ -104,6 +115,8 @@ export default async function OrderDetailsPage({
           </div>
         </Card>
       </div>
+
+      <EndUserTypes schools={endUsers} sessionYear={order.sessionYear ?? ""} types={endUserTypes} error={endUserTypeError} />
 
       {order.classification === "direct_group" ? (
         <div className="mb-6 grid gap-4 xl:grid-cols-2"><GroupParticipants rows={order.groupParticipants}/><GroupItems rows={order.groupItems}/></div>

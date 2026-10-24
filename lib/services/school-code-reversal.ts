@@ -33,6 +33,8 @@ export async function reverseUnusedPtCodesTx(tx: Prisma.TransactionClient, codes
   for (const organisation of organisations) {
     const { ptCode, prCode } = organisation;
     if (!ptCode) continue;
+    // Imported usage is an existing order relationship even without local orders.
+    if (await tx.ptCodeUsageHistory.findFirst({ where: { ptCode }, select: { ptCode: true } })) continue;
     const aliases = [ptCode, prCode];
     const otherOrder = await tx.orderSheet1.findFirst({
       where: {

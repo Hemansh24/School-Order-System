@@ -15,7 +15,7 @@ const item = { itemCode: "ITEM1", itemName: "Book" };
 const school = { schoolCode: "PT1", schoolName: "End school" };
 const ambiguous = { sheet1, ambiguousItems: [{ ...item, groupedQuantity: 10 }] };
 
-test("commission requires a selected party and a finite percentage from 0 to 100", () => {
+test("commission requires a party name or code and a finite percentage from 0 to 100", () => {
   const commission = { ...sheet1, commissionEnabled: true, commissionPartyType: "vendor", commissionPartyCode: "BS001" };
   for (const commissionPercentage of [0, 7.5, 100, "12.25"]) {
     const parsed = sheet1Schema.parse({ ...commission, commissionPercentage });
@@ -24,8 +24,15 @@ test("commission requires a selected party and a finite percentage from 0 to 100
   for (const commissionPercentage of [undefined, "", " ", null, "abc", -1, 100.01, NaN, Infinity]) {
     assert.equal(sheet1Schema.safeParse({ ...commission, commissionPercentage }).success, false, String(commissionPercentage));
   }
-  for (const missing of [{ commissionPartyType: undefined }, { commissionPartyCode: " " }, { commissionPartyType: "individual" }]) {
+  for (const missing of [{ commissionPartyCode: undefined }, { commissionPartyCode: " " }]) {
     assert.equal(sheet1Schema.safeParse({ ...commission, commissionPercentage: 5, ...missing }).success, false);
+  }
+});
+
+test("commission accepts external names and codes without an existing reference", () => {
+  for (const commissionPartyType of [undefined, "individual"]) {
+    const parsed = sheet1Schema.parse({ ...sheet1, commissionEnabled: true, commissionPartyType, commissionPartyCode: "  Ramesh Sharma / Agent 42  ", commissionPercentage: 12.5 });
+    assert.equal(parsed.commissionPartyCode, "Ramesh Sharma / Agent 42");
   }
 });
 

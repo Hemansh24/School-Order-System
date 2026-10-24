@@ -101,6 +101,14 @@ npm run christian-groups:publish
 
 Configure `CHRISTIAN_GROUPS_SHEET_ID`, `CHRISTIAN_GROUPS_SHEET_RANGE`, and `GOOGLE_SHEETS_SERVICE_ACCOUNT_FILE` for a Google service account that has Viewer access to that sheet. Set `FIREBASE_ADMIN_SERVICE_ACCOUNT_FILE` as well when the publisher machine does not already have Firebase Application Default Credentials. Christian groups are read from local PostgreSQL and refreshed from Firebase through the **Sync Christian Groups** button.
 
+### PT-code usage history
+
+`npm run pt-usage:import` previews the usage pairs from the shared **Academic Year Implemented Schools** tab. Run `npm run pt-usage:import -- --apply` to import them into local PostgreSQL. It uses the existing Google Sheets read credentials and refuses non-local database hosts. An authenticated connector snapshot can be supplied with `--file path/to/rows.json` (a JSON array of rows including the header).
+
+The `pt_code_usage_history` table stores one unique PT-code/session pair for each year with order usage, not the introduction year. Imports expand multiline PT-code cells, exclude aggregate `Group` labels (reporting their row numbers), validate all remaining rows before writing, preserve existing history, skip duplicate pairs, and verify the imported pairs inside the transaction.
+
+Order creation, editing, and details show **Type of End User** for each selected end school. Classification combines imported history with saved orders except cancelled orders, resolving PR aliases to PT codes. Relative to the order's session, usage in the preceding session means **Old**; earlier usage without preceding-session usage means **Gap**; no earlier usage means **New**. Repeat orders in the same session keep the same type. Editing a session excludes that order's previous saved version from its preview. Missing sessions require a valid session, and history read failures display an unavailable state. Codes in imported history remain reserved and are preserved when the last local order is cancelled.
+
 ### GS master data and membership
 
 The Grouped Schools page reads GS groups, addresses, and member PR/PT codes from PostgreSQL. Membership uses the trimmed, case-insensitive `Organisation.groupCode` relationship. Common school names are retained in metadata only.
