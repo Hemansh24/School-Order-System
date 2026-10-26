@@ -106,6 +106,18 @@ export function upsertSharedVendorSchool(dcOrVars, vars) {
   return executeMutation(upsertSharedVendorSchoolRef(dcInstance, inputVars));
 }
 
+export const upsertSharedPtCodeUsageHistoryRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertSharedPtCodeUsageHistory', inputVars);
+}
+upsertSharedPtCodeUsageHistoryRef.operationName = 'UpsertSharedPtCodeUsageHistory';
+
+export function upsertSharedPtCodeUsageHistory(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertSharedPtCodeUsageHistoryRef(dcInstance, inputVars));
+}
+
 export const listOrganisationsRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
   dcInstance._useGeneratedSdk();
@@ -299,5 +311,18 @@ export function listSharedVendorSchools(dcOrVars, varsOrOptions, options) {
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
   return executeQuery(listSharedVendorSchoolsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const listSharedPtCodeUsageHistoryRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListSharedPtCodeUsageHistory', inputVars);
+}
+listSharedPtCodeUsageHistoryRef.operationName = 'ListSharedPtCodeUsageHistory';
+
+export function listSharedPtCodeUsageHistory(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  return executeQuery(listSharedPtCodeUsageHistoryRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 

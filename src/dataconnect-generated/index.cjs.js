@@ -125,6 +125,20 @@ exports.upsertSharedVendorSchool = function upsertSharedVendorSchool(dcOrVars, v
 }
 ;
 
+const upsertSharedPtCodeUsageHistoryRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertSharedPtCodeUsageHistory', inputVars);
+}
+upsertSharedPtCodeUsageHistoryRef.operationName = 'UpsertSharedPtCodeUsageHistory';
+exports.upsertSharedPtCodeUsageHistoryRef = upsertSharedPtCodeUsageHistoryRef;
+
+exports.upsertSharedPtCodeUsageHistory = function upsertSharedPtCodeUsageHistory(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertSharedPtCodeUsageHistoryRef(dcInstance, inputVars));
+}
+;
+
 const listOrganisationsRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
   dcInstance._useGeneratedSdk();
@@ -347,5 +361,20 @@ exports.listSharedVendorSchools = function listSharedVendorSchools(dcOrVars, var
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
   return executeQuery(listSharedVendorSchoolsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listSharedPtCodeUsageHistoryRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListSharedPtCodeUsageHistory', inputVars);
+}
+listSharedPtCodeUsageHistoryRef.operationName = 'ListSharedPtCodeUsageHistory';
+exports.listSharedPtCodeUsageHistoryRef = listSharedPtCodeUsageHistoryRef;
+
+exports.listSharedPtCodeUsageHistory = function listSharedPtCodeUsageHistory(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  return executeQuery(listSharedPtCodeUsageHistoryRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;

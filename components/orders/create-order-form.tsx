@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { convertGsMemberAction, createOrderAction, updateOrderAction } from "@/app/orders/actions";
+import { updateVendorDiscountAction } from "@/app/vendors/actions";
 import { Card, SubmitButton } from "@/components/ui";
 import { compareEditionCodes, DEFAULT_LANGUAGE_CODE } from "@/lib/item-code";
 import { hasLegacySchoolAllocations, isPooledOrder, orderTypeLabel, type DescriptiveMode } from "@/lib/order-model";
@@ -85,8 +86,32 @@ function isSavedOrderDraft(value: unknown): value is CreateOrderInput {
   );
 }
 
-function ConcealedDiscount({ discount }: { discount: string }) {
+function ConcealedDiscount({ vendorCode, discount, onSaved }: { vendorCode: string; discount: string; onSaved: (discount: string) => void }) {
   const [isVisible, setIsVisible] = useState(false);
+  const [draft, setDraft] = useState(discount);
+  const [isSaving, startSaving] = useTransition();
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const inputId = useId();
+
+  function saveDiscount() {
+    setError(null);
+    setMessage(null);
+    startSaving(async () => {
+      try {
+        const result = await updateVendorDiscountAction({ vendorCode, discount: draft });
+        if (!result.ok) {
+          setError(result.message);
+          return;
+        }
+        setDraft(result.discount);
+        onSaved(result.discount);
+        setMessage("Discount saved for this vendor and future orders.");
+      } catch {
+        setError("Could not save this discount. Please try again.");
+      }
+    });
+  }
 
   return (
     <div className="mt-1 text-sm text-muted">
@@ -99,7 +124,28 @@ function ConcealedDiscount({ discount }: { discount: string }) {
         />
         Show discount
       </label>
-      {isVisible ? <p className="mt-1">Discount: {discount}</p> : null}
+      {isVisible ? (
+        <div className="mt-2 space-y-2">
+          <label htmlFor={inputId} className={labelClass}>Discount</label>
+          <input
+            id={inputId}
+            className={inputClass}
+            value={draft}
+            maxLength={500}
+            disabled={isSaving}
+            onChange={event => { setDraft(event.target.value); setMessage(null); setError(null); }}
+            onKeyDown={event => { if (event.key === "Enter") event.preventDefault(); }}
+          />
+          <button
+            type="button"
+            className="focus-ring rounded-md border border-line px-3 py-2 text-sm font-medium disabled:opacity-50"
+            disabled={isSaving || !draft.trim() || draft.trim() === discount}
+            onClick={saveDiscount}
+          >{isSaving ? "Saving discount…" : "Save discount"}</button>
+          {error ? <p role="alert" className="text-red-700">{error}</p> : null}
+          {message ? <p role="status">{message}</p> : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -117,6 +163,7 @@ export function CreateOrderForm({
 }: Props) {
   const router = useRouter();
   const [step, setStep] = useState(1);
+  const [savedDiscounts, setSavedDiscounts] = useState<Record<string, string>>({});
   const [legacySchoolConversion, setLegacySchoolConversion] = useState(requiresLegacyConversion);
   const [serverError, setServerError] = useState<string | null>(null);
   const [convertedCodes, setConvertedCodes] = useState<Record<string, string>>({});
@@ -356,13 +403,13 @@ export function CreateOrderForm({
             name: vendor.vendorName,
             type: vendor.vendorType ?? "",
           rating: vendor.vendorRating ?? "",
-          discount: vendor.actualDiscount?.trim() || vendor.committedDiscount?.trim() || null,
+          discount: savedDiscounts[vendor.vendorCode] ?? (vendor.actualDiscount?.trim() || vendor.committedDiscount?.trim() || null),
           addressSummary: vendor.addressSummary,
           contactNumbers: vendor.contactNumbers ?? [],
           isGroup: false,
           groupType: undefined
           })),
-    [billingToType, schools, groups, vendors]
+    [billingToType, schools, groups, vendors, savedDiscounts]
   );
   const selectedBillingOption = useMemo(
     () =>
@@ -823,7 +870,12 @@ export function CreateOrderForm({
                 />
                 {billingToType !== "individual" && form.watch("sheet1.billingToName") ? <p className="mt-1 text-sm text-muted">{form.watch("sheet1.billingToName")}</p> : null}
                 {billingToType === "vendor" && selectedBillingOption?.discount ? (
-                  <ConcealedDiscount key={JSON.stringify([selectedBillingOption.code, selectedBillingOption.discount])} discount={selectedBillingOption.discount} />
+                  <ConcealedDiscount
+                    key={selectedBillingOption.code}
+                    vendorCode={selectedBillingOption.code}
+                    discount={selectedBillingOption.discount}
+                    onSaved={discount => setSavedDiscounts(current => ({ ...current, [selectedBillingOption.code]: discount }))}
+                  />
                 ) : null}
                 {isBillingDropdownOpen && billingToType !== "individual" ? (
                   <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-white shadow-lg">

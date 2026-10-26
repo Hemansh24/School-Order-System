@@ -226,3 +226,10 @@ type SharedVendorSchool
   schoolCode: String! @col(name: "school_code")
   syncedAt: Timestamp! @col(name: "synced_at")
 }
+
+type SharedPtCodeUsageHistory
+@table(name: "shared_pt_code_usage_history", key: ["ptCode", "sessionYear"]) {
+  ptCode: String! @col(name: "pt_code")
+  sessionYear: String! @col(name: "session_year")
+  syncedAt: Timestamp! @col(name: "synced_at")
+}

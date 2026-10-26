@@ -196,3 +196,12 @@ mutation UpsertSharedVendorSchool($vendorCode: String!, $schoolCode: String!)
     syncedAt_expr: "request.time"
   })
 }
+
+mutation UpsertSharedPtCodeUsageHistory($ptCode: String!, $sessionYear: String!)
+@auth(level: NO_ACCESS) {
+  sharedPtCodeUsageHistory_upsert(data: {
+    ptCode: $ptCode
+    sessionYear: $sessionYear
+    syncedAt_expr: "request.time"
+  })
+}

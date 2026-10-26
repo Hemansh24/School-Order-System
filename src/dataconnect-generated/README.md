@@ -25,6 +25,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*ListSharedPreBooksellers*](#listsharedprebooksellers)
   - [*ListSharedVendors*](#listsharedvendors)
   - [*ListSharedVendorSchools*](#listsharedvendorschools)
+  - [*ListSharedPtCodeUsageHistory*](#listsharedptcodeusagehistory)
 - [**Mutations**](#mutations)
   - [*SetBooksellerActualDiscount*](#setbookselleractualdiscount)
   - [*UpsertChristianGroup*](#upsertchristiangroup)
@@ -34,6 +35,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*UpsertSharedSchoolGroupLocation*](#upsertsharedschoolgrouplocation)
   - [*UpsertSharedVendor*](#upsertsharedvendor)
   - [*UpsertSharedVendorSchool*](#upsertsharedvendorschool)
+  - [*UpsertSharedPtCodeUsageHistory*](#upsertsharedptcodeusagehistory)
 
 # Accessing the connector
 A connector is a collection of Queries and Mutations. One SDK is generated for each connector - this SDK is generated for the connector `example`. You can find more information about connectors in the [Data Connect documentation](https://firebase.google.com/docs/data-connect#how-does).
@@ -2033,6 +2035,126 @@ executeQuery(ref).then((response) => {
 });
 ```
 
+## ListSharedPtCodeUsageHistory
+You can execute the `ListSharedPtCodeUsageHistory` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+listSharedPtCodeUsageHistory(vars?: ListSharedPtCodeUsageHistoryVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedPtCodeUsageHistoryData, ListSharedPtCodeUsageHistoryVariables>;
+
+interface ListSharedPtCodeUsageHistoryRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: ListSharedPtCodeUsageHistoryVariables): QueryRef<ListSharedPtCodeUsageHistoryData, ListSharedPtCodeUsageHistoryVariables>;
+}
+export const listSharedPtCodeUsageHistoryRef: ListSharedPtCodeUsageHistoryRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+listSharedPtCodeUsageHistory(dc: DataConnect, vars?: ListSharedPtCodeUsageHistoryVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedPtCodeUsageHistoryData, ListSharedPtCodeUsageHistoryVariables>;
+
+interface ListSharedPtCodeUsageHistoryRef {
+  ...
+  (dc: DataConnect, vars?: ListSharedPtCodeUsageHistoryVariables): QueryRef<ListSharedPtCodeUsageHistoryData, ListSharedPtCodeUsageHistoryVariables>;
+}
+export const listSharedPtCodeUsageHistoryRef: ListSharedPtCodeUsageHistoryRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listSharedPtCodeUsageHistoryRef:
+```typescript
+const name = listSharedPtCodeUsageHistoryRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ListSharedPtCodeUsageHistory` query has an optional argument of type `ListSharedPtCodeUsageHistoryVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface ListSharedPtCodeUsageHistoryVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+```
+### Return Type
+Recall that executing the `ListSharedPtCodeUsageHistory` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ListSharedPtCodeUsageHistoryData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ListSharedPtCodeUsageHistoryData {
+  sharedPtCodeUsageHistories: ({
+    ptCode: string;
+    sessionYear: string;
+    syncedAt: TimestampString;
+  } & SharedPtCodeUsageHistory_Key)[];
+}
+```
+### Using `ListSharedPtCodeUsageHistory`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, listSharedPtCodeUsageHistory, ListSharedPtCodeUsageHistoryVariables } from '@dataconnect/generated';
+
+// The `ListSharedPtCodeUsageHistory` query has an optional argument of type `ListSharedPtCodeUsageHistoryVariables`:
+const listSharedPtCodeUsageHistoryVars: ListSharedPtCodeUsageHistoryVariables = {
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listSharedPtCodeUsageHistory()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await listSharedPtCodeUsageHistory(listSharedPtCodeUsageHistoryVars);
+// Variables can be defined inline as well.
+const { data } = await listSharedPtCodeUsageHistory({ limit: ..., offset: ..., });
+// Since all variables are optional for this query, you can omit the `ListSharedPtCodeUsageHistoryVariables` argument.
+const { data } = await listSharedPtCodeUsageHistory();
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await listSharedPtCodeUsageHistory(dataConnect, listSharedPtCodeUsageHistoryVars);
+
+console.log(data.sharedPtCodeUsageHistories);
+
+// Or, you can use the `Promise` API.
+listSharedPtCodeUsageHistory(listSharedPtCodeUsageHistoryVars).then((response) => {
+  const data = response.data;
+  console.log(data.sharedPtCodeUsageHistories);
+});
+```
+
+### Using `ListSharedPtCodeUsageHistory`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, listSharedPtCodeUsageHistoryRef, ListSharedPtCodeUsageHistoryVariables } from '@dataconnect/generated';
+
+// The `ListSharedPtCodeUsageHistory` query has an optional argument of type `ListSharedPtCodeUsageHistoryVariables`:
+const listSharedPtCodeUsageHistoryVars: ListSharedPtCodeUsageHistoryVariables = {
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listSharedPtCodeUsageHistoryRef()` function to get a reference to the query.
+const ref = listSharedPtCodeUsageHistoryRef(listSharedPtCodeUsageHistoryVars);
+// Variables can be defined inline as well.
+const ref = listSharedPtCodeUsageHistoryRef({ limit: ..., offset: ..., });
+// Since all variables are optional for this query, you can omit the `ListSharedPtCodeUsageHistoryVariables` argument.
+const ref = listSharedPtCodeUsageHistoryRef();
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = listSharedPtCodeUsageHistoryRef(dataConnect, listSharedPtCodeUsageHistoryVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.sharedPtCodeUsageHistories);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.sharedPtCodeUsageHistories);
+});
+```
+
 # Mutations
 
 There are two ways to execute a Data Connect Mutation using the generated Web SDK:
@@ -3118,6 +3240,118 @@ console.log(data.sharedVendorSchool_upsert);
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.sharedVendorSchool_upsert);
+});
+```
+
+## UpsertSharedPtCodeUsageHistory
+You can execute the `UpsertSharedPtCodeUsageHistory` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+upsertSharedPtCodeUsageHistory(vars: UpsertSharedPtCodeUsageHistoryVariables): MutationPromise<UpsertSharedPtCodeUsageHistoryData, UpsertSharedPtCodeUsageHistoryVariables>;
+
+interface UpsertSharedPtCodeUsageHistoryRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertSharedPtCodeUsageHistoryVariables): MutationRef<UpsertSharedPtCodeUsageHistoryData, UpsertSharedPtCodeUsageHistoryVariables>;
+}
+export const upsertSharedPtCodeUsageHistoryRef: UpsertSharedPtCodeUsageHistoryRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+upsertSharedPtCodeUsageHistory(dc: DataConnect, vars: UpsertSharedPtCodeUsageHistoryVariables): MutationPromise<UpsertSharedPtCodeUsageHistoryData, UpsertSharedPtCodeUsageHistoryVariables>;
+
+interface UpsertSharedPtCodeUsageHistoryRef {
+  ...
+  (dc: DataConnect, vars: UpsertSharedPtCodeUsageHistoryVariables): MutationRef<UpsertSharedPtCodeUsageHistoryData, UpsertSharedPtCodeUsageHistoryVariables>;
+}
+export const upsertSharedPtCodeUsageHistoryRef: UpsertSharedPtCodeUsageHistoryRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the upsertSharedPtCodeUsageHistoryRef:
+```typescript
+const name = upsertSharedPtCodeUsageHistoryRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `UpsertSharedPtCodeUsageHistory` mutation requires an argument of type `UpsertSharedPtCodeUsageHistoryVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface UpsertSharedPtCodeUsageHistoryVariables {
+  ptCode: string;
+  sessionYear: string;
+}
+```
+### Return Type
+Recall that executing the `UpsertSharedPtCodeUsageHistory` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `UpsertSharedPtCodeUsageHistoryData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface UpsertSharedPtCodeUsageHistoryData {
+  sharedPtCodeUsageHistory_upsert: SharedPtCodeUsageHistory_Key;
+}
+```
+### Using `UpsertSharedPtCodeUsageHistory`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, upsertSharedPtCodeUsageHistory, UpsertSharedPtCodeUsageHistoryVariables } from '@dataconnect/generated';
+
+// The `UpsertSharedPtCodeUsageHistory` mutation requires an argument of type `UpsertSharedPtCodeUsageHistoryVariables`:
+const upsertSharedPtCodeUsageHistoryVars: UpsertSharedPtCodeUsageHistoryVariables = {
+  ptCode: ..., 
+  sessionYear: ..., 
+};
+
+// Call the `upsertSharedPtCodeUsageHistory()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await upsertSharedPtCodeUsageHistory(upsertSharedPtCodeUsageHistoryVars);
+// Variables can be defined inline as well.
+const { data } = await upsertSharedPtCodeUsageHistory({ ptCode: ..., sessionYear: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await upsertSharedPtCodeUsageHistory(dataConnect, upsertSharedPtCodeUsageHistoryVars);
+
+console.log(data.sharedPtCodeUsageHistory_upsert);
+
+// Or, you can use the `Promise` API.
+upsertSharedPtCodeUsageHistory(upsertSharedPtCodeUsageHistoryVars).then((response) => {
+  const data = response.data;
+  console.log(data.sharedPtCodeUsageHistory_upsert);
+});
+```
+
+### Using `UpsertSharedPtCodeUsageHistory`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, upsertSharedPtCodeUsageHistoryRef, UpsertSharedPtCodeUsageHistoryVariables } from '@dataconnect/generated';
+
+// The `UpsertSharedPtCodeUsageHistory` mutation requires an argument of type `UpsertSharedPtCodeUsageHistoryVariables`:
+const upsertSharedPtCodeUsageHistoryVars: UpsertSharedPtCodeUsageHistoryVariables = {
+  ptCode: ..., 
+  sessionYear: ..., 
+};
+
+// Call the `upsertSharedPtCodeUsageHistoryRef()` function to get a reference to the mutation.
+const ref = upsertSharedPtCodeUsageHistoryRef(upsertSharedPtCodeUsageHistoryVars);
+// Variables can be defined inline as well.
+const ref = upsertSharedPtCodeUsageHistoryRef({ ptCode: ..., sessionYear: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = upsertSharedPtCodeUsageHistoryRef(dataConnect, upsertSharedPtCodeUsageHistoryVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.sharedPtCodeUsageHistory_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.sharedPtCodeUsageHistory_upsert);
 });
 ```
 

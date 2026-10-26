@@ -15,6 +15,8 @@
     "organisations:sync": "tsx -e \"import { syncOrganisations } from './lib/syncOrganisations'; syncOrganisations().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",
     "groups:import": "tsx scripts/import-gs-groups.ts",
     "pt-usage:import": "tsx scripts/import-pt-code-usage-history.ts",
+    "pt-usage:publish": "tsx -e \"import { publishPtCodeUsageHistory } from './lib/publishPtCodeUsageHistory'; publishPtCodeUsageHistory().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",
+    "pt-usage:sync": "tsx -e \"import { replacePtCodeUsageHistoryWithSharedData } from './lib/syncPtCodeUsageHistory'; replacePtCodeUsageHistoryWithSharedData().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",
     "groups:publish": "tsx -e \"import { publishSchoolGroups } from './lib/publishSchoolGroups'; publishSchoolGroups().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",
     "groups:sync": "tsx -e \"import { syncGroups } from './lib/syncGroups'; syncGroups().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",
     "christian-groups:publish": "tsx -e \"import { publishChristianGroups } from './lib/publishChristianGroups'; publishChristianGroups().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",
@@ -25,7 +27,7 @@
     "booksellers:sync": "tsx -e \"import { replaceVendorsWithImportedBooksellers } from './lib/syncBooksellers'; replaceVendorsWithImportedBooksellers().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",
     "booksellers:discounts": "tsx scripts/import-bookseller-discounts.ts",
     "items:sync": "tsx -e \"import { replaceItemsWithImportedItems } from './lib/syncItems'; replaceItemsWithImportedItems().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",
-    "master-data:sync": "npm run schools:sync && npm run booksellers:sync && npm run pbs:sync && npm run items:sync && npm run groups:sync"
+    "master-data:sync": "npm run pt-usage:sync && npm run schools:sync && npm run booksellers:sync && npm run pbs:sync && npm run items:sync && npm run groups:sync"
   },
   "dependencies": {
     "@dataconnect/admin-generated": "file:src/dataconnect-admin-generated",

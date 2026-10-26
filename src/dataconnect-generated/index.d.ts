@@ -278,6 +278,19 @@ export interface ListSharedPreBooksellersVariables {
   offset?: number | null;
 }
 
+export interface ListSharedPtCodeUsageHistoryData {
+  sharedPtCodeUsageHistories: ({
+    ptCode: string;
+    sessionYear: string;
+    syncedAt: TimestampString;
+  } & SharedPtCodeUsageHistory_Key)[];
+}
+
+export interface ListSharedPtCodeUsageHistoryVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+
 export interface ListSharedSchoolGroupLocationsData {
   sharedSchoolGroupLocations: ({
     id: Int64String;
@@ -413,6 +426,12 @@ export interface SharedPreBookseller_Key {
   __typename?: 'SharedPreBookseller_Key';
 }
 
+export interface SharedPtCodeUsageHistory_Key {
+  ptCode: string;
+  sessionYear: string;
+  __typename?: 'SharedPtCodeUsageHistory_Key';
+}
+
 export interface SharedSchoolGroupLocation_Key {
   id: Int64String;
   __typename?: 'SharedSchoolGroupLocation_Key';
@@ -486,6 +505,15 @@ export interface UpsertPreBooksellerVariables {
   conversionStatus: string;
   assignedBsCode?: string | null;
   convertedAt?: TimestampString | null;
+}
+
+export interface UpsertSharedPtCodeUsageHistoryData {
+  sharedPtCodeUsageHistory_upsert: SharedPtCodeUsageHistory_Key;
+}
+
+export interface UpsertSharedPtCodeUsageHistoryVariables {
+  ptCode: string;
+  sessionYear: string;
 }
 
 export interface UpsertSharedSchoolGroupData {
@@ -642,6 +670,18 @@ export const upsertSharedVendorSchoolRef: UpsertSharedVendorSchoolRef;
 
 export function upsertSharedVendorSchool(vars: UpsertSharedVendorSchoolVariables): MutationPromise<UpsertSharedVendorSchoolData, UpsertSharedVendorSchoolVariables>;
 export function upsertSharedVendorSchool(dc: DataConnect, vars: UpsertSharedVendorSchoolVariables): MutationPromise<UpsertSharedVendorSchoolData, UpsertSharedVendorSchoolVariables>;
+
+interface UpsertSharedPtCodeUsageHistoryRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertSharedPtCodeUsageHistoryVariables): MutationRef<UpsertSharedPtCodeUsageHistoryData, UpsertSharedPtCodeUsageHistoryVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpsertSharedPtCodeUsageHistoryVariables): MutationRef<UpsertSharedPtCodeUsageHistoryData, UpsertSharedPtCodeUsageHistoryVariables>;
+  operationName: string;
+}
+export const upsertSharedPtCodeUsageHistoryRef: UpsertSharedPtCodeUsageHistoryRef;
+
+export function upsertSharedPtCodeUsageHistory(vars: UpsertSharedPtCodeUsageHistoryVariables): MutationPromise<UpsertSharedPtCodeUsageHistoryData, UpsertSharedPtCodeUsageHistoryVariables>;
+export function upsertSharedPtCodeUsageHistory(dc: DataConnect, vars: UpsertSharedPtCodeUsageHistoryVariables): MutationPromise<UpsertSharedPtCodeUsageHistoryData, UpsertSharedPtCodeUsageHistoryVariables>;
 
 interface ListOrganisationsRef {
   /* Allow users to create refs without passing in DataConnect */
@@ -822,4 +862,16 @@ export const listSharedVendorSchoolsRef: ListSharedVendorSchoolsRef;
 
 export function listSharedVendorSchools(vars?: ListSharedVendorSchoolsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedVendorSchoolsData, ListSharedVendorSchoolsVariables>;
 export function listSharedVendorSchools(dc: DataConnect, vars?: ListSharedVendorSchoolsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedVendorSchoolsData, ListSharedVendorSchoolsVariables>;
+
+interface ListSharedPtCodeUsageHistoryRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: ListSharedPtCodeUsageHistoryVariables): QueryRef<ListSharedPtCodeUsageHistoryData, ListSharedPtCodeUsageHistoryVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars?: ListSharedPtCodeUsageHistoryVariables): QueryRef<ListSharedPtCodeUsageHistoryData, ListSharedPtCodeUsageHistoryVariables>;
+  operationName: string;
+}
+export const listSharedPtCodeUsageHistoryRef: ListSharedPtCodeUsageHistoryRef;
+
+export function listSharedPtCodeUsageHistory(vars?: ListSharedPtCodeUsageHistoryVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedPtCodeUsageHistoryData, ListSharedPtCodeUsageHistoryVariables>;
+export function listSharedPtCodeUsageHistory(dc: DataConnect, vars?: ListSharedPtCodeUsageHistoryVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedPtCodeUsageHistoryData, ListSharedPtCodeUsageHistoryVariables>;
 

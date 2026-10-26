@@ -6,6 +6,29 @@ import { prisma } from "@/lib/prisma";
 import { nextVendorCode } from "@/lib/reference-codes";
 import { replaceVendorsWithImportedBooksellers } from "@/lib/syncBooksellers";
 import { createVendorSchema } from "@/lib/validation/reference";
+import { z } from "zod";
+
+export async function updateVendorDiscountAction(input: { vendorCode: string; discount: string }): Promise<
+  { ok: true; discount: string } | { ok: false; message: string }
+> {
+  try {
+    const parsed = z.object({
+      vendorCode: z.string().trim().min(1, "Select a vendor."),
+      discount: z.string().trim().min(1, "Enter a discount.").max(500, "Discount is too long.")
+    }).parse(input);
+    const vendor = await prisma.vendor.update({
+      where: { vendorCode: parsed.vendorCode },
+      data: { actualDiscount: parsed.discount },
+      select: { vendorId: true, actualDiscount: true }
+    });
+    revalidatePath("/vendors");
+    revalidatePath(`/vendors/${vendor.vendorId}/edit`);
+    revalidatePath("/orders", "layout");
+    return { ok: true, discount: vendor.actualDiscount! };
+  } catch (error) {
+    return { ok: false, message: formatActionError(error, { fallback: "Could not save this discount. Please try again." }) };
+  }
+}
 
 export type ReferenceActionState = {
   ok: boolean;

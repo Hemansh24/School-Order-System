@@ -54,6 +54,12 @@ export function upsertSharedVendorSchool(dcOrVarsOrOptions, varsOrOptions, optio
   return dcInstance.executeMutation('UpsertSharedVendorSchool', inputVars, inputOpts);
 }
 
+export function upsertSharedPtCodeUsageHistory(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('UpsertSharedPtCodeUsageHistory', inputVars, inputOpts);
+}
+
 export function listOrganisations(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, false);
   dcInstance.useGen(true);
@@ -142,5 +148,11 @@ export function listSharedVendorSchools(dcOrVarsOrOptions, varsOrOptions, option
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, false);
   dcInstance.useGen(true);
   return dcInstance.executeQuery('ListSharedVendorSchools', inputVars, inputOpts);
+}
+
+export function listSharedPtCodeUsageHistory(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, false);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('ListSharedPtCodeUsageHistory', inputVars, inputOpts);
 }
 

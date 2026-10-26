@@ -275,6 +275,19 @@ export interface ListSharedPreBooksellersVariables {
   offset?: number | null;
 }
 
+export interface ListSharedPtCodeUsageHistoryData {
+  sharedPtCodeUsageHistories: ({
+    ptCode: string;
+    sessionYear: string;
+    syncedAt: TimestampString;
+  } & SharedPtCodeUsageHistory_Key)[];
+}
+
+export interface ListSharedPtCodeUsageHistoryVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+
 export interface ListSharedSchoolGroupLocationsData {
   sharedSchoolGroupLocations: ({
     id: Int64String;
@@ -410,6 +423,12 @@ export interface SharedPreBookseller_Key {
   __typename?: 'SharedPreBookseller_Key';
 }
 
+export interface SharedPtCodeUsageHistory_Key {
+  ptCode: string;
+  sessionYear: string;
+  __typename?: 'SharedPtCodeUsageHistory_Key';
+}
+
 export interface SharedSchoolGroupLocation_Key {
   id: Int64String;
   __typename?: 'SharedSchoolGroupLocation_Key';
@@ -483,6 +502,15 @@ export interface UpsertPreBooksellerVariables {
   conversionStatus: string;
   assignedBsCode?: string | null;
   convertedAt?: TimestampString | null;
+}
+
+export interface UpsertSharedPtCodeUsageHistoryData {
+  sharedPtCodeUsageHistory_upsert: SharedPtCodeUsageHistory_Key;
+}
+
+export interface UpsertSharedPtCodeUsageHistoryVariables {
+  ptCode: string;
+  sessionYear: string;
 }
 
 export interface UpsertSharedSchoolGroupData {
@@ -584,6 +612,11 @@ export function upsertSharedVendorSchool(dc: DataConnect, vars: UpsertSharedVend
 /** Generated Node Admin SDK operation action function for the 'UpsertSharedVendorSchool' Mutation. Allow users to pass in custom DataConnect instances. */
 export function upsertSharedVendorSchool(vars: UpsertSharedVendorSchoolVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertSharedVendorSchoolData>>;
 
+/** Generated Node Admin SDK operation action function for the 'UpsertSharedPtCodeUsageHistory' Mutation. Allow users to execute without passing in DataConnect. */
+export function upsertSharedPtCodeUsageHistory(dc: DataConnect, vars: UpsertSharedPtCodeUsageHistoryVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertSharedPtCodeUsageHistoryData>>;
+/** Generated Node Admin SDK operation action function for the 'UpsertSharedPtCodeUsageHistory' Mutation. Allow users to pass in custom DataConnect instances. */
+export function upsertSharedPtCodeUsageHistory(vars: UpsertSharedPtCodeUsageHistoryVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertSharedPtCodeUsageHistoryData>>;
+
 /** Generated Node Admin SDK operation action function for the 'ListOrganisations' Query. Allow users to execute without passing in DataConnect. */
 export function listOrganisations(dc: DataConnect, vars?: ListOrganisationsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListOrganisationsData>>;
 /** Generated Node Admin SDK operation action function for the 'ListOrganisations' Query. Allow users to pass in custom DataConnect instances. */
@@ -658,4 +691,9 @@ export function listSharedVendors(vars?: ListSharedVendorsVariables, options?: O
 export function listSharedVendorSchools(dc: DataConnect, vars?: ListSharedVendorSchoolsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSharedVendorSchoolsData>>;
 /** Generated Node Admin SDK operation action function for the 'ListSharedVendorSchools' Query. Allow users to pass in custom DataConnect instances. */
 export function listSharedVendorSchools(vars?: ListSharedVendorSchoolsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSharedVendorSchoolsData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ListSharedPtCodeUsageHistory' Query. Allow users to execute without passing in DataConnect. */
+export function listSharedPtCodeUsageHistory(dc: DataConnect, vars?: ListSharedPtCodeUsageHistoryVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSharedPtCodeUsageHistoryData>>;
+/** Generated Node Admin SDK operation action function for the 'ListSharedPtCodeUsageHistory' Query. Allow users to pass in custom DataConnect instances. */
+export function listSharedPtCodeUsageHistory(vars?: ListSharedPtCodeUsageHistoryVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSharedPtCodeUsageHistoryData>>;
 
