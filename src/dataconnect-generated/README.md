@@ -26,6 +26,8 @@ This README will guide you through the process of using the generated JavaScript
   - [*ListSharedVendors*](#listsharedvendors)
   - [*ListSharedVendorSchools*](#listsharedvendorschools)
   - [*ListSharedPtCodeUsageHistory*](#listsharedptcodeusagehistory)
+  - [*ListSharedExecutives*](#listsharedexecutives)
+  - [*ListSharedSchoolExecutiveDefaults*](#listsharedschoolexecutivedefaults)
 - [**Mutations**](#mutations)
   - [*SetBooksellerActualDiscount*](#setbookselleractualdiscount)
   - [*UpsertChristianGroup*](#upsertchristiangroup)
@@ -36,6 +38,9 @@ This README will guide you through the process of using the generated JavaScript
   - [*UpsertSharedVendor*](#upsertsharedvendor)
   - [*UpsertSharedVendorSchool*](#upsertsharedvendorschool)
   - [*UpsertSharedPtCodeUsageHistory*](#upsertsharedptcodeusagehistory)
+  - [*UpsertSharedExecutive*](#upsertsharedexecutive)
+  - [*UpsertSharedSchoolExecutiveDefault*](#upsertsharedschoolexecutivedefault)
+  - [*UpsertSharedOrderSchoolExecutive*](#upsertsharedorderschoolexecutive)
 
 # Accessing the connector
 A connector is a collection of Queries and Mutations. One SDK is generated for each connector - this SDK is generated for the connector `example`. You can find more information about connectors in the [Data Connect documentation](https://firebase.google.com/docs/data-connect#how-does).
@@ -2155,6 +2160,250 @@ executeQuery(ref).then((response) => {
 });
 ```
 
+## ListSharedExecutives
+You can execute the `ListSharedExecutives` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+listSharedExecutives(vars?: ListSharedExecutivesVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedExecutivesData, ListSharedExecutivesVariables>;
+
+interface ListSharedExecutivesRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: ListSharedExecutivesVariables): QueryRef<ListSharedExecutivesData, ListSharedExecutivesVariables>;
+}
+export const listSharedExecutivesRef: ListSharedExecutivesRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+listSharedExecutives(dc: DataConnect, vars?: ListSharedExecutivesVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedExecutivesData, ListSharedExecutivesVariables>;
+
+interface ListSharedExecutivesRef {
+  ...
+  (dc: DataConnect, vars?: ListSharedExecutivesVariables): QueryRef<ListSharedExecutivesData, ListSharedExecutivesVariables>;
+}
+export const listSharedExecutivesRef: ListSharedExecutivesRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listSharedExecutivesRef:
+```typescript
+const name = listSharedExecutivesRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ListSharedExecutives` query has an optional argument of type `ListSharedExecutivesVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface ListSharedExecutivesVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+```
+### Return Type
+Recall that executing the `ListSharedExecutives` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ListSharedExecutivesData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ListSharedExecutivesData {
+  sharedExecutives: ({
+    incumbentCode: string;
+    name: string;
+    mobile?: string | null;
+    email?: string | null;
+    baseLocation?: string | null;
+    syncedAt: TimestampString;
+  } & SharedExecutive_Key)[];
+}
+```
+### Using `ListSharedExecutives`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, listSharedExecutives, ListSharedExecutivesVariables } from '@dataconnect/generated';
+
+// The `ListSharedExecutives` query has an optional argument of type `ListSharedExecutivesVariables`:
+const listSharedExecutivesVars: ListSharedExecutivesVariables = {
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listSharedExecutives()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await listSharedExecutives(listSharedExecutivesVars);
+// Variables can be defined inline as well.
+const { data } = await listSharedExecutives({ limit: ..., offset: ..., });
+// Since all variables are optional for this query, you can omit the `ListSharedExecutivesVariables` argument.
+const { data } = await listSharedExecutives();
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await listSharedExecutives(dataConnect, listSharedExecutivesVars);
+
+console.log(data.sharedExecutives);
+
+// Or, you can use the `Promise` API.
+listSharedExecutives(listSharedExecutivesVars).then((response) => {
+  const data = response.data;
+  console.log(data.sharedExecutives);
+});
+```
+
+### Using `ListSharedExecutives`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, listSharedExecutivesRef, ListSharedExecutivesVariables } from '@dataconnect/generated';
+
+// The `ListSharedExecutives` query has an optional argument of type `ListSharedExecutivesVariables`:
+const listSharedExecutivesVars: ListSharedExecutivesVariables = {
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listSharedExecutivesRef()` function to get a reference to the query.
+const ref = listSharedExecutivesRef(listSharedExecutivesVars);
+// Variables can be defined inline as well.
+const ref = listSharedExecutivesRef({ limit: ..., offset: ..., });
+// Since all variables are optional for this query, you can omit the `ListSharedExecutivesVariables` argument.
+const ref = listSharedExecutivesRef();
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = listSharedExecutivesRef(dataConnect, listSharedExecutivesVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.sharedExecutives);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.sharedExecutives);
+});
+```
+
+## ListSharedSchoolExecutiveDefaults
+You can execute the `ListSharedSchoolExecutiveDefaults` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+listSharedSchoolExecutiveDefaults(vars?: ListSharedSchoolExecutiveDefaultsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedSchoolExecutiveDefaultsData, ListSharedSchoolExecutiveDefaultsVariables>;
+
+interface ListSharedSchoolExecutiveDefaultsRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: ListSharedSchoolExecutiveDefaultsVariables): QueryRef<ListSharedSchoolExecutiveDefaultsData, ListSharedSchoolExecutiveDefaultsVariables>;
+}
+export const listSharedSchoolExecutiveDefaultsRef: ListSharedSchoolExecutiveDefaultsRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+listSharedSchoolExecutiveDefaults(dc: DataConnect, vars?: ListSharedSchoolExecutiveDefaultsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedSchoolExecutiveDefaultsData, ListSharedSchoolExecutiveDefaultsVariables>;
+
+interface ListSharedSchoolExecutiveDefaultsRef {
+  ...
+  (dc: DataConnect, vars?: ListSharedSchoolExecutiveDefaultsVariables): QueryRef<ListSharedSchoolExecutiveDefaultsData, ListSharedSchoolExecutiveDefaultsVariables>;
+}
+export const listSharedSchoolExecutiveDefaultsRef: ListSharedSchoolExecutiveDefaultsRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listSharedSchoolExecutiveDefaultsRef:
+```typescript
+const name = listSharedSchoolExecutiveDefaultsRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ListSharedSchoolExecutiveDefaults` query has an optional argument of type `ListSharedSchoolExecutiveDefaultsVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface ListSharedSchoolExecutiveDefaultsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+```
+### Return Type
+Recall that executing the `ListSharedSchoolExecutiveDefaults` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ListSharedSchoolExecutiveDefaultsData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ListSharedSchoolExecutiveDefaultsData {
+  sharedSchoolExecutiveDefaults: ({
+    prCode: string;
+    incumbentCode?: string | null;
+    name: string;
+    updatedAt: TimestampString;
+  } & SharedSchoolExecutiveDefault_Key)[];
+}
+```
+### Using `ListSharedSchoolExecutiveDefaults`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, listSharedSchoolExecutiveDefaults, ListSharedSchoolExecutiveDefaultsVariables } from '@dataconnect/generated';
+
+// The `ListSharedSchoolExecutiveDefaults` query has an optional argument of type `ListSharedSchoolExecutiveDefaultsVariables`:
+const listSharedSchoolExecutiveDefaultsVars: ListSharedSchoolExecutiveDefaultsVariables = {
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listSharedSchoolExecutiveDefaults()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await listSharedSchoolExecutiveDefaults(listSharedSchoolExecutiveDefaultsVars);
+// Variables can be defined inline as well.
+const { data } = await listSharedSchoolExecutiveDefaults({ limit: ..., offset: ..., });
+// Since all variables are optional for this query, you can omit the `ListSharedSchoolExecutiveDefaultsVariables` argument.
+const { data } = await listSharedSchoolExecutiveDefaults();
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await listSharedSchoolExecutiveDefaults(dataConnect, listSharedSchoolExecutiveDefaultsVars);
+
+console.log(data.sharedSchoolExecutiveDefaults);
+
+// Or, you can use the `Promise` API.
+listSharedSchoolExecutiveDefaults(listSharedSchoolExecutiveDefaultsVars).then((response) => {
+  const data = response.data;
+  console.log(data.sharedSchoolExecutiveDefaults);
+});
+```
+
+### Using `ListSharedSchoolExecutiveDefaults`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, listSharedSchoolExecutiveDefaultsRef, ListSharedSchoolExecutiveDefaultsVariables } from '@dataconnect/generated';
+
+// The `ListSharedSchoolExecutiveDefaults` query has an optional argument of type `ListSharedSchoolExecutiveDefaultsVariables`:
+const listSharedSchoolExecutiveDefaultsVars: ListSharedSchoolExecutiveDefaultsVariables = {
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listSharedSchoolExecutiveDefaultsRef()` function to get a reference to the query.
+const ref = listSharedSchoolExecutiveDefaultsRef(listSharedSchoolExecutiveDefaultsVars);
+// Variables can be defined inline as well.
+const ref = listSharedSchoolExecutiveDefaultsRef({ limit: ..., offset: ..., });
+// Since all variables are optional for this query, you can omit the `ListSharedSchoolExecutiveDefaultsVariables` argument.
+const ref = listSharedSchoolExecutiveDefaultsRef();
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = listSharedSchoolExecutiveDefaultsRef(dataConnect, listSharedSchoolExecutiveDefaultsVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.sharedSchoolExecutiveDefaults);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.sharedSchoolExecutiveDefaults);
+});
+```
+
 # Mutations
 
 There are two ways to execute a Data Connect Mutation using the generated Web SDK:
@@ -3352,6 +3601,360 @@ console.log(data.sharedPtCodeUsageHistory_upsert);
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.sharedPtCodeUsageHistory_upsert);
+});
+```
+
+## UpsertSharedExecutive
+You can execute the `UpsertSharedExecutive` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+upsertSharedExecutive(vars: UpsertSharedExecutiveVariables): MutationPromise<UpsertSharedExecutiveData, UpsertSharedExecutiveVariables>;
+
+interface UpsertSharedExecutiveRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertSharedExecutiveVariables): MutationRef<UpsertSharedExecutiveData, UpsertSharedExecutiveVariables>;
+}
+export const upsertSharedExecutiveRef: UpsertSharedExecutiveRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+upsertSharedExecutive(dc: DataConnect, vars: UpsertSharedExecutiveVariables): MutationPromise<UpsertSharedExecutiveData, UpsertSharedExecutiveVariables>;
+
+interface UpsertSharedExecutiveRef {
+  ...
+  (dc: DataConnect, vars: UpsertSharedExecutiveVariables): MutationRef<UpsertSharedExecutiveData, UpsertSharedExecutiveVariables>;
+}
+export const upsertSharedExecutiveRef: UpsertSharedExecutiveRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the upsertSharedExecutiveRef:
+```typescript
+const name = upsertSharedExecutiveRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `UpsertSharedExecutive` mutation requires an argument of type `UpsertSharedExecutiveVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface UpsertSharedExecutiveVariables {
+  incumbentCode: string;
+  name: string;
+  mobile?: string | null;
+  email?: string | null;
+  baseLocation?: string | null;
+}
+```
+### Return Type
+Recall that executing the `UpsertSharedExecutive` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `UpsertSharedExecutiveData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface UpsertSharedExecutiveData {
+  sharedExecutive_upsert: SharedExecutive_Key;
+}
+```
+### Using `UpsertSharedExecutive`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, upsertSharedExecutive, UpsertSharedExecutiveVariables } from '@dataconnect/generated';
+
+// The `UpsertSharedExecutive` mutation requires an argument of type `UpsertSharedExecutiveVariables`:
+const upsertSharedExecutiveVars: UpsertSharedExecutiveVariables = {
+  incumbentCode: ..., 
+  name: ..., 
+  mobile: ..., // optional
+  email: ..., // optional
+  baseLocation: ..., // optional
+};
+
+// Call the `upsertSharedExecutive()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await upsertSharedExecutive(upsertSharedExecutiveVars);
+// Variables can be defined inline as well.
+const { data } = await upsertSharedExecutive({ incumbentCode: ..., name: ..., mobile: ..., email: ..., baseLocation: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await upsertSharedExecutive(dataConnect, upsertSharedExecutiveVars);
+
+console.log(data.sharedExecutive_upsert);
+
+// Or, you can use the `Promise` API.
+upsertSharedExecutive(upsertSharedExecutiveVars).then((response) => {
+  const data = response.data;
+  console.log(data.sharedExecutive_upsert);
+});
+```
+
+### Using `UpsertSharedExecutive`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, upsertSharedExecutiveRef, UpsertSharedExecutiveVariables } from '@dataconnect/generated';
+
+// The `UpsertSharedExecutive` mutation requires an argument of type `UpsertSharedExecutiveVariables`:
+const upsertSharedExecutiveVars: UpsertSharedExecutiveVariables = {
+  incumbentCode: ..., 
+  name: ..., 
+  mobile: ..., // optional
+  email: ..., // optional
+  baseLocation: ..., // optional
+};
+
+// Call the `upsertSharedExecutiveRef()` function to get a reference to the mutation.
+const ref = upsertSharedExecutiveRef(upsertSharedExecutiveVars);
+// Variables can be defined inline as well.
+const ref = upsertSharedExecutiveRef({ incumbentCode: ..., name: ..., mobile: ..., email: ..., baseLocation: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = upsertSharedExecutiveRef(dataConnect, upsertSharedExecutiveVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.sharedExecutive_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.sharedExecutive_upsert);
+});
+```
+
+## UpsertSharedSchoolExecutiveDefault
+You can execute the `UpsertSharedSchoolExecutiveDefault` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+upsertSharedSchoolExecutiveDefault(vars: UpsertSharedSchoolExecutiveDefaultVariables): MutationPromise<UpsertSharedSchoolExecutiveDefaultData, UpsertSharedSchoolExecutiveDefaultVariables>;
+
+interface UpsertSharedSchoolExecutiveDefaultRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertSharedSchoolExecutiveDefaultVariables): MutationRef<UpsertSharedSchoolExecutiveDefaultData, UpsertSharedSchoolExecutiveDefaultVariables>;
+}
+export const upsertSharedSchoolExecutiveDefaultRef: UpsertSharedSchoolExecutiveDefaultRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+upsertSharedSchoolExecutiveDefault(dc: DataConnect, vars: UpsertSharedSchoolExecutiveDefaultVariables): MutationPromise<UpsertSharedSchoolExecutiveDefaultData, UpsertSharedSchoolExecutiveDefaultVariables>;
+
+interface UpsertSharedSchoolExecutiveDefaultRef {
+  ...
+  (dc: DataConnect, vars: UpsertSharedSchoolExecutiveDefaultVariables): MutationRef<UpsertSharedSchoolExecutiveDefaultData, UpsertSharedSchoolExecutiveDefaultVariables>;
+}
+export const upsertSharedSchoolExecutiveDefaultRef: UpsertSharedSchoolExecutiveDefaultRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the upsertSharedSchoolExecutiveDefaultRef:
+```typescript
+const name = upsertSharedSchoolExecutiveDefaultRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `UpsertSharedSchoolExecutiveDefault` mutation requires an argument of type `UpsertSharedSchoolExecutiveDefaultVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface UpsertSharedSchoolExecutiveDefaultVariables {
+  prCode: string;
+  incumbentCode?: string | null;
+  name: string;
+}
+```
+### Return Type
+Recall that executing the `UpsertSharedSchoolExecutiveDefault` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `UpsertSharedSchoolExecutiveDefaultData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface UpsertSharedSchoolExecutiveDefaultData {
+  sharedSchoolExecutiveDefault_upsert: SharedSchoolExecutiveDefault_Key;
+}
+```
+### Using `UpsertSharedSchoolExecutiveDefault`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, upsertSharedSchoolExecutiveDefault, UpsertSharedSchoolExecutiveDefaultVariables } from '@dataconnect/generated';
+
+// The `UpsertSharedSchoolExecutiveDefault` mutation requires an argument of type `UpsertSharedSchoolExecutiveDefaultVariables`:
+const upsertSharedSchoolExecutiveDefaultVars: UpsertSharedSchoolExecutiveDefaultVariables = {
+  prCode: ..., 
+  incumbentCode: ..., // optional
+  name: ..., 
+};
+
+// Call the `upsertSharedSchoolExecutiveDefault()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await upsertSharedSchoolExecutiveDefault(upsertSharedSchoolExecutiveDefaultVars);
+// Variables can be defined inline as well.
+const { data } = await upsertSharedSchoolExecutiveDefault({ prCode: ..., incumbentCode: ..., name: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await upsertSharedSchoolExecutiveDefault(dataConnect, upsertSharedSchoolExecutiveDefaultVars);
+
+console.log(data.sharedSchoolExecutiveDefault_upsert);
+
+// Or, you can use the `Promise` API.
+upsertSharedSchoolExecutiveDefault(upsertSharedSchoolExecutiveDefaultVars).then((response) => {
+  const data = response.data;
+  console.log(data.sharedSchoolExecutiveDefault_upsert);
+});
+```
+
+### Using `UpsertSharedSchoolExecutiveDefault`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, upsertSharedSchoolExecutiveDefaultRef, UpsertSharedSchoolExecutiveDefaultVariables } from '@dataconnect/generated';
+
+// The `UpsertSharedSchoolExecutiveDefault` mutation requires an argument of type `UpsertSharedSchoolExecutiveDefaultVariables`:
+const upsertSharedSchoolExecutiveDefaultVars: UpsertSharedSchoolExecutiveDefaultVariables = {
+  prCode: ..., 
+  incumbentCode: ..., // optional
+  name: ..., 
+};
+
+// Call the `upsertSharedSchoolExecutiveDefaultRef()` function to get a reference to the mutation.
+const ref = upsertSharedSchoolExecutiveDefaultRef(upsertSharedSchoolExecutiveDefaultVars);
+// Variables can be defined inline as well.
+const ref = upsertSharedSchoolExecutiveDefaultRef({ prCode: ..., incumbentCode: ..., name: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = upsertSharedSchoolExecutiveDefaultRef(dataConnect, upsertSharedSchoolExecutiveDefaultVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.sharedSchoolExecutiveDefault_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.sharedSchoolExecutiveDefault_upsert);
+});
+```
+
+## UpsertSharedOrderSchoolExecutive
+You can execute the `UpsertSharedOrderSchoolExecutive` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+upsertSharedOrderSchoolExecutive(vars: UpsertSharedOrderSchoolExecutiveVariables): MutationPromise<UpsertSharedOrderSchoolExecutiveData, UpsertSharedOrderSchoolExecutiveVariables>;
+
+interface UpsertSharedOrderSchoolExecutiveRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertSharedOrderSchoolExecutiveVariables): MutationRef<UpsertSharedOrderSchoolExecutiveData, UpsertSharedOrderSchoolExecutiveVariables>;
+}
+export const upsertSharedOrderSchoolExecutiveRef: UpsertSharedOrderSchoolExecutiveRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+upsertSharedOrderSchoolExecutive(dc: DataConnect, vars: UpsertSharedOrderSchoolExecutiveVariables): MutationPromise<UpsertSharedOrderSchoolExecutiveData, UpsertSharedOrderSchoolExecutiveVariables>;
+
+interface UpsertSharedOrderSchoolExecutiveRef {
+  ...
+  (dc: DataConnect, vars: UpsertSharedOrderSchoolExecutiveVariables): MutationRef<UpsertSharedOrderSchoolExecutiveData, UpsertSharedOrderSchoolExecutiveVariables>;
+}
+export const upsertSharedOrderSchoolExecutiveRef: UpsertSharedOrderSchoolExecutiveRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the upsertSharedOrderSchoolExecutiveRef:
+```typescript
+const name = upsertSharedOrderSchoolExecutiveRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `UpsertSharedOrderSchoolExecutive` mutation requires an argument of type `UpsertSharedOrderSchoolExecutiveVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface UpsertSharedOrderSchoolExecutiveVariables {
+  orderSheet1Id: number;
+  schoolCode: string;
+  incumbentCode?: string | null;
+  name: string;
+}
+```
+### Return Type
+Recall that executing the `UpsertSharedOrderSchoolExecutive` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `UpsertSharedOrderSchoolExecutiveData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface UpsertSharedOrderSchoolExecutiveData {
+  sharedOrderSchoolExecutive_upsert: SharedOrderSchoolExecutive_Key;
+}
+```
+### Using `UpsertSharedOrderSchoolExecutive`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, upsertSharedOrderSchoolExecutive, UpsertSharedOrderSchoolExecutiveVariables } from '@dataconnect/generated';
+
+// The `UpsertSharedOrderSchoolExecutive` mutation requires an argument of type `UpsertSharedOrderSchoolExecutiveVariables`:
+const upsertSharedOrderSchoolExecutiveVars: UpsertSharedOrderSchoolExecutiveVariables = {
+  orderSheet1Id: ..., 
+  schoolCode: ..., 
+  incumbentCode: ..., // optional
+  name: ..., 
+};
+
+// Call the `upsertSharedOrderSchoolExecutive()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await upsertSharedOrderSchoolExecutive(upsertSharedOrderSchoolExecutiveVars);
+// Variables can be defined inline as well.
+const { data } = await upsertSharedOrderSchoolExecutive({ orderSheet1Id: ..., schoolCode: ..., incumbentCode: ..., name: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await upsertSharedOrderSchoolExecutive(dataConnect, upsertSharedOrderSchoolExecutiveVars);
+
+console.log(data.sharedOrderSchoolExecutive_upsert);
+
+// Or, you can use the `Promise` API.
+upsertSharedOrderSchoolExecutive(upsertSharedOrderSchoolExecutiveVars).then((response) => {
+  const data = response.data;
+  console.log(data.sharedOrderSchoolExecutive_upsert);
+});
+```
+
+### Using `UpsertSharedOrderSchoolExecutive`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, upsertSharedOrderSchoolExecutiveRef, UpsertSharedOrderSchoolExecutiveVariables } from '@dataconnect/generated';
+
+// The `UpsertSharedOrderSchoolExecutive` mutation requires an argument of type `UpsertSharedOrderSchoolExecutiveVariables`:
+const upsertSharedOrderSchoolExecutiveVars: UpsertSharedOrderSchoolExecutiveVariables = {
+  orderSheet1Id: ..., 
+  schoolCode: ..., 
+  incumbentCode: ..., // optional
+  name: ..., 
+};
+
+// Call the `upsertSharedOrderSchoolExecutiveRef()` function to get a reference to the mutation.
+const ref = upsertSharedOrderSchoolExecutiveRef(upsertSharedOrderSchoolExecutiveVars);
+// Variables can be defined inline as well.
+const ref = upsertSharedOrderSchoolExecutiveRef({ orderSheet1Id: ..., schoolCode: ..., incumbentCode: ..., name: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = upsertSharedOrderSchoolExecutiveRef(dataConnect, upsertSharedOrderSchoolExecutiveVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.sharedOrderSchoolExecutive_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.sharedOrderSchoolExecutive_upsert);
 });
 ```
 

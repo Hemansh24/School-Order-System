@@ -122,6 +122,12 @@ export const sheet2C2RowSchema = z.object({
 
 export const createOrderSchema = z
   .object({
+    schoolExecutives: z.array(z.object({
+      schoolCode: z.string().trim().min(1),
+      incumbentCode: z.string().trim().min(1).transform(value => value.toUpperCase()).nullable().optional(),
+      name: z.string().trim().max(200),
+      updateDefault: z.boolean().optional()
+    })).optional(),
     sheet1: sheet1Schema,
     descriptiveRows: z.array(sheet2ARowSchema).default([]),
     ambiguousSchools: z.array(sheet2B1RowSchema).max(0, "Ambiguous orders accept item quantities only").default([]),
@@ -135,6 +141,11 @@ export const createOrderSchema = z
     const pooled = isPooledOrder(data.sheet1);
     const school = orderType === "descriptive" && !pooled;
     const issue = (path: string[], message: string) => ctx.addIssue({ code: z.ZodIssueCode.custom, path, message });
+    const assignments = data.schoolExecutives ?? [];
+    const endSchools = new Set((pooled ? data.combinedSchools : data.descriptiveRows).map(row => row.schoolCode));
+    if (new Set(assignments.map(row => row.schoolCode)).size !== assignments.length) issue(["schoolExecutives"], "Duplicate executive assignments are not allowed");
+    if (assignments.some(row => orderType !== "descriptive" || !endSchools.has(row.schoolCode))) issue(["schoolExecutives"], "Executive assignments must belong to selected end schools");
+    if (assignments.some(row => row.incumbentCode && !row.name)) issue(["schoolExecutives"], "An executive selection must include its name");
     for (const party of ["billing", "shipping"] as const) {
       if (data.sheet1[`${party}ToType`] !== "individual" && !data.sheet1[`${party}ToCode`]) {
         issue(["sheet1", `${party}ToCode`], "Select a reference or choose Individual / manual entry");

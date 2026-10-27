@@ -361,3 +361,25 @@ query ListSharedPtCodeUsageHistory($limit: Int = 500, $offset: Int = 0)
     syncedAt
   }
 }
+
+query ListSharedExecutives($limit: Int = 500, $offset: Int = 0)
+@auth(level: PUBLIC) {
+  sharedExecutives(orderBy: [{ incumbentCode: ASC }], limit: $limit, offset: $offset) {
+    incumbentCode
+    name
+    mobile
+    email
+    baseLocation
+    syncedAt
+  }
+}
+
+query ListSharedSchoolExecutiveDefaults($limit: Int = 500, $offset: Int = 0)
+@auth(level: PUBLIC) {
+  sharedSchoolExecutiveDefaults(orderBy: [{ prCode: ASC }], limit: $limit, offset: $offset) {
+    prCode
+    incumbentCode
+    name
+    updatedAt
+  }
+}

@@ -243,6 +243,22 @@ export interface ListSharedChristianGroupsVariables {
   offset?: number | null;
 }
 
+export interface ListSharedExecutivesData {
+  sharedExecutives: ({
+    incumbentCode: string;
+    name: string;
+    mobile?: string | null;
+    email?: string | null;
+    baseLocation?: string | null;
+    syncedAt: TimestampString;
+  } & SharedExecutive_Key)[];
+}
+
+export interface ListSharedExecutivesVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+
 export interface ListSharedPreBooksellersData {
   sharedPreBooksellers: ({
     pbsCode: string;
@@ -284,6 +300,20 @@ export interface ListSharedPtCodeUsageHistoryData {
 }
 
 export interface ListSharedPtCodeUsageHistoryVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+
+export interface ListSharedSchoolExecutiveDefaultsData {
+  sharedSchoolExecutiveDefaults: ({
+    prCode: string;
+    incumbentCode?: string | null;
+    name: string;
+    updatedAt: TimestampString;
+  } & SharedSchoolExecutiveDefault_Key)[];
+}
+
+export interface ListSharedSchoolExecutiveDefaultsVariables {
   limit?: number | null;
   offset?: number | null;
 }
@@ -418,6 +448,17 @@ export interface SharedChristianGroup_Key {
   __typename?: 'SharedChristianGroup_Key';
 }
 
+export interface SharedExecutive_Key {
+  incumbentCode: string;
+  __typename?: 'SharedExecutive_Key';
+}
+
+export interface SharedOrderSchoolExecutive_Key {
+  orderSheet1Id: number;
+  schoolCode: string;
+  __typename?: 'SharedOrderSchoolExecutive_Key';
+}
+
 export interface SharedPreBookseller_Key {
   pbsCode: string;
   __typename?: 'SharedPreBookseller_Key';
@@ -427,6 +468,11 @@ export interface SharedPtCodeUsageHistory_Key {
   ptCode: string;
   sessionYear: string;
   __typename?: 'SharedPtCodeUsageHistory_Key';
+}
+
+export interface SharedSchoolExecutiveDefault_Key {
+  prCode: string;
+  __typename?: 'SharedSchoolExecutiveDefault_Key';
 }
 
 export interface SharedSchoolGroupLocation_Key {
@@ -504,6 +550,29 @@ export interface UpsertPreBooksellerVariables {
   convertedAt?: TimestampString | null;
 }
 
+export interface UpsertSharedExecutiveData {
+  sharedExecutive_upsert: SharedExecutive_Key;
+}
+
+export interface UpsertSharedExecutiveVariables {
+  incumbentCode: string;
+  name: string;
+  mobile?: string | null;
+  email?: string | null;
+  baseLocation?: string | null;
+}
+
+export interface UpsertSharedOrderSchoolExecutiveData {
+  sharedOrderSchoolExecutive_upsert: SharedOrderSchoolExecutive_Key;
+}
+
+export interface UpsertSharedOrderSchoolExecutiveVariables {
+  orderSheet1Id: number;
+  schoolCode: string;
+  incumbentCode?: string | null;
+  name: string;
+}
+
 export interface UpsertSharedPtCodeUsageHistoryData {
   sharedPtCodeUsageHistory_upsert: SharedPtCodeUsageHistory_Key;
 }
@@ -511,6 +580,16 @@ export interface UpsertSharedPtCodeUsageHistoryData {
 export interface UpsertSharedPtCodeUsageHistoryVariables {
   ptCode: string;
   sessionYear: string;
+}
+
+export interface UpsertSharedSchoolExecutiveDefaultData {
+  sharedSchoolExecutiveDefault_upsert: SharedSchoolExecutiveDefault_Key;
+}
+
+export interface UpsertSharedSchoolExecutiveDefaultVariables {
+  prCode: string;
+  incumbentCode?: string | null;
+  name: string;
 }
 
 export interface UpsertSharedSchoolGroupData {
@@ -617,6 +696,21 @@ export function upsertSharedPtCodeUsageHistory(dc: DataConnect, vars: UpsertShar
 /** Generated Node Admin SDK operation action function for the 'UpsertSharedPtCodeUsageHistory' Mutation. Allow users to pass in custom DataConnect instances. */
 export function upsertSharedPtCodeUsageHistory(vars: UpsertSharedPtCodeUsageHistoryVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertSharedPtCodeUsageHistoryData>>;
 
+/** Generated Node Admin SDK operation action function for the 'UpsertSharedExecutive' Mutation. Allow users to execute without passing in DataConnect. */
+export function upsertSharedExecutive(dc: DataConnect, vars: UpsertSharedExecutiveVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertSharedExecutiveData>>;
+/** Generated Node Admin SDK operation action function for the 'UpsertSharedExecutive' Mutation. Allow users to pass in custom DataConnect instances. */
+export function upsertSharedExecutive(vars: UpsertSharedExecutiveVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertSharedExecutiveData>>;
+
+/** Generated Node Admin SDK operation action function for the 'UpsertSharedSchoolExecutiveDefault' Mutation. Allow users to execute without passing in DataConnect. */
+export function upsertSharedSchoolExecutiveDefault(dc: DataConnect, vars: UpsertSharedSchoolExecutiveDefaultVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertSharedSchoolExecutiveDefaultData>>;
+/** Generated Node Admin SDK operation action function for the 'UpsertSharedSchoolExecutiveDefault' Mutation. Allow users to pass in custom DataConnect instances. */
+export function upsertSharedSchoolExecutiveDefault(vars: UpsertSharedSchoolExecutiveDefaultVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertSharedSchoolExecutiveDefaultData>>;
+
+/** Generated Node Admin SDK operation action function for the 'UpsertSharedOrderSchoolExecutive' Mutation. Allow users to execute without passing in DataConnect. */
+export function upsertSharedOrderSchoolExecutive(dc: DataConnect, vars: UpsertSharedOrderSchoolExecutiveVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertSharedOrderSchoolExecutiveData>>;
+/** Generated Node Admin SDK operation action function for the 'UpsertSharedOrderSchoolExecutive' Mutation. Allow users to pass in custom DataConnect instances. */
+export function upsertSharedOrderSchoolExecutive(vars: UpsertSharedOrderSchoolExecutiveVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertSharedOrderSchoolExecutiveData>>;
+
 /** Generated Node Admin SDK operation action function for the 'ListOrganisations' Query. Allow users to execute without passing in DataConnect. */
 export function listOrganisations(dc: DataConnect, vars?: ListOrganisationsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListOrganisationsData>>;
 /** Generated Node Admin SDK operation action function for the 'ListOrganisations' Query. Allow users to pass in custom DataConnect instances. */
@@ -696,4 +790,14 @@ export function listSharedVendorSchools(vars?: ListSharedVendorSchoolsVariables,
 export function listSharedPtCodeUsageHistory(dc: DataConnect, vars?: ListSharedPtCodeUsageHistoryVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSharedPtCodeUsageHistoryData>>;
 /** Generated Node Admin SDK operation action function for the 'ListSharedPtCodeUsageHistory' Query. Allow users to pass in custom DataConnect instances. */
 export function listSharedPtCodeUsageHistory(vars?: ListSharedPtCodeUsageHistoryVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSharedPtCodeUsageHistoryData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ListSharedExecutives' Query. Allow users to execute without passing in DataConnect. */
+export function listSharedExecutives(dc: DataConnect, vars?: ListSharedExecutivesVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSharedExecutivesData>>;
+/** Generated Node Admin SDK operation action function for the 'ListSharedExecutives' Query. Allow users to pass in custom DataConnect instances. */
+export function listSharedExecutives(vars?: ListSharedExecutivesVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSharedExecutivesData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ListSharedSchoolExecutiveDefaults' Query. Allow users to execute without passing in DataConnect. */
+export function listSharedSchoolExecutiveDefaults(dc: DataConnect, vars?: ListSharedSchoolExecutiveDefaultsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSharedSchoolExecutiveDefaultsData>>;
+/** Generated Node Admin SDK operation action function for the 'ListSharedSchoolExecutiveDefaults' Query. Allow users to pass in custom DataConnect instances. */
+export function listSharedSchoolExecutiveDefaults(vars?: ListSharedSchoolExecutiveDefaultsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSharedSchoolExecutiveDefaultsData>>;
 

@@ -205,3 +205,45 @@ mutation UpsertSharedPtCodeUsageHistory($ptCode: String!, $sessionYear: String!)
     syncedAt_expr: "request.time"
   })
 }
+
+mutation UpsertSharedExecutive(
+  $incumbentCode: String!
+  $name: String!
+  $mobile: String
+  $email: String
+  $baseLocation: String
+) @auth(level: NO_ACCESS) {
+  sharedExecutive_upsert(data: {
+    incumbentCode: $incumbentCode
+    name: $name
+    mobile: $mobile
+    email: $email
+    baseLocation: $baseLocation
+    syncedAt_expr: "request.time"
+  })
+}
+
+mutation UpsertSharedSchoolExecutiveDefault($prCode: String!, $incumbentCode: String, $name: String!)
+@auth(level: NO_ACCESS) {
+  sharedSchoolExecutiveDefault_upsert(data: {
+    prCode: $prCode
+    incumbentCode: $incumbentCode
+    name: $name
+    updatedAt_expr: "request.time"
+  })
+}
+
+mutation UpsertSharedOrderSchoolExecutive(
+  $orderSheet1Id: Int!
+  $schoolCode: String!
+  $incumbentCode: String
+  $name: String!
+) @auth(level: NO_ACCESS) {
+  sharedOrderSchoolExecutive_upsert(data: {
+    orderSheet1Id: $orderSheet1Id
+    schoolCode: $schoolCode
+    incumbentCode: $incumbentCode
+    name: $name
+    syncedAt_expr: "request.time"
+  })
+}

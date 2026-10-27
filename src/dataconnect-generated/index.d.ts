@@ -246,6 +246,22 @@ export interface ListSharedChristianGroupsVariables {
   offset?: number | null;
 }
 
+export interface ListSharedExecutivesData {
+  sharedExecutives: ({
+    incumbentCode: string;
+    name: string;
+    mobile?: string | null;
+    email?: string | null;
+    baseLocation?: string | null;
+    syncedAt: TimestampString;
+  } & SharedExecutive_Key)[];
+}
+
+export interface ListSharedExecutivesVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+
 export interface ListSharedPreBooksellersData {
   sharedPreBooksellers: ({
     pbsCode: string;
@@ -287,6 +303,20 @@ export interface ListSharedPtCodeUsageHistoryData {
 }
 
 export interface ListSharedPtCodeUsageHistoryVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+
+export interface ListSharedSchoolExecutiveDefaultsData {
+  sharedSchoolExecutiveDefaults: ({
+    prCode: string;
+    incumbentCode?: string | null;
+    name: string;
+    updatedAt: TimestampString;
+  } & SharedSchoolExecutiveDefault_Key)[];
+}
+
+export interface ListSharedSchoolExecutiveDefaultsVariables {
   limit?: number | null;
   offset?: number | null;
 }
@@ -421,6 +451,17 @@ export interface SharedChristianGroup_Key {
   __typename?: 'SharedChristianGroup_Key';
 }
 
+export interface SharedExecutive_Key {
+  incumbentCode: string;
+  __typename?: 'SharedExecutive_Key';
+}
+
+export interface SharedOrderSchoolExecutive_Key {
+  orderSheet1Id: number;
+  schoolCode: string;
+  __typename?: 'SharedOrderSchoolExecutive_Key';
+}
+
 export interface SharedPreBookseller_Key {
   pbsCode: string;
   __typename?: 'SharedPreBookseller_Key';
@@ -430,6 +471,11 @@ export interface SharedPtCodeUsageHistory_Key {
   ptCode: string;
   sessionYear: string;
   __typename?: 'SharedPtCodeUsageHistory_Key';
+}
+
+export interface SharedSchoolExecutiveDefault_Key {
+  prCode: string;
+  __typename?: 'SharedSchoolExecutiveDefault_Key';
 }
 
 export interface SharedSchoolGroupLocation_Key {
@@ -507,6 +553,29 @@ export interface UpsertPreBooksellerVariables {
   convertedAt?: TimestampString | null;
 }
 
+export interface UpsertSharedExecutiveData {
+  sharedExecutive_upsert: SharedExecutive_Key;
+}
+
+export interface UpsertSharedExecutiveVariables {
+  incumbentCode: string;
+  name: string;
+  mobile?: string | null;
+  email?: string | null;
+  baseLocation?: string | null;
+}
+
+export interface UpsertSharedOrderSchoolExecutiveData {
+  sharedOrderSchoolExecutive_upsert: SharedOrderSchoolExecutive_Key;
+}
+
+export interface UpsertSharedOrderSchoolExecutiveVariables {
+  orderSheet1Id: number;
+  schoolCode: string;
+  incumbentCode?: string | null;
+  name: string;
+}
+
 export interface UpsertSharedPtCodeUsageHistoryData {
   sharedPtCodeUsageHistory_upsert: SharedPtCodeUsageHistory_Key;
 }
@@ -514,6 +583,16 @@ export interface UpsertSharedPtCodeUsageHistoryData {
 export interface UpsertSharedPtCodeUsageHistoryVariables {
   ptCode: string;
   sessionYear: string;
+}
+
+export interface UpsertSharedSchoolExecutiveDefaultData {
+  sharedSchoolExecutiveDefault_upsert: SharedSchoolExecutiveDefault_Key;
+}
+
+export interface UpsertSharedSchoolExecutiveDefaultVariables {
+  prCode: string;
+  incumbentCode?: string | null;
+  name: string;
 }
 
 export interface UpsertSharedSchoolGroupData {
@@ -682,6 +761,42 @@ export const upsertSharedPtCodeUsageHistoryRef: UpsertSharedPtCodeUsageHistoryRe
 
 export function upsertSharedPtCodeUsageHistory(vars: UpsertSharedPtCodeUsageHistoryVariables): MutationPromise<UpsertSharedPtCodeUsageHistoryData, UpsertSharedPtCodeUsageHistoryVariables>;
 export function upsertSharedPtCodeUsageHistory(dc: DataConnect, vars: UpsertSharedPtCodeUsageHistoryVariables): MutationPromise<UpsertSharedPtCodeUsageHistoryData, UpsertSharedPtCodeUsageHistoryVariables>;
+
+interface UpsertSharedExecutiveRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertSharedExecutiveVariables): MutationRef<UpsertSharedExecutiveData, UpsertSharedExecutiveVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpsertSharedExecutiveVariables): MutationRef<UpsertSharedExecutiveData, UpsertSharedExecutiveVariables>;
+  operationName: string;
+}
+export const upsertSharedExecutiveRef: UpsertSharedExecutiveRef;
+
+export function upsertSharedExecutive(vars: UpsertSharedExecutiveVariables): MutationPromise<UpsertSharedExecutiveData, UpsertSharedExecutiveVariables>;
+export function upsertSharedExecutive(dc: DataConnect, vars: UpsertSharedExecutiveVariables): MutationPromise<UpsertSharedExecutiveData, UpsertSharedExecutiveVariables>;
+
+interface UpsertSharedSchoolExecutiveDefaultRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertSharedSchoolExecutiveDefaultVariables): MutationRef<UpsertSharedSchoolExecutiveDefaultData, UpsertSharedSchoolExecutiveDefaultVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpsertSharedSchoolExecutiveDefaultVariables): MutationRef<UpsertSharedSchoolExecutiveDefaultData, UpsertSharedSchoolExecutiveDefaultVariables>;
+  operationName: string;
+}
+export const upsertSharedSchoolExecutiveDefaultRef: UpsertSharedSchoolExecutiveDefaultRef;
+
+export function upsertSharedSchoolExecutiveDefault(vars: UpsertSharedSchoolExecutiveDefaultVariables): MutationPromise<UpsertSharedSchoolExecutiveDefaultData, UpsertSharedSchoolExecutiveDefaultVariables>;
+export function upsertSharedSchoolExecutiveDefault(dc: DataConnect, vars: UpsertSharedSchoolExecutiveDefaultVariables): MutationPromise<UpsertSharedSchoolExecutiveDefaultData, UpsertSharedSchoolExecutiveDefaultVariables>;
+
+interface UpsertSharedOrderSchoolExecutiveRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertSharedOrderSchoolExecutiveVariables): MutationRef<UpsertSharedOrderSchoolExecutiveData, UpsertSharedOrderSchoolExecutiveVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpsertSharedOrderSchoolExecutiveVariables): MutationRef<UpsertSharedOrderSchoolExecutiveData, UpsertSharedOrderSchoolExecutiveVariables>;
+  operationName: string;
+}
+export const upsertSharedOrderSchoolExecutiveRef: UpsertSharedOrderSchoolExecutiveRef;
+
+export function upsertSharedOrderSchoolExecutive(vars: UpsertSharedOrderSchoolExecutiveVariables): MutationPromise<UpsertSharedOrderSchoolExecutiveData, UpsertSharedOrderSchoolExecutiveVariables>;
+export function upsertSharedOrderSchoolExecutive(dc: DataConnect, vars: UpsertSharedOrderSchoolExecutiveVariables): MutationPromise<UpsertSharedOrderSchoolExecutiveData, UpsertSharedOrderSchoolExecutiveVariables>;
 
 interface ListOrganisationsRef {
   /* Allow users to create refs without passing in DataConnect */
@@ -874,4 +989,28 @@ export const listSharedPtCodeUsageHistoryRef: ListSharedPtCodeUsageHistoryRef;
 
 export function listSharedPtCodeUsageHistory(vars?: ListSharedPtCodeUsageHistoryVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedPtCodeUsageHistoryData, ListSharedPtCodeUsageHistoryVariables>;
 export function listSharedPtCodeUsageHistory(dc: DataConnect, vars?: ListSharedPtCodeUsageHistoryVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedPtCodeUsageHistoryData, ListSharedPtCodeUsageHistoryVariables>;
+
+interface ListSharedExecutivesRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: ListSharedExecutivesVariables): QueryRef<ListSharedExecutivesData, ListSharedExecutivesVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars?: ListSharedExecutivesVariables): QueryRef<ListSharedExecutivesData, ListSharedExecutivesVariables>;
+  operationName: string;
+}
+export const listSharedExecutivesRef: ListSharedExecutivesRef;
+
+export function listSharedExecutives(vars?: ListSharedExecutivesVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedExecutivesData, ListSharedExecutivesVariables>;
+export function listSharedExecutives(dc: DataConnect, vars?: ListSharedExecutivesVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedExecutivesData, ListSharedExecutivesVariables>;
+
+interface ListSharedSchoolExecutiveDefaultsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: ListSharedSchoolExecutiveDefaultsVariables): QueryRef<ListSharedSchoolExecutiveDefaultsData, ListSharedSchoolExecutiveDefaultsVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars?: ListSharedSchoolExecutiveDefaultsVariables): QueryRef<ListSharedSchoolExecutiveDefaultsData, ListSharedSchoolExecutiveDefaultsVariables>;
+  operationName: string;
+}
+export const listSharedSchoolExecutiveDefaultsRef: ListSharedSchoolExecutiveDefaultsRef;
+
+export function listSharedSchoolExecutiveDefaults(vars?: ListSharedSchoolExecutiveDefaultsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedSchoolExecutiveDefaultsData, ListSharedSchoolExecutiveDefaultsVariables>;
+export function listSharedSchoolExecutiveDefaults(dc: DataConnect, vars?: ListSharedSchoolExecutiveDefaultsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedSchoolExecutiveDefaultsData, ListSharedSchoolExecutiveDefaultsVariables>;
 

@@ -139,6 +139,48 @@ exports.upsertSharedPtCodeUsageHistory = function upsertSharedPtCodeUsageHistory
 }
 ;
 
+const upsertSharedExecutiveRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertSharedExecutive', inputVars);
+}
+upsertSharedExecutiveRef.operationName = 'UpsertSharedExecutive';
+exports.upsertSharedExecutiveRef = upsertSharedExecutiveRef;
+
+exports.upsertSharedExecutive = function upsertSharedExecutive(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertSharedExecutiveRef(dcInstance, inputVars));
+}
+;
+
+const upsertSharedSchoolExecutiveDefaultRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertSharedSchoolExecutiveDefault', inputVars);
+}
+upsertSharedSchoolExecutiveDefaultRef.operationName = 'UpsertSharedSchoolExecutiveDefault';
+exports.upsertSharedSchoolExecutiveDefaultRef = upsertSharedSchoolExecutiveDefaultRef;
+
+exports.upsertSharedSchoolExecutiveDefault = function upsertSharedSchoolExecutiveDefault(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertSharedSchoolExecutiveDefaultRef(dcInstance, inputVars));
+}
+;
+
+const upsertSharedOrderSchoolExecutiveRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertSharedOrderSchoolExecutive', inputVars);
+}
+upsertSharedOrderSchoolExecutiveRef.operationName = 'UpsertSharedOrderSchoolExecutive';
+exports.upsertSharedOrderSchoolExecutiveRef = upsertSharedOrderSchoolExecutiveRef;
+
+exports.upsertSharedOrderSchoolExecutive = function upsertSharedOrderSchoolExecutive(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertSharedOrderSchoolExecutiveRef(dcInstance, inputVars));
+}
+;
+
 const listOrganisationsRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
   dcInstance._useGeneratedSdk();
@@ -376,5 +418,35 @@ exports.listSharedPtCodeUsageHistory = function listSharedPtCodeUsageHistory(dcO
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
   return executeQuery(listSharedPtCodeUsageHistoryRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listSharedExecutivesRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListSharedExecutives', inputVars);
+}
+listSharedExecutivesRef.operationName = 'ListSharedExecutives';
+exports.listSharedExecutivesRef = listSharedExecutivesRef;
+
+exports.listSharedExecutives = function listSharedExecutives(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  return executeQuery(listSharedExecutivesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listSharedSchoolExecutiveDefaultsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListSharedSchoolExecutiveDefaults', inputVars);
+}
+listSharedSchoolExecutiveDefaultsRef.operationName = 'ListSharedSchoolExecutiveDefaults';
+exports.listSharedSchoolExecutiveDefaultsRef = listSharedSchoolExecutiveDefaultsRef;
+
+exports.listSharedSchoolExecutiveDefaults = function listSharedSchoolExecutiveDefaults(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  return executeQuery(listSharedSchoolExecutiveDefaultsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;

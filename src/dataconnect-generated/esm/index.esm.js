@@ -118,6 +118,42 @@ export function upsertSharedPtCodeUsageHistory(dcOrVars, vars) {
   return executeMutation(upsertSharedPtCodeUsageHistoryRef(dcInstance, inputVars));
 }
 
+export const upsertSharedExecutiveRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertSharedExecutive', inputVars);
+}
+upsertSharedExecutiveRef.operationName = 'UpsertSharedExecutive';
+
+export function upsertSharedExecutive(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertSharedExecutiveRef(dcInstance, inputVars));
+}
+
+export const upsertSharedSchoolExecutiveDefaultRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertSharedSchoolExecutiveDefault', inputVars);
+}
+upsertSharedSchoolExecutiveDefaultRef.operationName = 'UpsertSharedSchoolExecutiveDefault';
+
+export function upsertSharedSchoolExecutiveDefault(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertSharedSchoolExecutiveDefaultRef(dcInstance, inputVars));
+}
+
+export const upsertSharedOrderSchoolExecutiveRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertSharedOrderSchoolExecutive', inputVars);
+}
+upsertSharedOrderSchoolExecutiveRef.operationName = 'UpsertSharedOrderSchoolExecutive';
+
+export function upsertSharedOrderSchoolExecutive(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertSharedOrderSchoolExecutiveRef(dcInstance, inputVars));
+}
+
 export const listOrganisationsRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
   dcInstance._useGeneratedSdk();
@@ -324,5 +360,31 @@ export function listSharedPtCodeUsageHistory(dcOrVars, varsOrOptions, options) {
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
   return executeQuery(listSharedPtCodeUsageHistoryRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const listSharedExecutivesRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListSharedExecutives', inputVars);
+}
+listSharedExecutivesRef.operationName = 'ListSharedExecutives';
+
+export function listSharedExecutives(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  return executeQuery(listSharedExecutivesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const listSharedSchoolExecutiveDefaultsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListSharedSchoolExecutiveDefaults', inputVars);
+}
+listSharedSchoolExecutiveDefaultsRef.operationName = 'ListSharedSchoolExecutiveDefaults';
+
+export function listSharedSchoolExecutiveDefaults(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  return executeQuery(listSharedSchoolExecutiveDefaultsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 

@@ -71,6 +71,7 @@ export async function prepareGsOrder(tx: Prisma.TransactionClient, input: Create
     return { ...input, sheet1: { ...sheet1, endUserGroupCode: group.groupCode, schoolGroupId: group.schoolGroupId } };
   }
   const participants: CreateOrderInput['combinedSchools'] = [];
+  const executiveCodes = new Map<string, string>();
   {
     const members = await getGroupMembers(tx, code);
     if (!members.length && !savedParticipants.size) throw new Error('This GS group has no member organisations.');
@@ -90,9 +91,10 @@ export async function prepareGsOrder(tx: Prisma.TransactionClient, input: Create
         continue;
       }
       const { ptCode } = await ensureGsMemberPtCode(tx, member.id, used);
+      executiveCodes.set(row.schoolCode, ptCode);
       participants.push({ schoolCode: ptCode, schoolName: saved?.schoolName ?? member.organisationName, notes: row.notes ?? '' });
     }
     if (new Set(participants.map(row => row.schoolCode)).size !== participants.length) throw new Error('Duplicate PT codes exist in the GS membership; correct them before ordering.');
   }
-  return { ...input, combinedSchools: participants, sheet1: { ...sheet1, endUserGroupCode: group.groupCode, schoolGroupId: group.schoolGroupId, schoolGroupLocationId: savedGs?.schoolGroupLocationId ?? undefined } };
+  return { ...input, schoolExecutives: input.schoolExecutives?.map(row => ({ ...row, schoolCode: executiveCodes.get(row.schoolCode) ?? row.schoolCode })), combinedSchools: participants, sheet1: { ...sheet1, endUserGroupCode: group.groupCode, schoolGroupId: group.schoolGroupId, schoolGroupLocationId: savedGs?.schoolGroupLocationId ?? undefined } };
 }

@@ -4,6 +4,7 @@ import { getGsOrderOptions } from "@/lib/services/groups";
 import { getReferenceData } from "@/lib/services/reference";
 import { formatSchoolAddress, formatVendorAddress } from "@/lib/shipping";
 import { extractContactNumbers } from "@/lib/contact-numbers";
+import { getExecutiveReferenceData } from "@/lib/services/executives";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,7 @@ function toSchoolOptions(
 
 export default async function CreateOrderPage() {
   const reference = await getReferenceData();
+  const executiveReference = await getExecutiveReferenceData();
   const gsOptions = await getGsOrderOptions();
 
   return (
@@ -44,6 +46,7 @@ export default async function CreateOrderPage() {
         description="Choose billing and shipping independently. Use descriptive orders for known end schools, or ambiguous orders when end schools are unknown."
       />
       <CreateOrderForm
+        {...executiveReference}
         schools={toSchoolOptions(reference.schools)}
         groups={[
           ...gsOptions,

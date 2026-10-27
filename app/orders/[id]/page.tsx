@@ -117,6 +117,13 @@ export default async function OrderDetailsPage({
       </div>
 
       <EndUserTypes schools={endUsers} sessionYear={order.sessionYear ?? ""} types={endUserTypes} error={endUserTypeError} />
+      {order.orderType !== "ambiguous" && endUsers.length ? <Card className="mb-6 p-5">
+        <h2 className="mb-3 text-lg font-semibold text-ink">School executives</h2>
+        <SimpleTable headers={["School code", "School", "Executive"]} rows={endUsers.map(school => {
+          const value = order.schoolExecutives.find(row => row.schoolCode === school.schoolCode);
+          return [school.schoolCode, school.schoolName, value?.name ? `${value.name}${value.incumbentCode ? ` — ${value.incumbentCode}` : ""}` : "Not assigned"];
+        })} />
+      </Card> : null}
 
       {order.classification === "direct_group" ? (
         <div className="mb-6 grid gap-4 xl:grid-cols-2"><GroupParticipants rows={order.groupParticipants}/><GroupItems rows={order.groupItems}/></div>

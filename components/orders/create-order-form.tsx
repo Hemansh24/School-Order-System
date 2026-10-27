@@ -16,6 +16,7 @@ import { getOrderEnteredDate } from "@/lib/order-dates";
 import { createOrderSchema, type CreateOrderInput } from "@/lib/validation/orders";
 import { distinctEndUsers } from "@/lib/end-user-type";
 import { EndUserTypesPreview } from "@/components/orders/end-user-types-preview";
+import { ExecutivePicker, type ExecutiveOption } from "@/components/orders/executive-picker";
 
 type SchoolRef = {
   optionKey: string;
@@ -51,6 +52,8 @@ type ItemRef = {
 };
 
 type Props = {
+  executives?: ExecutiveOption[];
+  executiveDefaults?: { schoolCode: string; incumbentCode: string | null; name: string }[];
   schools: SchoolRef[];
   groups: GroupRef[];
   vendors: VendorRef[];
@@ -155,6 +158,8 @@ export function CreateOrderForm({
   groups: sourceGroups,
   vendors,
   items,
+  executives = [],
+  executiveDefaults = [],
   initialValues,
   orderSheet1Id,
   orderCreatedAt,
@@ -177,6 +182,9 @@ export function CreateOrderForm({
   const schools = useMemo(() => sourceSchools.map(school => ({ ...school, schoolCode: ptCodes[school.schoolCode] ?? school.schoolCode })), [sourceSchools, ptCodes]);
   const groups = useMemo(() => sourceGroups.map(group => ({ ...group, members: group.members?.map(member => ({ ...member, schoolCode: ptCodes[member.prCode] ?? member.schoolCode, ptCode: ptCodes[member.prCode] ?? member.ptCode })) })), [sourceGroups, ptCodes]);
   const [selectedDescriptiveSchoolKey, setSelectedDescriptiveSchoolKey] = useState("");
+  const executiveSeenSchools = useRef(new Set([
+    ...(initialValues?.descriptiveRows ?? []), ...(initialValues?.combinedSchools ?? [])
+  ].map(row => row.schoolCode)));
   const [selectedCategoryCode, setSelectedCategoryCode] = useState(items[0]?.categoryCode ?? "");
   const [selectedCustomisationCode, setSelectedCustomisationCode] = useState(
     items[0]?.customisationCode ?? ""
@@ -239,6 +247,7 @@ export function CreateOrderForm({
         contactNumbers: [""],
         notes: ""
       },
+      schoolExecutives: [],
       descriptiveRows: [],
       ambiguousSchools: [],
       ambiguousItems: [],
@@ -357,6 +366,9 @@ export function CreateOrderForm({
         const parsedDraft: unknown = JSON.parse(savedDraft);
         if (isSavedOrderDraft(parsedDraft)) {
           setLegacySchoolConversion(hasLegacySchoolAllocations({ ...parsedDraft.sheet1, descriptiveRows: parsedDraft.descriptiveRows }) || !!(parsedDraft as CreateOrderInput & { legacySchoolConversion?: boolean }).legacySchoolConversion);
+          executiveSeenSchools.current = new Set([...parsedDraft.descriptiveRows, ...parsedDraft.combinedSchools].map(row => row.schoolCode));
+          const savedSchoolKey = (parsedDraft as CreateOrderInput & { selectedDescriptiveSchoolKey?: unknown }).selectedDescriptiveSchoolKey;
+          if (typeof savedSchoolKey === "string") setSelectedDescriptiveSchoolKey(savedSchoolKey);
           form.reset(normalizeOrderEntry({
             ...parsedDraft,
             sheet1: { ...parsedDraft.sheet1, sessionYear: getCurrentSessionYear(), orderPlacedDate: parsedDraft.sheet1.orderPlacedDate || parsedDraft.sheet1.orderReceivedDate }
@@ -376,11 +388,11 @@ export function CreateOrderForm({
     }
 
     const subscription = form.watch((values) => {
-      window.sessionStorage.setItem(ORDER_DRAFT_STORAGE_KEY, JSON.stringify({ ...values, legacySchoolConversion }));
+      window.sessionStorage.setItem(ORDER_DRAFT_STORAGE_KEY, JSON.stringify({ ...values, legacySchoolConversion, selectedDescriptiveSchoolKey }));
     });
 
     return () => subscription.unsubscribe();
-  }, [form, isDraftReady, isNewOrder, legacySchoolConversion]);
+  }, [form, isDraftReady, isNewOrder, legacySchoolConversion, selectedDescriptiveSchoolKey]);
 
   const billingOptions = useMemo(
     () =>
@@ -509,6 +521,26 @@ export function CreateOrderForm({
 
   const activeDescriptiveSchoolKey = selectedDescriptiveSchoolKey || findSchoolOptionByStoredValue(schools, watchedDescriptiveRows[0]?.schoolCode, watchedDescriptiveRows[0]?.schoolName)?.optionKey || "";
   const activeDescriptiveSchool = schools.find(school => school.optionKey === activeDescriptiveSchoolKey);
+  const executiveSchools = orderType === "descriptive"
+    ? distinctEndUsers(isMultiple ? watchedCombinedSchools : activeDescriptiveSchool ? [activeDescriptiveSchool] : watchedDescriptiveRows)
+    : [];
+  const executiveSchoolKey = JSON.stringify(executiveSchools.map(row => row.schoolCode));
+  const watchedExecutives = form.watch("schoolExecutives") ?? [];
+  useEffect(() => {
+    if (!isDraftReady) return;
+    const codes: string[] = JSON.parse(executiveSchoolKey);
+    const retained = new Set(codes);
+    const previous = form.getValues("schoolExecutives") ?? [];
+    const next = previous.map(row => ({ ...row, schoolCode: ptCodes[row.schoolCode] ?? row.schoolCode })).filter(row => retained.has(row.schoolCode));
+    const seen = new Set([...executiveSeenSchools.current].map(code => ptCodes[code] ?? code));
+    for (const schoolCode of codes) {
+      if (next.some(row => row.schoolCode === schoolCode)) continue;
+      const saved = !seen.has(schoolCode) ? executiveDefaults.find(row => (ptCodes[row.schoolCode] ?? row.schoolCode) === schoolCode) : undefined;
+      next.push({ schoolCode, incumbentCode: saved?.incumbentCode ?? null, name: saved?.name ?? "", updateDefault: false });
+    }
+    executiveSeenSchools.current = retained;
+    if (JSON.stringify(previous) !== JSON.stringify(next)) form.setValue("schoolExecutives", next, { shouldValidate: true });
+  }, [executiveSchoolKey, executiveDefaults, ptCodes, isDraftReady, form]);
 
   const categoryOptions = useMemo(
     () =>
@@ -728,6 +760,8 @@ export function CreateOrderForm({
     form.setValue("ambiguousItems", []);
     form.setValue("combinedSchools", []);
     form.setValue("combinedItems", []);
+    form.setValue("schoolExecutives", []);
+    executiveSeenSchools.current.clear();
   }
 
   async function submit(values: CreateOrderInput) {
@@ -779,6 +813,18 @@ export function CreateOrderForm({
 
   const errors = form.formState.errors;
   const canSubmit = step === 4 && form.formState.isValid && !isPending && !convertingPrCode;
+
+  function renderExecutivePicker(schoolCode?: string) {
+    return <div className="min-w-0">
+      {schoolCode ? <ExecutivePicker options={executives}
+        value={watchedExecutives.find(row => row.schoolCode === schoolCode) ?? { name: "" }}
+        onChange={value => {
+          const rows = form.getValues("schoolExecutives") ?? [];
+          form.setValue("schoolExecutives", [...rows.filter(row => row.schoolCode !== schoolCode), { ...value, schoolCode, updateDefault: true }], { shouldDirty: true, shouldValidate: true });
+        }} /> : <Field label="Executive"><input disabled className={`${inputClass} bg-slate-50`} placeholder="Choose a school first" /></Field>}
+      <p className="mt-1 text-xs text-muted">Optional. Saved changes become this school's default.</p>
+    </div>;
+  }
 
   return (
     <form onSubmit={form.handleSubmit(submit)} className="space-y-6">
@@ -1106,6 +1152,7 @@ export function CreateOrderForm({
             </div>
           </div>
           <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
             <Field label="School">
               <ReferencePicker
                 schools={schools}
@@ -1121,6 +1168,8 @@ export function CreateOrderForm({
                 }}
               />
             </Field>
+            {renderExecutivePicker(activeDescriptiveSchool?.schoolCode)}
+            </div>
             <ItemSelectionFilters
               categories={categoryOptions}
               customisations={customisationOptions}
@@ -1178,7 +1227,7 @@ export function CreateOrderForm({
           <p className="mb-4 text-sm text-muted">
             {isGroup ? "Choose the schools participating in this order. GS schools come from the selected group." : "Select at least two schools."} Enter one shared total per item for all participating schools.
           </p>
-          <div className="grid gap-6 xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <div>
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="font-semibold text-ink">Order Sheet 2C1 Participating Schools</h3>
@@ -1212,10 +1261,13 @@ export function CreateOrderForm({
                         </button> : null}
                       </div>
                       {conversionError && conversionError.prCode === member?.prCode ? <p role="alert" className="mt-2 text-sm text-red-700">{conversionError.message}</p> : null}
+                      {watchedCombinedSchools.some(row => row.schoolCode === school.schoolCode) ? <div className="mt-3">{renderExecutivePicker(school.schoolCode)}</div> : null}
                     </div>;
                   })}
                 </> : combinedSchools.fields.map((field, index) => (
                   <LineRow key={field.id} onRemove={() => combinedSchools.remove(index)}>
+                    <div className="min-w-0 space-y-3">
+                    <Field label="School">
                     <ReferencePicker
                       schools={schools.filter((school) => {
                         const selectedCode = form.watch(`combinedSchools.${index}.schoolCode`);
@@ -1224,6 +1276,9 @@ export function CreateOrderForm({
                       selectedKey={findSchoolOptionByStoredValue(schools, form.watch(`combinedSchools.${index}.schoolCode`), form.watch(`combinedSchools.${index}.schoolName`))?.optionKey ?? ""}
                       onChange={(optionKey) => setCombinedSchool(index, optionKey)}
                     />
+                    </Field>
+                    {renderExecutivePicker(form.watch(`combinedSchools.${index}.schoolCode`))}
+                    </div>
                   </LineRow>
                 ))}
               </div>
@@ -1250,6 +1305,8 @@ export function CreateOrderForm({
         </Card>
       ) : null}
 
+      {errors.schoolExecutives?.message ? <p role="alert" className="text-sm text-red-700">{errors.schoolExecutives.message}</p> : null}
+
       {step >= 2 && orderType === "descriptive" ? <EndUserTypesPreview
         schools={distinctEndUsers(isMultiple ? watchedCombinedSchools : activeDescriptiveSchool ? [activeDescriptiveSchool] : watchedDescriptiveRows)}
         sessionYear={form.watch("sheet1.sessionYear")}
@@ -1264,6 +1321,10 @@ export function CreateOrderForm({
         <Card className="p-5">
           <h2 className="mb-3 text-lg font-semibold text-ink">Review</h2>
           <ReviewBlock values={form.getValues()} orderEnteredDate={orderEnteredDate} />
+          {executiveSchools.length ? <div className="mt-4 space-y-2 text-sm"><h3 className="font-semibold">School executives</h3>{executiveSchools.map(school => {
+            const value = watchedExecutives.find(row => row.schoolCode === school.schoolCode);
+            return <p key={school.schoolCode}>{school.schoolName}: {value?.name || "Not assigned"}{value?.incumbentCode ? ` — ${value.incumbentCode}` : ""}</p>;
+          })}</div> : null}
         </Card>
       ) : null}
 
@@ -1576,7 +1637,7 @@ function LineRow({
   onRemove: () => void;
 }) {
   return (
-    <div className="grid gap-3 rounded-md border border-line bg-canvas p-3 md:grid-cols-[1fr_1fr_140px_44px]">
+    <div className="grid grid-cols-[minmax(0,1fr)_44px] items-start gap-3 rounded-md border border-line bg-canvas p-3">
       {children}
       <button
         type="button"

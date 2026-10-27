@@ -8,6 +8,7 @@ import { getReferenceData } from "@/lib/services/reference";
 import { formatSchoolAddress, formatVendorAddress } from "@/lib/shipping";
 import type { CreateOrderInput } from "@/lib/validation/orders";
 import { extractContactNumbers } from "@/lib/contact-numbers";
+import { getExecutiveReferenceData } from "@/lib/services/executives";
 
 export const dynamic = "force-dynamic";
 
@@ -59,8 +60,10 @@ export default async function EditOrderPage({
   }
 
   const reference = await getReferenceData();
+  const executiveReference = await getExecutiveReferenceData();
   const gsOptions = await getGsOrderOptions();
   const initialValues: CreateOrderInput = {
+    schoolExecutives: order.schoolExecutives.map(row => ({ schoolCode: row.schoolCode, incumbentCode: row.incumbentCode, name: row.name })),
     sheet1: {
       sessionYear: order.sessionYear ?? "",
       orderPlacedDate: toInputDate(order.orderPlacedDate),
@@ -135,6 +138,7 @@ export default async function EditOrderPage({
         description="Update this order before finalization. Its order number remains unchanged."
       />
       <CreateOrderForm
+        {...executiveReference}
         schools={toSchoolOptions(reference.schools)}
         groups={[
           ...gsOptions,

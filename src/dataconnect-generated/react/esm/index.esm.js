@@ -1,4 +1,4 @@
-import { setBooksellerActualDiscountRef, upsertChristianGroupRef, setChristianGroupActiveRef, upsertPreBooksellerRef, upsertSharedSchoolGroupRef, upsertSharedSchoolGroupLocationRef, upsertSharedVendorRef, upsertSharedVendorSchoolRef, upsertSharedPtCodeUsageHistoryRef, listOrganisationsRef, searchOrganisationsRef, getOrganisationByPrCodeRef, listBooksellerDiscountsRef, listBooksellersRef, getBooksellerByCodeRef, listItemsRef, getItemByCodeRef, listBooksellerSchoolMappingRef, listSharedSchoolGroupsRef, listSharedSchoolGroupLocationsRef, listSharedChristianGroupsRef, listSharedPreBooksellersRef, listSharedVendorsRef, listSharedVendorSchoolsRef, listSharedPtCodeUsageHistoryRef, connectorConfig } from '../../esm/index.esm.js';
+import { setBooksellerActualDiscountRef, upsertChristianGroupRef, setChristianGroupActiveRef, upsertPreBooksellerRef, upsertSharedSchoolGroupRef, upsertSharedSchoolGroupLocationRef, upsertSharedVendorRef, upsertSharedVendorSchoolRef, upsertSharedPtCodeUsageHistoryRef, upsertSharedExecutiveRef, upsertSharedSchoolExecutiveDefaultRef, upsertSharedOrderSchoolExecutiveRef, listOrganisationsRef, searchOrganisationsRef, getOrganisationByPrCodeRef, listBooksellerDiscountsRef, listBooksellersRef, getBooksellerByCodeRef, listItemsRef, getItemByCodeRef, listBooksellerSchoolMappingRef, listSharedSchoolGroupsRef, listSharedSchoolGroupLocationsRef, listSharedChristianGroupsRef, listSharedPreBooksellersRef, listSharedVendorsRef, listSharedVendorSchoolsRef, listSharedPtCodeUsageHistoryRef, listSharedExecutivesRef, listSharedSchoolExecutiveDefaultsRef, connectorConfig } from '../../esm/index.esm.js';
 import { validateArgs, CallerSdkTypeEnum } from 'firebase/data-connect';
 import { useDataConnectQuery, useDataConnectMutation, validateReactArgs } from '@tanstack-query-firebase/react/data-connect';
 
@@ -70,6 +70,30 @@ export function useUpsertSharedPtCodeUsageHistory(dcOrOptions, options) {
   const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
   function refFactory(vars) {
     return upsertSharedPtCodeUsageHistoryRef(dcInstance, vars);
+  }
+  return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
+}
+
+export function useUpsertSharedExecutive(dcOrOptions, options) {
+  const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
+  function refFactory(vars) {
+    return upsertSharedExecutiveRef(dcInstance, vars);
+  }
+  return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
+}
+
+export function useUpsertSharedSchoolExecutiveDefault(dcOrOptions, options) {
+  const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
+  function refFactory(vars) {
+    return upsertSharedSchoolExecutiveDefaultRef(dcInstance, vars);
+  }
+  return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
+}
+
+export function useUpsertSharedOrderSchoolExecutive(dcOrOptions, options) {
+  const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
+  function refFactory(vars) {
+    return upsertSharedOrderSchoolExecutiveRef(dcInstance, vars);
   }
   return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }
@@ -168,5 +192,17 @@ export function useListSharedVendorSchools(dcOrVars, varsOrOptions, options) {
 export function useListSharedPtCodeUsageHistory(dcOrVars, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateReactArgs(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
   const ref = listSharedPtCodeUsageHistoryRef(dcInstance, inputVars);
+  return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
+}
+
+export function useListSharedExecutives(dcOrVars, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateReactArgs(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  const ref = listSharedExecutivesRef(dcInstance, inputVars);
+  return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
+}
+
+export function useListSharedSchoolExecutiveDefaults(dcOrVars, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateReactArgs(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  const ref = listSharedSchoolExecutiveDefaultsRef(dcInstance, inputVars);
   return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }

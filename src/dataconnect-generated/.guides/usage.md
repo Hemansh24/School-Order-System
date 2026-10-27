@@ -12,7 +12,7 @@ For each operation, there is a wrapper hook that can be used to call the operati
 
 Here are all of the hooks that get generated:
 ```ts
-import { useSetBooksellerActualDiscount, useUpsertChristianGroup, useSetChristianGroupActive, useUpsertPreBookseller, useUpsertSharedSchoolGroup, useUpsertSharedSchoolGroupLocation, useUpsertSharedVendor, useUpsertSharedVendorSchool, useUpsertSharedPtCodeUsageHistory, useListOrganisations } from '@dataconnect/generated/react';
+import { useSetBooksellerActualDiscount, useUpsertChristianGroup, useSetChristianGroupActive, useUpsertPreBookseller, useUpsertSharedSchoolGroup, useUpsertSharedSchoolGroupLocation, useUpsertSharedVendor, useUpsertSharedVendorSchool, useUpsertSharedPtCodeUsageHistory, useUpsertSharedExecutive } from '@dataconnect/generated/react';
 // The types of these hooks are available in react/index.d.ts
 
 const { data, isPending, isSuccess, isError, error } = useSetBooksellerActualDiscount(setBooksellerActualDiscountVars);
@@ -33,7 +33,7 @@ const { data, isPending, isSuccess, isError, error } = useUpsertSharedVendorScho
 
 const { data, isPending, isSuccess, isError, error } = useUpsertSharedPtCodeUsageHistory(upsertSharedPtCodeUsageHistoryVars);
 
-const { data, isPending, isSuccess, isError, error } = useListOrganisations(listOrganisationsVars);
+const { data, isPending, isSuccess, isError, error } = useUpsertSharedExecutive(upsertSharedExecutiveVars);
 
 ```
 
@@ -72,7 +72,7 @@ If a user is not using a supported framework, they can use the generated SDK dir
 Here's an example of how to use it with the first 5 operations:
 
 ```js
-import { setBooksellerActualDiscount, upsertChristianGroup, setChristianGroupActive, upsertPreBookseller, upsertSharedSchoolGroup, upsertSharedSchoolGroupLocation, upsertSharedVendor, upsertSharedVendorSchool, upsertSharedPtCodeUsageHistory, listOrganisations } from '@dataconnect/generated';
+import { setBooksellerActualDiscount, upsertChristianGroup, setChristianGroupActive, upsertPreBookseller, upsertSharedSchoolGroup, upsertSharedSchoolGroupLocation, upsertSharedVendor, upsertSharedVendorSchool, upsertSharedPtCodeUsageHistory, upsertSharedExecutive } from '@dataconnect/generated';
 
 
 // Operation SetBooksellerActualDiscount:  For variables, look at type SetBooksellerActualDiscountVars in ../index.d.ts
@@ -102,8 +102,8 @@ const { data } = await UpsertSharedVendorSchool(dataConnect, upsertSharedVendorS
 // Operation UpsertSharedPtCodeUsageHistory:  For variables, look at type UpsertSharedPtCodeUsageHistoryVars in ../index.d.ts
 const { data } = await UpsertSharedPtCodeUsageHistory(dataConnect, upsertSharedPtCodeUsageHistoryVars);
 
-// Operation ListOrganisations:  For variables, look at type ListOrganisationsVars in ../index.d.ts
-const { data } = await ListOrganisations(dataConnect, listOrganisationsVars);
+// Operation UpsertSharedExecutive:  For variables, look at type UpsertSharedExecutiveVars in ../index.d.ts
+const { data } = await UpsertSharedExecutive(dataConnect, upsertSharedExecutiveVars);
 
 
 ```

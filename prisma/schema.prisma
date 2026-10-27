@@ -275,6 +275,7 @@ model Item {
 }
 
 model OrderSheet1 {
+  schoolExecutives OrderSchoolExecutive[]
   orderSheet1Id        Int           @id @default(autoincrement()) @map("order_sheet_1_id")
   orderNo              Int           @map("order_no")
   sessionYear          String?       @map("session_year")
@@ -321,6 +322,38 @@ model OrderSheet1 {
 
   @@index([orderType, orderStatus])
   @@map("order_sheet_1")
+}
+
+model Executive {
+  incumbentCode String @id @map("incumbent_code")
+  name String
+  mobile String?
+  email String?
+  baseLocation String? @map("base_location")
+  syncedAt DateTime @default(now()) @map("synced_at")
+
+  @@map("executives")
+}
+
+// PR identity survives replacement of schools and assignment/reversal of PT codes.
+model SchoolExecutiveDefault {
+  prCode String @id @map("pr_code")
+  incumbentCode String? @map("incumbent_code")
+  name String
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("school_executive_defaults")
+}
+
+model OrderSchoolExecutive {
+  orderSheet1Id Int @map("order_sheet_1_id")
+  schoolCode String @map("school_code")
+  incumbentCode String? @map("incumbent_code")
+  name String
+  order OrderSheet1 @relation(fields: [orderSheet1Id], references: [orderSheet1Id], onDelete: Cascade)
+
+  @@id([orderSheet1Id, schoolCode])
+  @@map("order_school_executives")
 }
 
 model OrderGroupParticipant {

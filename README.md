@@ -22,6 +22,28 @@ Next.js App Router application for school-book order processing with the require
 
 ## Setup
 
+### School executives
+
+Descriptive orders support one optional Executive per end school in Sheet 2, including
+individual, multiple-school, and group entries. Search by name or incumbent code, or
+enter a custom name. Saving a changed or cleared assignment also updates the school's
+default for future orders. Existing order assignments preserve their saved names.
+Defaults use PR identity and survive school master refreshes and PT conversion.
+
+After applying migrations, import the Adv-Ambassadors directory into local Postgres:
+
+```powershell
+npm run executives:import
+npm run executives:import -- --apply
+```
+
+The first command previews; the second upserts by incumbent code without deleting
+existing executives. This uses Google Sheets read credentials, with optional
+`EXECUTIVES_SHEET_ID` and `EXECUTIVES_SHEET_RANGE` overrides. For a connector export,
+pass `--file <path.json>` containing a rows array or `{ "values": [...] }`, including
+the source headers. The entire input is validated before database writes. Custom
+names remain assignments and do not create directory entries. Imports are manual.
+
 ### Prerequisites
 
 - Git

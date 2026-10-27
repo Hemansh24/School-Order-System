@@ -14,8 +14,10 @@ import { ensurePtCodesForSchoolCodesTx } from "@/lib/services/organisations";
 import { orderSchoolCodes, reverseUnusedPtCodesTx, schoolReferenceSelect } from "@/lib/services/school-code-reversal";
 import { createOrderSchema, type CreateOrderInput } from "@/lib/validation/orders";
 import { resolveCommissionData } from "@/lib/services/order-commission";
+import { saveOrderExecutives } from "@/lib/services/executives";
 
 const orderInclude = {
+  schoolExecutives: true,
   descriptiveRows: true,
   ambiguousSchools: true,
   ambiguousItems: true,
@@ -126,6 +128,7 @@ function applyPtCodesToOrder(
   }
 
   return {
+    schoolExecutives: input.schoolExecutives?.map(row => ({ ...row, schoolCode: mappedCode(row.schoolCode) })),
     sheet1: {
       ...input.sheet1,
       commissionPartyCode: input.sheet1.commissionPartyType === "school" && input.sheet1.commissionPartyCode
@@ -317,6 +320,7 @@ export async function createOrder(input: CreateOrderInput) {
       });
     }
 
+    await saveOrderExecutives(tx, order.orderSheet1Id, orderInput);
     return tx.orderSheet1.findUniqueOrThrow({
       where: { orderSheet1Id: order.orderSheet1Id },
       include: orderInclude
@@ -437,6 +441,7 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
       });
     }
 
+    await saveOrderExecutives(tx, order.orderSheet1Id, orderInput);
     return tx.orderSheet1.findUniqueOrThrow({
       where: { orderSheet1Id: order.orderSheet1Id },
       include: orderInclude

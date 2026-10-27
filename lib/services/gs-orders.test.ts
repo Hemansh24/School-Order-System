@@ -39,6 +39,13 @@ test("GS creation saves only selected members and leaves excluded PR-only school
   assert.deepEqual(touched, [1]);
 });
 
+test("GS preparation remaps executive assignments alongside selected schools", async () => {
+  const { tx } = fixture();
+  const result = await prepareGsOrder(tx, { ...input(["PR1"]), schoolExecutives: [{ schoolCode: "PR1", incumbentCode: "IN01", name: "Executive", updateDefault: true }] });
+  assert.equal(result.schoolExecutives?.[0].schoolCode, "PT0001");
+  assert.equal(result.schoolExecutives?.[0].updateDefault, true);
+});
+
 test("GS edits honor deselection and allow current members to be reselected", async () => {
   const { tx } = fixture();
   const result = await prepareGsOrder(tx, input(["PT0001"]), saved);

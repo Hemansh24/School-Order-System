@@ -70,6 +70,27 @@ function upsertSharedPtCodeUsageHistory(dcOrVarsOrOptions, varsOrOptions, option
 }
 exports.upsertSharedPtCodeUsageHistory = upsertSharedPtCodeUsageHistory;
 
+function upsertSharedExecutive(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('UpsertSharedExecutive', inputVars, inputOpts);
+}
+exports.upsertSharedExecutive = upsertSharedExecutive;
+
+function upsertSharedSchoolExecutiveDefault(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('UpsertSharedSchoolExecutiveDefault', inputVars, inputOpts);
+}
+exports.upsertSharedSchoolExecutiveDefault = upsertSharedSchoolExecutiveDefault;
+
+function upsertSharedOrderSchoolExecutive(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('UpsertSharedOrderSchoolExecutive', inputVars, inputOpts);
+}
+exports.upsertSharedOrderSchoolExecutive = upsertSharedOrderSchoolExecutive;
+
 function listOrganisations(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, false);
   dcInstance.useGen(true);
@@ -181,4 +202,18 @@ function listSharedPtCodeUsageHistory(dcOrVarsOrOptions, varsOrOptions, options)
   return dcInstance.executeQuery('ListSharedPtCodeUsageHistory', inputVars, inputOpts);
 }
 exports.listSharedPtCodeUsageHistory = listSharedPtCodeUsageHistory;
+
+function listSharedExecutives(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, false);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('ListSharedExecutives', inputVars, inputOpts);
+}
+exports.listSharedExecutives = listSharedExecutives;
+
+function listSharedSchoolExecutiveDefaults(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, false);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('ListSharedSchoolExecutiveDefaults', inputVars, inputOpts);
+}
+exports.listSharedSchoolExecutiveDefaults = listSharedSchoolExecutiveDefaults;
 

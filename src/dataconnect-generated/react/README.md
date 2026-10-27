@@ -33,6 +33,8 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*ListSharedVendors*](#listsharedvendors)
   - [*ListSharedVendorSchools*](#listsharedvendorschools)
   - [*ListSharedPtCodeUsageHistory*](#listsharedptcodeusagehistory)
+  - [*ListSharedExecutives*](#listsharedexecutives)
+  - [*ListSharedSchoolExecutiveDefaults*](#listsharedschoolexecutivedefaults)
 - [**Mutations**](#mutations)
   - [*SetBooksellerActualDiscount*](#setbookselleractualdiscount)
   - [*UpsertChristianGroup*](#upsertchristiangroup)
@@ -43,6 +45,9 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*UpsertSharedVendor*](#upsertsharedvendor)
   - [*UpsertSharedVendorSchool*](#upsertsharedvendorschool)
   - [*UpsertSharedPtCodeUsageHistory*](#upsertsharedptcodeusagehistory)
+  - [*UpsertSharedExecutive*](#upsertsharedexecutive)
+  - [*UpsertSharedSchoolExecutiveDefault*](#upsertsharedschoolexecutivedefault)
+  - [*UpsertSharedOrderSchoolExecutive*](#upsertsharedorderschoolexecutive)
 
 # TanStack Query Firebase & TanStack React Query
 This SDK provides [React](https://react.dev/) hooks generated specific to your application, for the operations found in the connector `example`. These hooks are generated using [TanStack Query Firebase](https://react-query-firebase.invertase.dev/) by our partners at Invertase, a library built on top of [TanStack React Query v5](https://tanstack.com/query/v5/docs/framework/react/overview).
@@ -1782,6 +1787,198 @@ export default function ListSharedPtCodeUsageHistoryComponent() {
 }
 ```
 
+## ListSharedExecutives
+You can execute the `ListSharedExecutives` Query using the following Query hook function, which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts):
+
+```javascript
+useListSharedExecutives(dc: DataConnect, vars?: ListSharedExecutivesVariables, options?: useDataConnectQueryOptions<ListSharedExecutivesData>): UseDataConnectQueryResult<ListSharedExecutivesData, ListSharedExecutivesVariables>;
+```
+You can also pass in a `DataConnect` instance to the Query hook function.
+```javascript
+useListSharedExecutives(vars?: ListSharedExecutivesVariables, options?: useDataConnectQueryOptions<ListSharedExecutivesData>): UseDataConnectQueryResult<ListSharedExecutivesData, ListSharedExecutivesVariables>;
+```
+
+### Variables
+The `ListSharedExecutives` Query has an optional argument of type `ListSharedExecutivesVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface ListSharedExecutivesVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+```
+### Return Type
+Recall that calling the `ListSharedExecutives` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
+
+To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
+
+To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListSharedExecutives` Query is of type `ListSharedExecutivesData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface ListSharedExecutivesData {
+  sharedExecutives: ({
+    incumbentCode: string;
+    name: string;
+    mobile?: string | null;
+    email?: string | null;
+    baseLocation?: string | null;
+    syncedAt: TimestampString;
+  } & SharedExecutive_Key)[];
+}
+```
+
+To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
+
+### Using `ListSharedExecutives`'s Query hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, ListSharedExecutivesVariables } from '@dataconnect/generated';
+import { useListSharedExecutives } from '@dataconnect/generated/react'
+
+export default function ListSharedExecutivesComponent() {
+  // The `useListSharedExecutives` Query hook has an optional argument of type `ListSharedExecutivesVariables`:
+  const listSharedExecutivesVars: ListSharedExecutivesVariables = {
+    limit: ..., // optional
+    offset: ..., // optional
+  };
+
+  // You don't have to do anything to "execute" the Query.
+  // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
+  const query = useListSharedExecutives(listSharedExecutivesVars);
+  // Variables can be defined inline as well.
+  const query = useListSharedExecutives({ limit: ..., offset: ..., });
+  // Since all variables are optional for this Query, you can omit the `ListSharedExecutivesVariables` argument.
+  // (as long as you don't want to provide any `options`!)
+  const query = useListSharedExecutives();
+
+  // You can also pass in a `DataConnect` instance to the Query hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const query = useListSharedExecutives(dataConnect, listSharedExecutivesVars);
+
+  // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
+  const options = { staleTime: 5 * 1000 };
+  const query = useListSharedExecutives(listSharedExecutivesVars, options);
+  // If you'd like to provide options without providing any variables, you must
+  // pass `undefined` where you would normally pass the variables.
+  const query = useListSharedExecutives(undefined, options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = { staleTime: 5 * 1000 };
+  const query = useListSharedExecutives(dataConnect, listSharedExecutivesVars /** or undefined */, options);
+
+  // Then, you can render your component dynamically based on the status of the Query.
+  if (query.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (query.isError) {
+    return <div>Error: {query.error.message}</div>;
+  }
+
+  // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
+  if (query.isSuccess) {
+    console.log(query.data.sharedExecutives);
+  }
+  return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## ListSharedSchoolExecutiveDefaults
+You can execute the `ListSharedSchoolExecutiveDefaults` Query using the following Query hook function, which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts):
+
+```javascript
+useListSharedSchoolExecutiveDefaults(dc: DataConnect, vars?: ListSharedSchoolExecutiveDefaultsVariables, options?: useDataConnectQueryOptions<ListSharedSchoolExecutiveDefaultsData>): UseDataConnectQueryResult<ListSharedSchoolExecutiveDefaultsData, ListSharedSchoolExecutiveDefaultsVariables>;
+```
+You can also pass in a `DataConnect` instance to the Query hook function.
+```javascript
+useListSharedSchoolExecutiveDefaults(vars?: ListSharedSchoolExecutiveDefaultsVariables, options?: useDataConnectQueryOptions<ListSharedSchoolExecutiveDefaultsData>): UseDataConnectQueryResult<ListSharedSchoolExecutiveDefaultsData, ListSharedSchoolExecutiveDefaultsVariables>;
+```
+
+### Variables
+The `ListSharedSchoolExecutiveDefaults` Query has an optional argument of type `ListSharedSchoolExecutiveDefaultsVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface ListSharedSchoolExecutiveDefaultsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+```
+### Return Type
+Recall that calling the `ListSharedSchoolExecutiveDefaults` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
+
+To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
+
+To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListSharedSchoolExecutiveDefaults` Query is of type `ListSharedSchoolExecutiveDefaultsData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface ListSharedSchoolExecutiveDefaultsData {
+  sharedSchoolExecutiveDefaults: ({
+    prCode: string;
+    incumbentCode?: string | null;
+    name: string;
+    updatedAt: TimestampString;
+  } & SharedSchoolExecutiveDefault_Key)[];
+}
+```
+
+To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
+
+### Using `ListSharedSchoolExecutiveDefaults`'s Query hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, ListSharedSchoolExecutiveDefaultsVariables } from '@dataconnect/generated';
+import { useListSharedSchoolExecutiveDefaults } from '@dataconnect/generated/react'
+
+export default function ListSharedSchoolExecutiveDefaultsComponent() {
+  // The `useListSharedSchoolExecutiveDefaults` Query hook has an optional argument of type `ListSharedSchoolExecutiveDefaultsVariables`:
+  const listSharedSchoolExecutiveDefaultsVars: ListSharedSchoolExecutiveDefaultsVariables = {
+    limit: ..., // optional
+    offset: ..., // optional
+  };
+
+  // You don't have to do anything to "execute" the Query.
+  // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
+  const query = useListSharedSchoolExecutiveDefaults(listSharedSchoolExecutiveDefaultsVars);
+  // Variables can be defined inline as well.
+  const query = useListSharedSchoolExecutiveDefaults({ limit: ..., offset: ..., });
+  // Since all variables are optional for this Query, you can omit the `ListSharedSchoolExecutiveDefaultsVariables` argument.
+  // (as long as you don't want to provide any `options`!)
+  const query = useListSharedSchoolExecutiveDefaults();
+
+  // You can also pass in a `DataConnect` instance to the Query hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const query = useListSharedSchoolExecutiveDefaults(dataConnect, listSharedSchoolExecutiveDefaultsVars);
+
+  // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
+  const options = { staleTime: 5 * 1000 };
+  const query = useListSharedSchoolExecutiveDefaults(listSharedSchoolExecutiveDefaultsVars, options);
+  // If you'd like to provide options without providing any variables, you must
+  // pass `undefined` where you would normally pass the variables.
+  const query = useListSharedSchoolExecutiveDefaults(undefined, options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = { staleTime: 5 * 1000 };
+  const query = useListSharedSchoolExecutiveDefaults(dataConnect, listSharedSchoolExecutiveDefaultsVars /** or undefined */, options);
+
+  // Then, you can render your component dynamically based on the status of the Query.
+  if (query.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (query.isError) {
+    return <div>Error: {query.error.message}</div>;
+  }
+
+  // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
+  if (query.isSuccess) {
+    console.log(query.data.sharedSchoolExecutiveDefaults);
+  }
+  return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
 # Mutations
 
 The React generated SDK provides Mutations hook functions that call and return [`useDataConnectMutation`](https://react-query-firebase.invertase.dev/react/data-connect/mutations) hooks from TanStack Query Firebase.
@@ -2784,6 +2981,306 @@ export default function UpsertSharedPtCodeUsageHistoryComponent() {
   // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
   if (mutation.isSuccess) {
     console.log(mutation.data.sharedPtCodeUsageHistory_upsert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## UpsertSharedExecutive
+You can execute the `UpsertSharedExecutive` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts)):
+```javascript
+useUpsertSharedExecutive(options?: useDataConnectMutationOptions<UpsertSharedExecutiveData, FirebaseError, UpsertSharedExecutiveVariables>): UseDataConnectMutationResult<UpsertSharedExecutiveData, UpsertSharedExecutiveVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useUpsertSharedExecutive(dc: DataConnect, options?: useDataConnectMutationOptions<UpsertSharedExecutiveData, FirebaseError, UpsertSharedExecutiveVariables>): UseDataConnectMutationResult<UpsertSharedExecutiveData, UpsertSharedExecutiveVariables>;
+```
+
+### Variables
+The `UpsertSharedExecutive` Mutation requires an argument of type `UpsertSharedExecutiveVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface UpsertSharedExecutiveVariables {
+  incumbentCode: string;
+  name: string;
+  mobile?: string | null;
+  email?: string | null;
+  baseLocation?: string | null;
+}
+```
+### Return Type
+Recall that calling the `UpsertSharedExecutive` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpsertSharedExecutive` Mutation is of type `UpsertSharedExecutiveData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface UpsertSharedExecutiveData {
+  sharedExecutive_upsert: SharedExecutive_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `UpsertSharedExecutive`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, UpsertSharedExecutiveVariables } from '@dataconnect/generated';
+import { useUpsertSharedExecutive } from '@dataconnect/generated/react'
+
+export default function UpsertSharedExecutiveComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useUpsertSharedExecutive();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useUpsertSharedExecutive(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpsertSharedExecutive(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpsertSharedExecutive(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useUpsertSharedExecutive` Mutation requires an argument of type `UpsertSharedExecutiveVariables`:
+  const upsertSharedExecutiveVars: UpsertSharedExecutiveVariables = {
+    incumbentCode: ..., 
+    name: ..., 
+    mobile: ..., // optional
+    email: ..., // optional
+    baseLocation: ..., // optional
+  };
+  mutation.mutate(upsertSharedExecutiveVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ incumbentCode: ..., name: ..., mobile: ..., email: ..., baseLocation: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(upsertSharedExecutiveVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.sharedExecutive_upsert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## UpsertSharedSchoolExecutiveDefault
+You can execute the `UpsertSharedSchoolExecutiveDefault` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts)):
+```javascript
+useUpsertSharedSchoolExecutiveDefault(options?: useDataConnectMutationOptions<UpsertSharedSchoolExecutiveDefaultData, FirebaseError, UpsertSharedSchoolExecutiveDefaultVariables>): UseDataConnectMutationResult<UpsertSharedSchoolExecutiveDefaultData, UpsertSharedSchoolExecutiveDefaultVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useUpsertSharedSchoolExecutiveDefault(dc: DataConnect, options?: useDataConnectMutationOptions<UpsertSharedSchoolExecutiveDefaultData, FirebaseError, UpsertSharedSchoolExecutiveDefaultVariables>): UseDataConnectMutationResult<UpsertSharedSchoolExecutiveDefaultData, UpsertSharedSchoolExecutiveDefaultVariables>;
+```
+
+### Variables
+The `UpsertSharedSchoolExecutiveDefault` Mutation requires an argument of type `UpsertSharedSchoolExecutiveDefaultVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface UpsertSharedSchoolExecutiveDefaultVariables {
+  prCode: string;
+  incumbentCode?: string | null;
+  name: string;
+}
+```
+### Return Type
+Recall that calling the `UpsertSharedSchoolExecutiveDefault` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpsertSharedSchoolExecutiveDefault` Mutation is of type `UpsertSharedSchoolExecutiveDefaultData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface UpsertSharedSchoolExecutiveDefaultData {
+  sharedSchoolExecutiveDefault_upsert: SharedSchoolExecutiveDefault_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `UpsertSharedSchoolExecutiveDefault`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, UpsertSharedSchoolExecutiveDefaultVariables } from '@dataconnect/generated';
+import { useUpsertSharedSchoolExecutiveDefault } from '@dataconnect/generated/react'
+
+export default function UpsertSharedSchoolExecutiveDefaultComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useUpsertSharedSchoolExecutiveDefault();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useUpsertSharedSchoolExecutiveDefault(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpsertSharedSchoolExecutiveDefault(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpsertSharedSchoolExecutiveDefault(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useUpsertSharedSchoolExecutiveDefault` Mutation requires an argument of type `UpsertSharedSchoolExecutiveDefaultVariables`:
+  const upsertSharedSchoolExecutiveDefaultVars: UpsertSharedSchoolExecutiveDefaultVariables = {
+    prCode: ..., 
+    incumbentCode: ..., // optional
+    name: ..., 
+  };
+  mutation.mutate(upsertSharedSchoolExecutiveDefaultVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ prCode: ..., incumbentCode: ..., name: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(upsertSharedSchoolExecutiveDefaultVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.sharedSchoolExecutiveDefault_upsert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## UpsertSharedOrderSchoolExecutive
+You can execute the `UpsertSharedOrderSchoolExecutive` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts)):
+```javascript
+useUpsertSharedOrderSchoolExecutive(options?: useDataConnectMutationOptions<UpsertSharedOrderSchoolExecutiveData, FirebaseError, UpsertSharedOrderSchoolExecutiveVariables>): UseDataConnectMutationResult<UpsertSharedOrderSchoolExecutiveData, UpsertSharedOrderSchoolExecutiveVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useUpsertSharedOrderSchoolExecutive(dc: DataConnect, options?: useDataConnectMutationOptions<UpsertSharedOrderSchoolExecutiveData, FirebaseError, UpsertSharedOrderSchoolExecutiveVariables>): UseDataConnectMutationResult<UpsertSharedOrderSchoolExecutiveData, UpsertSharedOrderSchoolExecutiveVariables>;
+```
+
+### Variables
+The `UpsertSharedOrderSchoolExecutive` Mutation requires an argument of type `UpsertSharedOrderSchoolExecutiveVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface UpsertSharedOrderSchoolExecutiveVariables {
+  orderSheet1Id: number;
+  schoolCode: string;
+  incumbentCode?: string | null;
+  name: string;
+}
+```
+### Return Type
+Recall that calling the `UpsertSharedOrderSchoolExecutive` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpsertSharedOrderSchoolExecutive` Mutation is of type `UpsertSharedOrderSchoolExecutiveData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface UpsertSharedOrderSchoolExecutiveData {
+  sharedOrderSchoolExecutive_upsert: SharedOrderSchoolExecutive_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `UpsertSharedOrderSchoolExecutive`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, UpsertSharedOrderSchoolExecutiveVariables } from '@dataconnect/generated';
+import { useUpsertSharedOrderSchoolExecutive } from '@dataconnect/generated/react'
+
+export default function UpsertSharedOrderSchoolExecutiveComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useUpsertSharedOrderSchoolExecutive();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useUpsertSharedOrderSchoolExecutive(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpsertSharedOrderSchoolExecutive(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpsertSharedOrderSchoolExecutive(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useUpsertSharedOrderSchoolExecutive` Mutation requires an argument of type `UpsertSharedOrderSchoolExecutiveVariables`:
+  const upsertSharedOrderSchoolExecutiveVars: UpsertSharedOrderSchoolExecutiveVariables = {
+    orderSheet1Id: ..., 
+    schoolCode: ..., 
+    incumbentCode: ..., // optional
+    name: ..., 
+  };
+  mutation.mutate(upsertSharedOrderSchoolExecutiveVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ orderSheet1Id: ..., schoolCode: ..., incumbentCode: ..., name: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(upsertSharedOrderSchoolExecutiveVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.sharedOrderSchoolExecutive_upsert);
   }
   return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
 }

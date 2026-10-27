@@ -15,6 +15,18 @@ const item = { itemCode: "ITEM1", itemName: "Book" };
 const school = { schoolCode: "PT1", schoolName: "End school" };
 const ambiguous = { sheet1, ambiguousItems: [{ ...item, groupedQuantity: 10 }] };
 
+test("executives are optional and restricted to one assignment per descriptive end school", () => {
+  const input = { sheet1: { ...sheet1, orderType: "descriptive", descriptiveMode: "individual" }, descriptiveRows: [{ ...school, ...item, quantity: 2 }] };
+  for (const assignment of [{ schoolCode: "PT1", name: "Custom executive" }, { schoolCode: "PT1", name: "", incumbentCode: null }, { schoolCode: "PT1", name: "Executive", incumbentCode: "in01" }]) {
+    assert.equal(createOrderSchema.safeParse({ ...input, schoolExecutives: [assignment] }).success, true);
+  }
+  const assignment = { schoolCode: "PT1", name: "Custom" };
+  assert.equal(createOrderSchema.safeParse({ ...input, schoolExecutives: [assignment, assignment] }).success, false);
+  assert.equal(createOrderSchema.safeParse({ ...input, schoolExecutives: [{ ...assignment, schoolCode: "PT2" }] }).success, false);
+  assert.equal(createOrderSchema.safeParse({ ...ambiguous, schoolExecutives: [assignment] }).success, false);
+  assert.equal(createOrderSchema.safeParse({ ...input, schoolExecutives: [{ ...assignment, name: "", incumbentCode: "IN1" }] }).success, false);
+});
+
 test("commission requires a party name or code and a finite percentage from 0 to 100", () => {
   const commission = { ...sheet1, commissionEnabled: true, commissionPartyType: "vendor", commissionPartyCode: "BS001" };
   for (const commissionPercentage of [0, 7.5, 100, "12.25"]) {

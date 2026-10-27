@@ -233,3 +233,30 @@ type SharedPtCodeUsageHistory
   sessionYear: String! @col(name: "session_year")
   syncedAt: Timestamp! @col(name: "synced_at")
 }
+
+type SharedExecutive
+@table(name: "shared_executives", key: ["incumbentCode"]) {
+  incumbentCode: String! @col(name: "incumbent_code")
+  name: String!
+  mobile: String
+  email: String
+  baseLocation: String @col(name: "base_location")
+  syncedAt: Timestamp! @col(name: "synced_at")
+}
+
+type SharedSchoolExecutiveDefault
+@table(name: "shared_school_executive_defaults", key: ["prCode"]) {
+  prCode: String! @col(name: "pr_code")
+  incumbentCode: String @col(name: "incumbent_code")
+  name: String!
+  updatedAt: Timestamp! @col(name: "updated_at")
+}
+
+type SharedOrderSchoolExecutive
+@table(name: "shared_order_school_executives", key: ["orderSheet1Id", "schoolCode"]) {
+  orderSheet1Id: Int! @col(name: "order_sheet_1_id")
+  schoolCode: String! @col(name: "school_code")
+  incumbentCode: String @col(name: "incumbent_code")
+  name: String!
+  syncedAt: Timestamp! @col(name: "synced_at")
+}
