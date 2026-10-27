@@ -35,6 +35,11 @@ export function OrderActionButtons({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
+        {classification === "normal" ? (
+          <ButtonLink href={`/orders/${orderSheet1Id}/reorder`} className="border border-line bg-white">
+            Place Reorder
+          </ButtonLink>
+        ) : null}
         {canEdit ? (
           <ButtonLink href={`/orders/${orderSheet1Id}/edit`} className="border border-line bg-white">
             Edit Draft

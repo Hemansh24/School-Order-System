@@ -275,6 +275,9 @@ model Item {
 }
 
 model OrderSheet1 {
+  reorderOfOrderId Int? @map("reorder_of_order_id")
+  reorderOfOrder OrderSheet1? @relation("OrderReorders", fields: [reorderOfOrderId], references: [orderSheet1Id], onDelete: SetNull)
+  reorders OrderSheet1[] @relation("OrderReorders")
   schoolExecutives OrderSchoolExecutive[]
   orderSheet1Id        Int           @id @default(autoincrement()) @map("order_sheet_1_id")
   orderNo              Int           @map("order_no")
@@ -321,6 +324,7 @@ model OrderSheet1 {
   groupParentLinks OrderGroupChildOrder[] @relation("GroupChild")
 
   @@index([orderType, orderStatus])
+  @@index([reorderOfOrderId])
   @@map("order_sheet_1")
 }
 

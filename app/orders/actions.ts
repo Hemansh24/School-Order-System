@@ -4,6 +4,7 @@ import { formatActionError } from "@/lib/action-errors";
 import {
   cancelHeldOrder,
   createOrder,
+  createReorder,
   finalizeOrder,
   lockOrder,
   markPaymentReceived,
@@ -16,6 +17,16 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { convertGsMemberTx } from "@/lib/services/gs-orders";
+import type { ReorderInput } from "@/lib/reorder";
+
+export async function createReorderAction(sourceOrderId: number, input: ReorderInput): Promise<ActionState> {
+  try {
+    const order = await createReorder(sourceOrderId, input);
+    return { ok: true, orderSheet1Id: order.orderSheet1Id };
+  } catch (error) {
+    return { ok: false, message: formatActionError(error, { fallback: "Could not place this reorder. Please review the form and try again." }) };
+  }
+}
 
 export async function convertGsMemberAction(input: { groupCode: string; prCode: string }): Promise<
   { ok: true; prCode: string; ptCode: string; schoolName: string } | { ok: false; message: string }

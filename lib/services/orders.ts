@@ -15,8 +15,10 @@ import { orderSchoolCodes, reverseUnusedPtCodesTx, schoolReferenceSelect } from 
 import { createOrderSchema, type CreateOrderInput } from "@/lib/validation/orders";
 import { resolveCommissionData } from "@/lib/services/order-commission";
 import { saveOrderExecutives } from "@/lib/services/executives";
+import { buildReorderInput, type ReorderInput } from "@/lib/reorder";
 
 const orderInclude = {
+  reorderOfOrder: { select: { orderSheet1Id: true, orderNo: true } },
   schoolExecutives: true,
   descriptiveRows: true,
   ambiguousSchools: true,
@@ -330,6 +332,49 @@ export async function createOrder(input: CreateOrderInput) {
   revalidatePath("/");
   revalidatePath("/orders");
   revalidatePath("/organisations");
+  return created;
+}
+
+export async function createReorder(sourceOrderId: number, input: ReorderInput) {
+  if (!Number.isSafeInteger(sourceOrderId) || sourceOrderId <= 0) throw new Error("Invalid source order.");
+  const created = await prisma.$transaction(async tx => {
+    await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(741024)`;
+    const source = await tx.orderSheet1.findUnique({ where: { orderSheet1Id: sourceOrderId }, include: orderInclude });
+    if (!source) throw new Error("Original order not found.");
+    const values = buildReorderInput(source, input);
+    await assertShippingDestinationExists(tx, values);
+    const orderNo = await nextParentOrderNo(tx);
+    const order = await tx.orderSheet1.create({ data: {
+      orderNo, reorderOfOrderId: sourceOrderId, orderStatus: "draft",
+      sessionYear: values.sheet1.sessionYear,
+      orderPlacedDate: toDate(values.sheet1.orderPlacedDate),
+      orderReceivedDate: toDate(values.sheet1.orderReceivedDate),
+      expectedDeliveryDate: values.sheet1.expectedDeliveryDate ? toDate(values.sheet1.expectedDeliveryDate) : null,
+      billingToType: source.billingToType, billingToCode: source.billingToCode, billingToName: source.billingToName,
+      shippingToType: values.sheet1.shippingToType, shippingToCode: values.sheet1.shippingToCode || null,
+      shippingToName: values.sheet1.shippingToName, shippingToSummary: values.sheet1.shippingToSummary,
+      orderType: values.sheet1.orderType,
+      descriptiveMode: values.sheet1.orderType === "descriptive" ? values.sheet1.descriptiveMode : null,
+      endUserGroupCode: values.sheet1.endUserGroupCode || null,
+      schoolGroupId: source.schoolGroupId, schoolGroupLocationId: source.schoolGroupLocationId,
+      booksellerType: source.booksellerType, booksellerRating: source.booksellerRating,
+      pendingPayment: source.pendingPayment, contactNumbers: source.contactNumbers, notes: source.notes,
+      commissionPartyType: source.commissionPartyType, commissionPartyCode: source.commissionPartyCode,
+      commissionPercentage: source.commissionPercentage
+    } });
+    const identity = { orderSheet1Id: order.orderSheet1Id, orderNo };
+    if (values.descriptiveRows.length) await tx.orderSheet2A.createMany({ data: values.descriptiveRows.map(row => ({ ...row, ...identity })) });
+    if (values.ambiguousItems.length) await tx.orderSheet2B2.createMany({ data: values.ambiguousItems.map(row => ({ ...row, ...identity })) });
+    if (values.combinedSchools.length) await tx.orderSheet2C1.createMany({ data: values.combinedSchools.map(row => ({ ...row, ...identity })) });
+    if (values.combinedItems.length) await tx.orderSheet2C2.createMany({ data: values.combinedItems.map(row => ({ ...row, ...identity })) });
+    // Copy historical executive snapshots without consulting or changing defaults.
+    if (source.schoolExecutives.length) await tx.orderSchoolExecutive.createMany({
+      data: source.schoolExecutives.map(({ schoolCode, incumbentCode, name }) => ({ schoolCode, incumbentCode, name, orderSheet1Id: order.orderSheet1Id }))
+    });
+    return tx.orderSheet1.findUniqueOrThrow({ where: { orderSheet1Id: order.orderSheet1Id }, include: orderInclude });
+  }, { timeout: 120000 });
+  revalidatePath("/");
+  revalidatePath("/orders");
   return created;
 }
 

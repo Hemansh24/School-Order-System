@@ -5,7 +5,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
-import { convertGsMemberAction, createOrderAction, updateOrderAction } from "@/app/orders/actions";
+import { convertGsMemberAction, createOrderAction, createReorderAction, updateOrderAction } from "@/app/orders/actions";
 import { updateVendorDiscountAction } from "@/app/vendors/actions";
 import { Card, SubmitButton } from "@/components/ui";
 import { compareEditionCodes, DEFAULT_LANGUAGE_CODE } from "@/lib/item-code";
@@ -59,6 +59,9 @@ type Props = {
   vendors: VendorRef[];
   items: ItemRef[];
   initialValues?: CreateOrderInput;
+  reorderSourceId?: number;
+  reorderSourceNo?: number;
+  reorderSchool?: { schoolCode: string; schoolName: string };
   orderSheet1Id?: number;
   orderCreatedAt?: string;
   submitLabel?: string;
@@ -161,12 +164,16 @@ export function CreateOrderForm({
   executives = [],
   executiveDefaults = [],
   initialValues,
+  reorderSourceId,
+  reorderSourceNo,
+  reorderSchool,
   orderSheet1Id,
   orderCreatedAt,
   submitLabel = "Create Order",
   requiresLegacyConversion = false
 }: Props) {
   const router = useRouter();
+  const isReorder = reorderSourceId !== undefined;
   const [step, setStep] = useState(1);
   const [savedDiscounts, setSavedDiscounts] = useState<Record<string, string>>({});
   const [legacySchoolConversion, setLegacySchoolConversion] = useState(requiresLegacyConversion);
@@ -175,13 +182,13 @@ export function CreateOrderForm({
   const [convertingPrCode, setConvertingPrCode] = useState<string | null>(null);
   const conversionInFlight = useRef(false);
   const [conversionError, setConversionError] = useState<{ prCode: string; message: string } | null>(null);
-  const ptCodes = useMemo(() => ({
+  const ptCodes = useMemo<Record<string, string>>(() => isReorder ? {} : ({
     ...Object.fromEntries(sourceGroups.flatMap(group => (group.members ?? []).flatMap(member => member.ptCode ? [[member.prCode, member.ptCode]] : []))),
     ...convertedCodes
-  }), [sourceGroups, convertedCodes]);
+  }), [sourceGroups, convertedCodes, isReorder]);
   const schools = useMemo(() => sourceSchools.map(school => ({ ...school, schoolCode: ptCodes[school.schoolCode] ?? school.schoolCode })), [sourceSchools, ptCodes]);
   const groups = useMemo(() => sourceGroups.map(group => ({ ...group, members: group.members?.map(member => ({ ...member, schoolCode: ptCodes[member.prCode] ?? member.schoolCode, ptCode: ptCodes[member.prCode] ?? member.ptCode })) })), [sourceGroups, ptCodes]);
-  const [selectedDescriptiveSchoolKey, setSelectedDescriptiveSchoolKey] = useState("");
+  const [selectedDescriptiveSchoolKey, setSelectedDescriptiveSchoolKey] = useState(reorderSchool?.schoolCode ?? "");
   const executiveSeenSchools = useRef(new Set([
     ...(initialValues?.descriptiveRows ?? []), ...(initialValues?.combinedSchools ?? [])
   ].map(row => row.schoolCode)));
@@ -278,6 +285,13 @@ export function CreateOrderForm({
     mode: "onChange",
     defaultValues: normalizeOrderEntry(initialValues ?? newOrderDefaults)
   });
+
+  useEffect(() => {
+    if (!isReorder || !currentEntryDate) return;
+    form.setValue("sheet1.orderPlacedDate", currentEntryDate);
+    form.setValue("sheet1.orderReceivedDate", currentEntryDate);
+    form.setValue("sheet1.sessionYear", getCurrentSessionYear(new Date(`${currentEntryDate}T12:00:00+05:30`)));
+  }, [form, isReorder, currentEntryDate]);
 
   const orderType = form.watch("sheet1.orderType");
   const commissionEnabled = form.watch("sheet1.commissionEnabled") ?? false;
@@ -460,7 +474,7 @@ export function CreateOrderForm({
   })).values()];
   const appliedGs = useRef<string | null>(null);
   useEffect(() => {
-    if (!isDraftReady) return;
+    if (!isDraftReady || isReorder) return;
     const key = isGroup ? endUserGroupCode : "";
     if (key === appliedGs.current) return;
     const initial = appliedGs.current === null;
@@ -470,7 +484,7 @@ export function CreateOrderForm({
     if (selectedGs && !preserve) {
       form.setValue("combinedSchools", (selectedGs.members ?? []).map(member => ({ schoolCode: member.schoolCode, schoolName: member.schoolName, notes: "" })));
     }
-  }, [endUserGroupCode, selectedGs, isGroup, isDraftReady, form]);
+  }, [endUserGroupCode, selectedGs, isGroup, isDraftReady, isReorder, form]);
 
   const filteredBillingOptions = useMemo(() => {
     const query = billingToCode.trim().toLowerCase();
@@ -520,14 +534,14 @@ export function CreateOrderForm({
   }, [shippingOptions, shippingToCode, shippingPartyType]);
 
   const activeDescriptiveSchoolKey = selectedDescriptiveSchoolKey || findSchoolOptionByStoredValue(schools, watchedDescriptiveRows[0]?.schoolCode, watchedDescriptiveRows[0]?.schoolName)?.optionKey || "";
-  const activeDescriptiveSchool = schools.find(school => school.optionKey === activeDescriptiveSchoolKey);
+  const activeDescriptiveSchool = isReorder ? reorderSchool : schools.find(school => school.optionKey === activeDescriptiveSchoolKey);
   const executiveSchools = orderType === "descriptive"
     ? distinctEndUsers(isMultiple ? watchedCombinedSchools : activeDescriptiveSchool ? [activeDescriptiveSchool] : watchedDescriptiveRows)
     : [];
   const executiveSchoolKey = JSON.stringify(executiveSchools.map(row => row.schoolCode));
   const watchedExecutives = form.watch("schoolExecutives") ?? [];
   useEffect(() => {
-    if (!isDraftReady) return;
+    if (!isDraftReady || isReorder) return;
     const codes: string[] = JSON.parse(executiveSchoolKey);
     const retained = new Set(codes);
     const previous = form.getValues("schoolExecutives") ?? [];
@@ -540,7 +554,7 @@ export function CreateOrderForm({
     }
     executiveSeenSchools.current = retained;
     if (JSON.stringify(previous) !== JSON.stringify(next)) form.setValue("schoolExecutives", next, { shouldValidate: true });
-  }, [executiveSchoolKey, executiveDefaults, ptCodes, isDraftReady, form]);
+  }, [executiveSchoolKey, executiveDefaults, ptCodes, isDraftReady, isReorder, form]);
 
   const categoryOptions = useMemo(
     () =>
@@ -770,7 +784,13 @@ export function CreateOrderForm({
     setServerError(null);
     startTransition(async () => {
       const result =
-        orderSheet1Id === undefined
+        reorderSourceId !== undefined
+          ? await createReorderAction(reorderSourceId, {
+              shipping: { shippingToType: values.sheet1.shippingToType, shippingToCode: values.sheet1.shippingToCode, shippingToName: values.sheet1.shippingToName, shippingToSummary: values.sheet1.shippingToSummary, expectedDeliveryDate: values.sheet1.expectedDeliveryDate },
+              descriptiveItems: values.descriptiveRows.map(({ itemCode, itemName, quantity, notes }) => ({ itemCode, itemName, quantity, notes })),
+              ambiguousItems: values.ambiguousItems, combinedItems: values.combinedItems
+            })
+          : orderSheet1Id === undefined
           ? await createOrderAction(values)
           : await updateOrderAction(orderSheet1Id, values);
       if (!result.ok) {
@@ -815,6 +835,10 @@ export function CreateOrderForm({
   const canSubmit = step === 4 && form.formState.isValid && !isPending && !convertingPrCode;
 
   function renderExecutivePicker(schoolCode?: string) {
+    if (isReorder) {
+      const saved = watchedExecutives.find(row => row.schoolCode === schoolCode);
+      return <p className="text-sm text-muted">Executive: {saved?.name || "Not assigned"}{saved?.incumbentCode ? ` — ${saved.incumbentCode}` : ""}</p>;
+    }
     return <div className="min-w-0">
       {schoolCode ? <ExecutivePicker options={executives}
         value={watchedExecutives.find(row => row.schoolCode === schoolCode) ?? { name: "" }}
@@ -828,6 +852,7 @@ export function CreateOrderForm({
 
   return (
     <form onSubmit={form.handleSubmit(submit)} className="space-y-6">
+      {isReorder ? <p className="rounded-md border border-line bg-canvas p-3 text-sm">Reorder of Order {reorderSourceNo}. Billing, end users, and other saved details are fixed. Choose new items and quantities; shipping and expected delivery can change. Placed and received dates are set to today when saved.</p> : null}
       <div className="grid gap-3 sm:grid-cols-4">
         {["Order Sheet 1", orderType === "ambiguous" ? "Order Sheet 2B2 - Item quantities" : isMultiple ? "Order Sheet 2C1 + 2C2" : "Order Sheet 2A", "Review", "Lock/Finalize"].map(
           (label, index) => (
@@ -865,20 +890,21 @@ export function CreateOrderForm({
           <h2 className="mb-4 text-lg font-semibold text-ink">Order Sheet 1</h2>
           <div className="grid gap-4 md:grid-cols-3">
             <Field label="Session Year" error={errors.sheet1?.sessionYear?.message}>
-              <input readOnly={isNewOrder} className={inputClass} {...form.register("sheet1.sessionYear")} />
+              <input readOnly={isNewOrder || isReorder} className={inputClass} {...form.register("sheet1.sessionYear")} />
               {isNewOrder ? <p className="mt-1 text-xs text-muted">Set automatically for use in the next academic year.</p> : null}
             </Field>
             <Field label="Order Placed Date" error={errors.sheet1?.orderPlacedDate?.message}>
-              <input type="date" className={inputClass} {...form.register("sheet1.orderPlacedDate")} />
-              <p className="mt-1 text-xs text-muted">When the other party gave the order to us.</p>
+              <input type="date" readOnly={isReorder} className={inputClass} {...form.register("sheet1.orderPlacedDate")} />
+              <p className="mt-1 text-xs text-muted">{isReorder ? "Set to today in India when the reorder is saved." : "When the other party gave the order to us."}</p>
             </Field>
             <Field label="Order Received Date" error={errors.sheet1?.orderReceivedDate?.message}>
               <input
                 type="date"
                 className={inputClass}
                 {...form.register("sheet1.orderReceivedDate")}
+                readOnly={isReorder}
               />
-              <p className="mt-1 text-xs text-muted">When the order was introduced to us.</p>
+              <p className="mt-1 text-xs text-muted">{isReorder ? "Set to today in India when the reorder is saved." : "When the order was introduced to us."}</p>
             </Field>
             <Field label="Order Expected Date" error={errors.sheet1?.expectedDeliveryDate?.message}>
               <input type="date" className={inputClass} {...form.register("sheet1.expectedDeliveryDate")} />
@@ -889,7 +915,7 @@ export function CreateOrderForm({
               <p className="mt-1 text-xs text-muted">{orderCreatedAt ? "Recorded automatically when this order was first saved (India time)." : "Set automatically when the order is first saved (India time)."}</p>
             </Field>
             <Field label="Billing To Type">
-              <select className={inputClass} value={billingPartyType} onChange={event => {
+              <select disabled={isReorder} className={inputClass} value={billingPartyType} onChange={event => {
                 form.setValue("sheet1.billingToType", event.target.value as "school" | "vendor" | "group" | "individual");
                 form.setValue("sheet1.billingToCode", "");
                 form.setValue("sheet1.billingToName", "");
@@ -906,16 +932,17 @@ export function CreateOrderForm({
               <div className="relative">
                 <input
                   className={inputClass}
+                  readOnly={isReorder}
                   value={billingToType === "individual" ? form.watch("sheet1.billingToName") : form.watch("sheet1.billingToCode")}
                   onChange={event => billingToType === "individual" ? form.setValue("sheet1.billingToName", event.target.value) : setBillingCode(event.target.value)}
-                  onFocus={() => setIsBillingDropdownOpen(true)}
+                  onFocus={() => { if (!isReorder) setIsBillingDropdownOpen(true); }}
                   onBlur={() => {
                     window.setTimeout(() => setIsBillingDropdownOpen(false), 150);
                   }}
                   placeholder="Select a reference or choose manual entry"
                 />
                 {billingToType !== "individual" && form.watch("sheet1.billingToName") ? <p className="mt-1 text-sm text-muted">{form.watch("sheet1.billingToName")}</p> : null}
-                {billingToType === "vendor" && selectedBillingOption?.discount ? (
+                {!isReorder && billingToType === "vendor" && selectedBillingOption?.discount ? (
                   <ConcealedDiscount
                     key={selectedBillingOption.code}
                     vendorCode={selectedBillingOption.code}
@@ -1005,6 +1032,7 @@ export function CreateOrderForm({
               <select
                 className={inputClass}
                 value={orderType}
+                disabled={isReorder}
                 onChange={event => changeEntry(event.target.value as "descriptive" | "ambiguous")}
               >
                 <option value="descriptive">Descriptive</option>
@@ -1012,9 +1040,9 @@ export function CreateOrderForm({
               </select>
               <p className="mt-1 text-xs text-muted">Descriptive: end schools are known. Ambiguous: end schools are not yet known.</p>
             </Field>
-            <fieldset className="md:col-span-3">
+            <fieldset disabled={isReorder} className="md:col-span-3">
               <legend className={labelClass}>Contact numbers</legend>
-              <p className="mb-2 text-xs text-muted">Autofilled from the Billing To code. You can edit the numbers or add more.</p>
+              <p className="mb-2 text-xs text-muted">{isReorder ? "Copied from the original order." : "Autofilled from the Billing To code. You can edit the numbers or add more."}</p>
               <div className="space-y-2">
                 {(contactNumbers.length ? contactNumbers : [""]).map((number, index) => (
                   <div key={index} className="flex items-start gap-2">
@@ -1040,14 +1068,14 @@ export function CreateOrderForm({
               <button type="button" className="focus-ring mt-2 flex items-center gap-1 rounded px-2 py-1 text-sm font-medium text-brand-dark" onClick={() => form.setValue("sheet1.contactNumbers", [...(contactNumbers.length ? contactNumbers : [""]), ""], { shouldDirty: true })}><Plus className="h-4 w-4" />Add contact number</button>
             </fieldset>
             <Field label="Bookseller Type">
-              <input className={inputClass} {...form.register("sheet1.booksellerType")} />
+              <input readOnly={isReorder} className={inputClass} {...form.register("sheet1.booksellerType")} />
             </Field>
             <Field label="Bookseller Rating">
-              <input className={inputClass} {...form.register("sheet1.booksellerRating")} />
+              <input readOnly={isReorder} className={inputClass} {...form.register("sheet1.booksellerRating")} />
             </Field>
             <div className="mt-6 flex h-10 items-center gap-4">
               <label className="flex items-center gap-2 text-sm font-medium text-ink">
-                <input type="checkbox" className="h-4 w-4" {...form.register("sheet1.pendingPayment")} />
+                <input disabled={isReorder} type="checkbox" className="h-4 w-4" {...form.register("sheet1.pendingPayment")} />
                 Pending payment
               </label>
               {isNewOrder ? (
@@ -1057,7 +1085,7 @@ export function CreateOrderForm({
               ) : null}
             </div>
           </div>
-          <div className="mt-4 space-y-3 rounded-md border border-line p-4">
+          <fieldset disabled={isReorder} className="mt-4 space-y-3 rounded-md border border-line p-4">
             <label className="flex items-center gap-2 text-sm font-medium text-ink">
               <input type="checkbox" className="focus-ring h-4 w-4" checked={commissionEnabled} onChange={event => {
                 form.setValue("sheet1.commissionEnabled", event.target.checked, { shouldDirty: true });
@@ -1105,19 +1133,20 @@ export function CreateOrderForm({
                 <p className="mt-1 text-xs text-muted">Enter a percentage from 0 to 100.</p>
               </Field>
             </div> : null}
-          </div>
+          </fieldset>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <Field label="Shipping Address" error={errors.sheet1?.shippingToSummary?.message}>
               <textarea className={textAreaClass} {...form.register("sheet1.shippingToSummary")} />
             </Field>
             <Field label="Notes">
-              <textarea className={textAreaClass} {...form.register("sheet1.notes")} />
+              <textarea readOnly={isReorder} className={textAreaClass} {...form.register("sheet1.notes")} />
             </Field>
           </div>
         </Card>
       ) : null}
 
       {step === 2 && orderType === "descriptive" ? <Card className="mb-4 p-5">
+        <fieldset disabled={isReorder}>
         <Field label="Descriptive entry">
           <select className={inputClass} value={descriptiveMode} onChange={event => changeEntry("descriptive", event.target.value as DescriptiveMode)}>
             <option value="individual">Individual</option>
@@ -1125,7 +1154,8 @@ export function CreateOrderForm({
             <option value="multiple_group">Group</option>
           </select>
         </Field>
-        {isGroup ? <Field label="End-school group" error={errors.sheet1?.endUserGroupCode?.message}>
+        {isGroup && isReorder ? <p className="mt-3 text-sm">End-school group: {endUserGroupCode}</p> : null}
+        {isGroup && !isReorder ? <Field label="End-school group" error={errors.sheet1?.endUserGroupCode?.message}>
           <ReferencePicker kind="group"
             schools={endUserGroupCode && !groups.some(group => group.schoolCode === endUserGroupCode)
               ? [...groups, { optionKey: endUserGroupCode, schoolCode: endUserGroupCode, schoolName: "Saved group", addressSummary: "" }]
@@ -1141,6 +1171,7 @@ export function CreateOrderForm({
               form.setValue("sheet1.endUserGroupCode", code);
             }} />
         </Field> : null}
+        </fieldset>
       </Card> : null}
 
       {step === 2 && orderType === "descriptive" && !isMultiple ? (
@@ -1148,13 +1179,13 @@ export function CreateOrderForm({
           <div className="mb-4">
             <div>
               <h2 className="text-lg font-semibold text-ink">Order Sheet 2A</h2>
-              <p className="text-sm text-muted">Select one school and enter its item quantities.</p>
+              <p className="text-sm text-muted">{isReorder ? "Enter new item quantities for the original end school." : "Select one school and enter its item quantities."}</p>
             </div>
           </div>
           <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
             <Field label="School">
-              <ReferencePicker
+              {isReorder ? <p className="py-2 text-sm">{reorderSchool?.schoolCode} - {reorderSchool?.schoolName}</p> : <ReferencePicker
                 schools={schools}
                 selectedKey={activeDescriptiveSchoolKey}
                 onChange={optionKey => {
@@ -1166,7 +1197,7 @@ export function CreateOrderForm({
                   }
                   setSelectedDescriptiveSchoolKey(optionKey);
                 }}
-              />
+              />}
             </Field>
             {renderExecutivePicker(activeDescriptiveSchool?.schoolCode)}
             </div>
@@ -1225,9 +1256,16 @@ export function CreateOrderForm({
         <Card className="p-5">
           <h2 className="text-lg font-semibold text-ink">{isGroup ? "Group" : "Multiple Schools"} Entry</h2>
           <p className="mb-4 text-sm text-muted">
-            {isGroup ? "Choose the schools participating in this order. GS schools come from the selected group." : "Select at least two schools."} Enter one shared total per item for all participating schools.
+            {isReorder ? "The participating schools are copied from the original order." : isGroup ? "Choose the schools participating in this order. GS schools come from the selected group." : "Select at least two schools."} Enter one shared total per item for all participating schools.
           </p>
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+            {isReorder ? <div>
+              <h3 className="mb-3 font-semibold text-ink">Participating Schools</h3>
+              <div className="space-y-3">{watchedCombinedSchools.map(school => <div key={school.schoolCode} className="rounded border border-line p-3 text-sm">
+                <p>{school.schoolCode} - {school.schoolName}</p>
+                {renderExecutivePicker(school.schoolCode)}
+              </div>)}</div>
+            </div> : (<>
             <div>
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="font-semibold text-ink">Order Sheet 2C1 Participating Schools</h3>
@@ -1283,6 +1321,7 @@ export function CreateOrderForm({
                 ))}
               </div>
             </div>
+            </>)}
             <div>
               <h3 className="mb-3 font-semibold text-ink">Order Sheet 2C2 Pooled Items</h3>
               <ItemSelectionFilters

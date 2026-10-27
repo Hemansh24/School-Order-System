@@ -19,6 +19,7 @@ Next.js App Router application for school-book order processing with the require
 - Finalization creates Order Sheet 3 rows from either 2A or 2B2.
 - Order Sheet 3 has its own `order_sheet_3_id`, plus `source_type` and `source_id`.
 - Finalized orders are protected from direct edits.
+- **Place Reorder** on a normal order opens a new order with the same billing, end users, executives, commission, contacts, and order notes. Select fresh items and quantities; shipping and expected delivery can change. Saving assigns a new order number and draft status, links to the original order, and sets placed/received dates to today in India and the session to the current session. Fulfillment records are not copied. Group reporting containers and legacy direct group orders cannot be reordered; reorder their normal PT orders separately.
 
 ## Setup
 

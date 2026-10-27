@@ -62,6 +62,9 @@ export default async function OrderDetailsPage({
             <Info label="Status">
               <StatusPill value={order.orderStatus} />
             </Info>
+            {order.reorderOfOrder ? <Info label="Reorder of">
+              <Link className="font-semibold text-brand-dark underline" href={`/orders/${order.reorderOfOrder.orderSheet1Id}`}>Order {order.reorderOfOrder.orderNo}</Link>
+            </Info> : null}
             {fulfillmentStatus ? (
               <Info label="Fulfillment">
                 <StatusPill value={fulfillmentStatus} />
