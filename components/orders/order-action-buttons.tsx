@@ -2,7 +2,6 @@
 
 import { useActionState } from "react";
 import {
-  cancelHeldOrderAction,
   cancelOrderAction,
   finalizeOrderAction,
   lockOrderAction,
@@ -65,11 +64,6 @@ export function OrderActionButtons({
             {!isOnHold && !isFulfillmentCancelled ? (
               <OrderActionForm action={putOrderOnHoldAction.bind(null, orderSheet1Id)} variant="secondary">
                 Put On Hold
-              </OrderActionForm>
-            ) : null}
-            {isOnHold ? (
-              <OrderActionForm action={cancelHeldOrderAction.bind(null, orderSheet1Id)} variant="danger">
-                Cancel Order
               </OrderActionForm>
             ) : null}
             {!isFulfillmentCancelled ? (

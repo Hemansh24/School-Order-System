@@ -11,7 +11,7 @@ async function main() {
   assert.equal(url.port, "55439");
   assert.equal(url.pathname, "/order_revamp_verify");
   require("next/cache").revalidatePath = () => {};
-  const { createOrder, updateOrderStatus, lockOrder, finalizeOrder, putOrderOnHold, cancelHeldOrder } = await import("../lib/services/orders");
+  const { createOrder, updateOrderStatus, lockOrder, finalizeOrder, putOrderOnHold } = await import("../lib/services/orders");
   const suffix = Date.now().toString();
   const item = await prisma.item.findFirstOrThrow();
   const vendor = await prisma.vendor.findFirstOrThrow({ select: { vendorId: true } });
@@ -43,23 +43,28 @@ async function main() {
   const secondOrder = await createOrder(individual(ptCode));
   await updateOrderStatus(firstOrder.orderSheet1Id, "cancelled");
   assert.equal((await currentOrganisation(first.organisation.prCode)).ptCode, ptCode);
-  await lockOrder(secondOrder.orderSheet1Id);
-  await finalizeOrder(secondOrder.orderSheet1Id);
-  await putOrderOnHold(secondOrder.orderSheet1Id);
-  assert.equal((await currentOrganisation(first.organisation.prCode)).ptCode, ptCode);
-  await cancelHeldOrder(secondOrder.orderSheet1Id);
+  await updateOrderStatus(secondOrder.orderSheet1Id, "cancelled");
   assert.equal((await currentOrganisation(first.organisation.prCode)).ptCode, null);
   assert.equal((await prisma.school.findUniqueOrThrow({ where: { schoolId: first.school.schoolId } })).schoolCode, first.organisation.prCode);
   assert.equal(await prisma.vendorSchool.count({ where: { schoolId: first.school.schoolId, vendorId: vendor.vendorId } }), 1);
   assert.ok(await prisma.schoolGroupSchool.findUnique({ where: { ptCode: first.organisation.prCode } }));
   assert.equal((await prisma.orderSheet2A.findFirstOrThrow({ where: { orderSheet1Id: firstOrder.orderSheet1Id } })).schoolCode, ptCode);
-  assert.equal((await prisma.orderSheet3.findFirstOrThrow({ where: { orderSheet1Id: secondOrder.orderSheet1Id } })).cancelOrOnHoldStatus, "cancelled");
   await updateOrderStatus(firstOrder.orderSheet1Id, "cancelled");
   await assert.rejects(() => lockOrder(firstOrder.orderSheet1Id), /cancelled/);
   await assert.rejects(() => createOrder(individual(ptCode)), /changed or no longer exists/);
   const nextOrder = await createOrder(individual(first.organisation.prCode));
   assert.notEqual(nextOrder.descriptiveRows[0].schoolCode, ptCode);
   assert.ok(await prisma.schoolGroupSchool.findUnique({ where: { ptCode: nextOrder.descriptiveRows[0].schoolCode } }));
+
+  // Finalized orders retain their status and school codes, including while on hold.
+  await lockOrder(nextOrder.orderSheet1Id);
+  await finalizeOrder(nextOrder.orderSheet1Id);
+  await assert.rejects(() => updateOrderStatus(nextOrder.orderSheet1Id, "cancelled"), /Finalized orders cannot be changed/);
+  await putOrderOnHold(nextOrder.orderSheet1Id);
+  await assert.rejects(() => updateOrderStatus(nextOrder.orderSheet1Id, "cancelled"), /Finalized orders cannot be changed/);
+  assert.equal((await prisma.orderSheet1.findUniqueOrThrow({ where: { orderSheet1Id: nextOrder.orderSheet1Id } })).orderStatus, "finalized");
+  assert.equal((await prisma.orderSheet3.findFirstOrThrow({ where: { orderSheet1Id: nextOrder.orderSheet1Id } })).cancelOrOnHoldStatus, "on_hold");
+  assert.equal((await currentOrganisation(first.organisation.prCode)).ptCode, nextOrder.descriptiveRows[0].schoolCode);
 
   // Imported PT schools are eligible too. Billing/shipping alone retain PT.
   const imported = await school(true);
@@ -166,7 +171,7 @@ async function main() {
     assert.match(String(creation.reason), /changed or no longer exists/);
     assert.equal((await currentOrganisation(racing.organisation.prCode)).ptCode, null);
   }
-  console.log("Passed cancellation reversal: regular/held, other orders, imported PT, history, links, pooled/ambiguous/GS/legacy participants, re-promotion, duplicate rollback, concurrent cancellations and creation.");
+  console.log("Passed cancellation reversal: regular, finalized/held protection, other orders, imported PT, history, links, pooled/ambiguous/GS/legacy participants, re-promotion, duplicate rollback, concurrent cancellations and creation.");
 }
 
 main().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => prisma.$disconnect());

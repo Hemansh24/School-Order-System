@@ -780,30 +780,6 @@ export async function putOrderOnHold(orderSheet1Id: number) {
   revalidatePath("/reports");
 }
 
-export async function cancelHeldOrder(orderSheet1Id: number) {
-  await prisma.$transaction(async tx => {
-    await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(741024)`;
-    const order = await tx.orderSheet1.findUnique({
-      where: { orderSheet1Id }, select: { ...schoolReferenceSelect, orderStatus: true, finalRows: true }
-    });
-    if (!order) throw new Error("Order not found.");
-    if (order.orderStatus === "cancelled" || !order.finalRows.some(row => row.cancelOrOnHoldStatus === "on_hold")) {
-      throw new Error("Only on-hold orders can be cancelled from this action.");
-    }
-    await tx.orderSheet3.updateMany({
-      where: { orderSheet1Id, cancelOrOnHoldStatus: "on_hold" },
-      data: { cancelOrOnHoldStatus: "cancelled" }
-    });
-    await tx.orderSheet1.update({
-      where: { orderSheet1Id },
-      data: { orderStatus: "cancelled" }
-    });
-    await reverseUnusedPtCodesTx(tx, orderSchoolCodes(order));
-  }, { timeout: 120000 });
-
-  revalidateCancellationPaths(orderSheet1Id);
-}
-
 export async function searchOrders(params: URLSearchParams): Promise<SearchOrder[]> {
   const orderNo = params.get("order_no");
   const billingToType = params.get("billing_to_type");

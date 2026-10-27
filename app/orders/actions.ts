@@ -2,7 +2,6 @@
 
 import { formatActionError } from "@/lib/action-errors";
 import {
-  cancelHeldOrder,
   createOrder,
   createReorder,
   finalizeOrder,
@@ -170,24 +169,6 @@ export async function putOrderOnHoldAction(
       ok: false,
       message: formatActionError(error, {
         fallback: "Could not put this order on hold. Please try again."
-      })
-    };
-  }
-}
-
-export async function cancelHeldOrderAction(
-  orderSheet1Id: number,
-  _previousState: OrderMutationState,
-  _formData: FormData
-): Promise<OrderMutationState> {
-  try {
-    await cancelHeldOrder(orderSheet1Id);
-    return { ok: true, message: "On-hold order cancelled." };
-  } catch (error) {
-    return {
-      ok: false,
-      message: formatActionError(error, {
-        fallback: "Could not cancel this on-hold order. Please try again."
       })
     };
   }
