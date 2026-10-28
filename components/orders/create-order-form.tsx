@@ -137,6 +137,7 @@ function ConcealedDiscount({ vendorCode, discount, onSaved }: { vendorCode: stri
             id={inputId}
             className={inputClass}
             value={draft}
+            placeholder="Enter discount"
             maxLength={500}
             disabled={isSaving}
             onChange={event => { setDraft(event.target.value); setMessage(null); setError(null); }}
@@ -147,7 +148,7 @@ function ConcealedDiscount({ vendorCode, discount, onSaved }: { vendorCode: stri
             className="focus-ring rounded-md border border-line px-3 py-2 text-sm font-medium disabled:opacity-50"
             disabled={isSaving || !draft.trim() || draft.trim() === discount}
             onClick={saveDiscount}
-          >{isSaving ? "Saving discount…" : "Save discount"}</button>
+          >{isSaving ? "Saving discount…" : discount ? "Save discount" : "Add discount"}</button>
           {error ? <p role="alert" className="text-red-700">{error}</p> : null}
           {message ? <p role="status">{message}</p> : null}
         </div>
@@ -942,11 +943,11 @@ export function CreateOrderForm({
                   placeholder="Select a reference or choose manual entry"
                 />
                 {billingToType !== "individual" && form.watch("sheet1.billingToName") ? <p className="mt-1 text-sm text-muted">{form.watch("sheet1.billingToName")}</p> : null}
-                {!isReorder && billingToType === "vendor" && selectedBillingOption?.discount ? (
+                {!isReorder && billingToType === "vendor" && selectedBillingOption ? (
                   <ConcealedDiscount
                     key={selectedBillingOption.code}
                     vendorCode={selectedBillingOption.code}
-                    discount={selectedBillingOption.discount}
+                    discount={selectedBillingOption.discount ?? ""}
                     onSaved={discount => setSavedDiscounts(current => ({ ...current, [selectedBillingOption.code]: discount }))}
                   />
                 ) : null}
