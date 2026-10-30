@@ -12,7 +12,7 @@ function source(overrides: Partial<SavedOrderInput> = {}): SavedOrderInput {
     shippingToType: "individual", shippingToCode: null, shippingToName: "Saved recipient", shippingToSummary: "Saved address",
     orderType: "descriptive", descriptiveMode: "individual", endUserGroupCode: null,
     classification: "normal", schoolGroupId: null, schoolGroupLocationId: null, orderStatus: "finalized",
-    booksellerType: "Saved type", booksellerRating: "A", pendingPayment: true,
+    booksellerType: "Saved type", booksellerRating: "A", booksellerDiscount: null, pendingPayment: true,
     commissionPartyType: "individual", commissionPartyCode: "Saved commission", commissionPercentage: new Prisma.Decimal("7.5"),
     contactNumbers: ["9876543210"], notes: "Saved order notes", createdAt: new Date("2025-01-01"), updatedAt: new Date("2025-01-01"),
     schoolExecutives: [{ orderSheet1Id: 1, schoolCode: "PT1", incumbentCode: "IN1", name: "Historical executive" }],
@@ -26,6 +26,15 @@ const now = new Date("2026-10-27T19:00:00Z");
 const shipping = { shippingToType: "individual" as const, shippingToCode: "", shippingToName: "New recipient", shippingToSummary: "New address", expectedDeliveryDate: "" };
 const item = { itemCode: "NEW", itemName: "New book", quantity: 3 };
 const request: ReorderInput = { shipping, descriptiveItems: [item], ambiguousItems: [], combinedItems: [] };
+
+test("reorders copy known, blank, and unknown discounts from the source and reject browser overrides", () => {
+  for (const booksellerDiscount of ["Y: 30%", "", null]) {
+    const original = source({ billingToType: "vendor", billingToCode: "BS1", booksellerDiscount });
+    assert.equal(reorderDefaults(original, now).values.sheet1.booksellerDiscount, booksellerDiscount);
+    const values = buildReorderInput(original, { ...request, booksellerDiscount: "Z: 40%" } as ReorderInput, now);
+    assert.equal(values.sheet1.booksellerDiscount, booksellerDiscount);
+  }
+});
 
 test("empty defaults retain individual identity and protected snapshots, refreshing Indian dates", () => {
   const original = source();

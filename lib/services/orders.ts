@@ -14,6 +14,7 @@ import { ensurePtCodesForSchoolCodesTx } from "@/lib/services/organisations";
 import { orderSchoolCodes, reverseUnusedPtCodesTx, schoolReferenceSelect } from "@/lib/services/school-code-reversal";
 import { createOrderSchema, type CreateOrderInput } from "@/lib/validation/orders";
 import { resolveCommissionData } from "@/lib/services/order-commission";
+import { resolveOrderDiscount } from "@/lib/services/order-discount";
 import { saveOrderExecutives } from "@/lib/services/executives";
 import { buildReorderInput, type ReorderInput } from "@/lib/reorder";
 
@@ -244,6 +245,7 @@ export async function createOrder(input: CreateOrderInput) {
     const schoolCodeInput = applyPtCodesToOrder(prepared, ptCodeByOriginalCode);
     const orderInput = createOrderSchema.parse(schoolCodeInput);
     const commissionData = await resolveCommissionData(tx, orderInput.sheet1);
+    const booksellerDiscount = await resolveOrderDiscount(tx, orderInput.sheet1);
     const orderNo = await nextParentOrderNo(tx);
     const shippingToSummary = orderInput.sheet1.shippingToSummary;
 
@@ -251,6 +253,7 @@ export async function createOrder(input: CreateOrderInput) {
       data: {
         orderNo,
         ...commissionData,
+        booksellerDiscount,
         sessionYear: getCurrentSessionYear(),
         orderPlacedDate: toDate(orderInput.sheet1.orderPlacedDate),
         orderReceivedDate: orderInput.sheet1.orderReceivedDate ? toDate(orderInput.sheet1.orderReceivedDate) : null,
@@ -332,6 +335,8 @@ export async function createOrder(input: CreateOrderInput) {
   revalidatePath("/");
   revalidatePath("/orders");
   revalidatePath("/organisations");
+  revalidatePath("/vendors", "layout");
+  revalidatePath("/orders", "layout");
   return created;
 }
 
@@ -357,7 +362,7 @@ export async function createReorder(sourceOrderId: number, input: ReorderInput) 
       descriptiveMode: values.sheet1.orderType === "descriptive" ? values.sheet1.descriptiveMode : null,
       endUserGroupCode: values.sheet1.endUserGroupCode || null,
       schoolGroupId: source.schoolGroupId, schoolGroupLocationId: source.schoolGroupLocationId,
-      booksellerType: source.booksellerType, booksellerRating: source.booksellerRating,
+      booksellerType: source.booksellerType, booksellerRating: source.booksellerRating, booksellerDiscount: source.booksellerDiscount,
       pendingPayment: source.pendingPayment, contactNumbers: source.contactNumbers, notes: source.notes,
       commissionPartyType: source.commissionPartyType, commissionPartyCode: source.commissionPartyCode,
       commissionPercentage: source.commissionPercentage
@@ -396,6 +401,7 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
     const schoolCodeInput = applyPtCodesToOrder(prepared, ptCodeByOriginalCode);
     const orderInput = createOrderSchema.parse(schoolCodeInput);
     const commissionData = await resolveCommissionData(tx, orderInput.sheet1, current);
+    const booksellerDiscount = await resolveOrderDiscount(tx, orderInput.sheet1, current);
 
     const existing = current;
 
@@ -417,6 +423,7 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
       data: {
         sessionYear: orderInput.sheet1.sessionYear || null,
         ...commissionData,
+        booksellerDiscount,
         orderPlacedDate: toDate(orderInput.sheet1.orderPlacedDate),
         orderReceivedDate: orderInput.sheet1.orderReceivedDate ? toDate(orderInput.sheet1.orderReceivedDate) : null,
         expectedDeliveryDate: orderInput.sheet1.expectedDeliveryDate ? toDate(orderInput.sheet1.expectedDeliveryDate) : null,
@@ -498,6 +505,8 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
   revalidatePath("/");
   revalidatePath("/orders");
   revalidatePath("/organisations");
+  revalidatePath("/vendors", "layout");
+  revalidatePath("/orders", "layout");
   return updated;
 }
 

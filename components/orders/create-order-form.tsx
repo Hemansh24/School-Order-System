@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { convertGsMemberAction, createOrderAction, createReorderAction, updateOrderAction } from "@/app/orders/actions";
-import { updateVendorDiscountAction } from "@/app/vendors/actions";
+import { BooksellerDiscount } from "@/components/orders/bookseller-discount";
+import { defaultBooksellerDiscount } from "@/lib/bookseller-discount";
 import { Card, SubmitButton } from "@/components/ui";
 import { compareEditionCodes, DEFAULT_LANGUAGE_CODE } from "@/lib/item-code";
 import { hasLegacySchoolAllocations, isPooledOrder, orderTypeLabel, type DescriptiveMode } from "@/lib/order-model";
@@ -92,71 +93,6 @@ function isSavedOrderDraft(value: unknown): value is CreateOrderInput {
   );
 }
 
-function ConcealedDiscount({ vendorCode, discount, onSaved }: { vendorCode: string; discount: string; onSaved: (discount: string) => void }) {
-  const [isVisible, setIsVisible] = useState(false);
-  const [draft, setDraft] = useState(discount);
-  const [isSaving, startSaving] = useTransition();
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const inputId = useId();
-
-  function saveDiscount() {
-    setError(null);
-    setMessage(null);
-    startSaving(async () => {
-      try {
-        const result = await updateVendorDiscountAction({ vendorCode, discount: draft });
-        if (!result.ok) {
-          setError(result.message);
-          return;
-        }
-        setDraft(result.discount);
-        onSaved(result.discount);
-        setMessage("Discount saved for this vendor and future orders.");
-      } catch {
-        setError("Could not save this discount. Please try again.");
-      }
-    });
-  }
-
-  return (
-    <div className="mt-1 text-sm text-muted">
-      <label className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          className="focus-ring"
-          checked={isVisible}
-          onChange={event => setIsVisible(event.target.checked)}
-        />
-        Show discount
-      </label>
-      {isVisible ? (
-        <div className="mt-2 space-y-2">
-          <label htmlFor={inputId} className={labelClass}>Discount</label>
-          <input
-            id={inputId}
-            className={inputClass}
-            value={draft}
-            placeholder="Enter discount"
-            maxLength={500}
-            disabled={isSaving}
-            onChange={event => { setDraft(event.target.value); setMessage(null); setError(null); }}
-            onKeyDown={event => { if (event.key === "Enter") event.preventDefault(); }}
-          />
-          <button
-            type="button"
-            className="focus-ring rounded-md border border-line px-3 py-2 text-sm font-medium disabled:opacity-50"
-            disabled={isSaving || !draft.trim() || draft.trim() === discount}
-            onClick={saveDiscount}
-          >{isSaving ? "Saving discount…" : discount ? "Save discount" : "Add discount"}</button>
-          {error ? <p role="alert" className="text-red-700">{error}</p> : null}
-          {message ? <p role="status">{message}</p> : null}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 export function CreateOrderForm({
   schools: sourceSchools,
   groups: sourceGroups,
@@ -176,7 +112,6 @@ export function CreateOrderForm({
   const router = useRouter();
   const isReorder = reorderSourceId !== undefined;
   const [step, setStep] = useState(1);
-  const [savedDiscounts, setSavedDiscounts] = useState<Record<string, string>>({});
   const [legacySchoolConversion, setLegacySchoolConversion] = useState(requiresLegacyConversion);
   const [serverError, setServerError] = useState<string | null>(null);
   const [convertedCodes, setConvertedCodes] = useState<Record<string, string>>({});
@@ -430,14 +365,15 @@ export function CreateOrderForm({
             name: vendor.vendorName,
             type: vendor.vendorType ?? "",
           rating: vendor.vendorRating ?? "",
-          discount: savedDiscounts[vendor.vendorCode] ?? (vendor.actualDiscount?.trim() || vendor.committedDiscount?.trim() || null),
+          discount: defaultBooksellerDiscount(vendor.actualDiscount, vendor.committedDiscount),
           addressSummary: vendor.addressSummary,
           contactNumbers: vendor.contactNumbers ?? [],
           isGroup: false,
           groupType: undefined
           })),
-    [billingToType, schools, groups, vendors, savedDiscounts]
+    [billingToType, schools, groups, vendors]
   );
+  const booksellerDiscount = form.watch("sheet1.booksellerDiscount");
   const selectedBillingOption = useMemo(
     () =>
       billingOptions.find(
@@ -445,6 +381,16 @@ export function CreateOrderForm({
       ),
     [billingOptions, billingToCode]
   );
+  const appliedDiscountBilling = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isDraftReady || isReorder) return;
+    const key = `${billingToType}:${billingToCode}`;
+    const first = appliedDiscountBilling.current === null;
+    if (appliedDiscountBilling.current === key) return;
+    appliedDiscountBilling.current = key;
+    if (first && (initialValues !== undefined || form.getValues("sheet1.booksellerDiscount") !== undefined)) return;
+    form.setValue("sheet1.booksellerDiscount", billingToType === "vendor" && selectedBillingOption ? selectedBillingOption.discount ?? "" : null);
+  }, [billingToType, billingToCode, selectedBillingOption, isDraftReady, isReorder, initialValues, form]);
   const selectedGs = groups.find(group => group.groupType === "GS" && group.schoolCode.toLowerCase() === endUserGroupCode.toLowerCase() && group.schoolGroupId);
   const contactNumbers = form.watch("sheet1.contactNumbers") ?? [""];
   const appliedContactCode = useRef<string | null>(null);
@@ -632,6 +578,7 @@ export function CreateOrderForm({
 
   function setBilling(value: string) {
     const selected = billingOptions.find(option => option.value === value);
+    if (selected?.code !== form.getValues("sheet1.billingToCode")) form.setValue("sheet1.booksellerDiscount", billingToType === "vendor" ? selected?.discount ?? "" : null, { shouldDirty: true });
     form.setValue("sheet1.billingToCode", selected?.code ?? "");
     form.setValue("sheet1.billingToName", selected?.name ?? "");
     form.setValue("sheet1.booksellerType", selected?.type ?? "");
@@ -639,6 +586,7 @@ export function CreateOrderForm({
     setIsBillingDropdownOpen(false);
   }
   function setBillingCode(rawCode: string) {
+    if (rawCode !== form.getValues("sheet1.billingToCode")) form.setValue("sheet1.booksellerDiscount", null, { shouldDirty: true });
     form.setValue("sheet1.billingToCode", rawCode);
     form.setValue("sheet1.billingToName", "");
     setIsBillingDropdownOpen(true);
@@ -922,6 +870,7 @@ export function CreateOrderForm({
                 form.setValue("sheet1.billingToName", "");
                 form.setValue("sheet1.booksellerType", "");
                 form.setValue("sheet1.booksellerRating", "");
+                form.setValue("sheet1.booksellerDiscount", null, { shouldDirty: true });
               }}>
                 <option value="school">School</option>
                 <option value="vendor">Vendor / Bookseller</option>
@@ -929,55 +878,54 @@ export function CreateOrderForm({
                 <option value="individual">Individual / manual entry</option>
               </select>
             </Field>
-            <Field label="Billing To Code/Name" error={errors.sheet1?.billingToName?.message ?? errors.sheet1?.billingToCode?.message}>
-              <div className="relative">
-                <input
-                  className={inputClass}
-                  readOnly={isReorder}
-                  value={billingToType === "individual" ? form.watch("sheet1.billingToName") : form.watch("sheet1.billingToCode")}
-                  onChange={event => billingToType === "individual" ? form.setValue("sheet1.billingToName", event.target.value) : setBillingCode(event.target.value)}
-                  onFocus={() => { if (!isReorder) setIsBillingDropdownOpen(true); }}
-                  onBlur={() => {
-                    window.setTimeout(() => setIsBillingDropdownOpen(false), 150);
-                  }}
-                  placeholder="Select a reference or choose manual entry"
-                />
-                {billingToType !== "individual" && form.watch("sheet1.billingToName") ? <p className="mt-1 text-sm text-muted">{form.watch("sheet1.billingToName")}</p> : null}
-                {!isReorder && billingToType === "vendor" && selectedBillingOption ? (
-                  <ConcealedDiscount
-                    key={selectedBillingOption.code}
-                    vendorCode={selectedBillingOption.code}
-                    discount={selectedBillingOption.discount ?? ""}
-                    onSaved={discount => setSavedDiscounts(current => ({ ...current, [selectedBillingOption.code]: discount }))}
+            <div>
+              <Field label="Billing To Code/Name" error={errors.sheet1?.billingToName?.message ?? errors.sheet1?.billingToCode?.message}>
+                <div className="relative">
+                  <input
+                    className={inputClass}
+                    readOnly={isReorder}
+                    value={billingToType === "individual" ? form.watch("sheet1.billingToName") : form.watch("sheet1.billingToCode")}
+                    onChange={event => billingToType === "individual" ? form.setValue("sheet1.billingToName", event.target.value) : setBillingCode(event.target.value)}
+                    onFocus={() => { if (!isReorder) setIsBillingDropdownOpen(true); }}
+                    onBlur={() => {
+                      window.setTimeout(() => setIsBillingDropdownOpen(false), 150);
+                    }}
+                    placeholder="Select a reference or choose manual entry"
                   />
-                ) : null}
-                {isBillingDropdownOpen && billingToType !== "individual" ? (
-                  <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-white shadow-lg">
-                    {filteredBillingOptions.length > 0 ? (
-                      filteredBillingOptions.map((option) => (
-                        <button
-                          key={option.value}
-                          type="button"
-                          className={`block w-full px-3 py-2 text-left text-sm hover:bg-canvas ${
-                            selectedBillingOption?.value === option.value ? "bg-canvas" : ""
-                          }`}
-                          onMouseDown={(event) => {
-                            event.preventDefault();
-                            setBilling(option.value);
-                          }}
-                        >
-                          <span className="font-medium text-ink">{option.code}</span>
-                          <span className="ml-2 text-muted">{option.name}</span>
-                          {option.groupType ? <span className="ml-2 text-xs text-muted">{option.groupType}</span> : null}
-                        </button>
-                      ))
-                    ) : (
-                      <div className="px-3 py-2 text-sm text-muted">No billing matches found.</div>
-                    )}
-                  </div>
-                ) : null}
-              </div>
-            </Field>
+                  {billingToType !== "individual" && form.watch("sheet1.billingToName") ? <p className="mt-1 text-sm text-muted">{form.watch("sheet1.billingToName")}</p> : null}
+                  {isBillingDropdownOpen && billingToType !== "individual" ? (
+                    <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-white shadow-lg">
+                      {filteredBillingOptions.length > 0 ? (
+                        filteredBillingOptions.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            className={`block w-full px-3 py-2 text-left text-sm hover:bg-canvas ${
+                              selectedBillingOption?.value === option.value ? "bg-canvas" : ""
+                            }`}
+                            onMouseDown={(event) => {
+                              event.preventDefault();
+                              setBilling(option.value);
+                            }}
+                          >
+                            <span className="font-medium text-ink">{option.code}</span>
+                            <span className="ml-2 text-muted">{option.name}</span>
+                            {option.groupType ? <span className="ml-2 text-xs text-muted">{option.groupType}</span> : null}
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 text-sm text-muted">No billing matches found.</div>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              </Field>
+                {billingToType === "vendor" ? <BooksellerDiscount
+                  key={billingToCode} value={booksellerDiscount}
+                  onChange={isReorder ? undefined : value => form.setValue("sheet1.booksellerDiscount", value, { shouldDirty: true, shouldValidate: true })}
+                  error={errors.sheet1?.booksellerDiscount?.message}
+                /> : null}
+            </div>
             <Field label="Shipping To Type">
               <select className={inputClass} value={shippingPartyType} onChange={event => {
                 form.setValue("sheet1.shippingToType", event.target.value as "school" | "vendor" | "group" | "individual");
@@ -1697,6 +1645,7 @@ function ReviewBlock({ values, orderEnteredDate }: { values: CreateOrderInput; o
       <div className="rounded-md border border-line bg-canvas p-4">
         <p className="font-semibold text-ink">Sheet 1</p>
         <p className="mt-2 text-muted">Billing: {values.sheet1.billingToName}</p>
+        {values.sheet1.billingToType === "vendor" ? <BooksellerDiscount value={values.sheet1.booksellerDiscount} /> : null}
         <p className="text-muted">Shipping: {values.sheet1.shippingToName}</p>
         <p className="text-muted">Contact numbers: {values.sheet1.contactNumbers?.filter(number => number.trim()).join(", ") || "—"}</p>
         {values.sheet1.commissionEnabled ? <p className="text-muted">Commission: {values.sheet1.commissionPartyCode} · {values.sheet1.commissionPercentage}%</p> : null}

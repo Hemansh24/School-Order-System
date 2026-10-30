@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card, EmptyState, OrderNumber, PageHeader, StatusPill } from "@/components/ui";
 import { OrderActionButtons } from "@/components/orders/order-action-buttons";
+import { BooksellerDiscount } from "@/components/orders/bookseller-discount";
 import { getOrder } from "@/lib/services/orders";
 import { getOrderEnteredDate } from "@/lib/order-dates";
 import { savedOrderEndUsers, type EndUserClassification } from "@/lib/end-user-type";
@@ -72,6 +73,7 @@ export default async function OrderDetailsPage({
             ) : null}
             <Info label="Billing To">
               {order.billingToName}
+              {order.billingToType === "vendor" ? <BooksellerDiscount value={order.booksellerDiscount} /> : null}
               <span className="block text-xs text-muted">
                 {order.billingToType}{order.billingToCode ? ` - ${order.billingToCode}` : ""}
               </span>

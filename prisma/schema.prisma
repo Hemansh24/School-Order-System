@@ -301,6 +301,7 @@ model OrderSheet1 {
   orderStatus          OrderStatus   @default(draft) @map("order_status")
   booksellerType       String?       @map("bookseller_type")
   booksellerRating     String?       @map("bookseller_rating")
+  booksellerDiscount   String?       @map("bookseller_discount")
   pendingPayment       Boolean       @default(false) @map("pending_payment")
   commissionPartyType  BillingToType? @map("commission_party_type")
   commissionPartyCode  String?       @map("commission_party_code")

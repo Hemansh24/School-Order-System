@@ -32,6 +32,7 @@ export function savedOrderToInput(order: SavedOrderInput): CreateOrderInput {
       schoolGroupLocationId: order.schoolGroupLocationId ?? undefined,
       booksellerType: order.booksellerType ?? "",
       booksellerRating: order.booksellerRating ?? "",
+      booksellerDiscount: order.booksellerDiscount,
       pendingPayment: order.pendingPayment,
       commissionEnabled: order.commissionPartyCode !== null,
       commissionPartyType: order.commissionPartyType ?? undefined,
