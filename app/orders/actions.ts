@@ -17,6 +17,18 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { convertGsMemberTx } from "@/lib/services/gs-orders";
 import type { ReorderInput } from "@/lib/reorder";
+import { searchReorderOrders } from "@/lib/services/reorder-search";
+import type { ReorderSearchResponse } from "@/lib/reorder-search";
+
+export async function searchReorderOrdersAction(search: string): Promise<ReorderSearchResponse> {
+  try {
+    const query = z.string().trim().max(200, "Use up to 200 characters to search.").parse(search);
+    return { ok: true, ...await searchReorderOrders(query) };
+  } catch (error) {
+    return { ok: false, message: error instanceof z.ZodError
+      ? error.issues[0].message : "Could not search orders. Please try again." };
+  }
+}
 
 export async function createReorderAction(sourceOrderId: number, input: ReorderInput): Promise<ActionState> {
   try {

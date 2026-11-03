@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { ButtonLink, Card, OrderNumber, PageHeader, StatusPill } from "@/components/ui";
 import { listOrders } from "@/lib/services/orders";
+import { ReorderSearch } from "@/components/orders/reorder-search";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,10 @@ export default async function OrdersPage() {
       <PageHeader
         title="Orders"
         description="Order Sheet 1 records retain the same order number until finalization."
-        action={<ButtonLink href="/orders/new">Create order</ButtonLink>}
+        action={<div className="flex flex-wrap items-start gap-2 sm:justify-end">
+          <ButtonLink href="/orders/new">Create order</ButtonLink>
+          <ReorderSearch />
+        </div>}
       />
 
       <Card>
