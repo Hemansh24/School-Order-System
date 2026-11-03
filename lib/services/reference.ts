@@ -1,17 +1,18 @@
+import { asSchool } from "@/lib/school-reference";
 import { prisma } from "@/lib/prisma";
 import { compareEditionCodes, DEFAULT_LANGUAGE_CODE } from "@/lib/item-code";
 
 export async function getReferenceData() {
   const [schools, vendors, items, groupLocations, christianGroups, preBooksellers] = await Promise.all([
-    prisma.school.findMany({
-      orderBy: { schoolName: "asc" }
+    prisma.organisation.findMany({
+      orderBy: { organisationName: "asc" }
     }),
     prisma.vendor.findMany({
       orderBy: { vendorName: "asc" },
       include: {
         vendorSchools: {
           include: {
-            school: true
+            organisation: true
           }
         }
       }
@@ -39,10 +40,10 @@ export async function getReferenceData() {
       ?? (vendor.preVendorCode ? byPbsCode.get(vendor.preVendorCode) : undefined)
       ?? byAssignedCode.get(vendor.vendorCode)
       ?? bySourceCode.get(vendor.vendorCode);
-    return { ...vendor, committedDiscount: preBookseller?.committedDiscount ?? null };
+    return { ...vendor, vendorSchools: vendor.vendorSchools.map(row => ({ school: asSchool(row.organisation) })), committedDiscount: preBookseller?.committedDiscount ?? null };
   });
 
-  return { schools, vendors: vendorsWithDiscounts, items, groupLocations, christianGroups };
+  return { schools: schools.map(asSchool), vendors: vendorsWithDiscounts, items, groupLocations, christianGroups };
 }
 
 export async function getItemCategories() {

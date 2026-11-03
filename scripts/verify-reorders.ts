@@ -1,3 +1,4 @@
+import { asSchool } from "../lib/school-reference";
 import assert from "node:assert/strict";
 import { writeFile } from "node:fs/promises";
 import { prisma } from "../lib/prisma";
@@ -9,10 +10,10 @@ async function main() {
   const url = new URL(process.env.DATABASE_URL ?? "");
   assert.equal(url.hostname, "127.0.0.1");
   assert.equal(url.port, "55439");
-  assert.equal(url.pathname, "/order_revamp_verify");
+  assert.ok(["/order_revamp_verify", "/school_consolidation_verify"].includes(url.pathname));
   require("next/cache").revalidatePath = () => {};
   const { createOrder, createReorder, updateOrder, getOrder, lockOrder, finalizeOrder } = await import("../lib/services/orders");
-  const schools = await prisma.school.findMany({ take: 2 });
+  const schools = (await prisma.organisation.findMany({ take: 2 })).map(asSchool);
   assert.equal(schools.length, 2);
   const item = await prisma.item.findFirstOrThrow({ where: { active: true, obsolete: false } });
   const itemRef = { itemCode: item.itemCode, itemName: item.itemName };

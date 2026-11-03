@@ -32,6 +32,7 @@ export default async function EditOrganisationPage({
           prCode: organisation.prCode,
           ptCode: organisation.ptCode,
           organisationName: organisation.organisationName,
+          contactPerson: organisation.contactPerson,
           address: organisation.address,
           district: organisation.district,
           state: organisation.state,

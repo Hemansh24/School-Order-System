@@ -24,12 +24,12 @@ test("manual names and codes save without querying existing parties", async () =
 });
 
 test("commission validates every existing party type and rejects unknown codes", async () => {
-  for (const [type, model, method] of [["school", "school", "findUnique"], ["vendor", "vendor", "findFirst"], ["group", "schoolGroup", "findUnique"]] as const) {
+  for (const [type, model, method] of [["school", "organisation", "findMany"], ["vendor", "vendor", "findFirst"], ["group", "schoolGroup", "findUnique"]] as const) {
     let calls = 0;
-    const tx = { [model]: { [method]: async () => { calls++; return { id: 1 }; } } } as unknown as Prisma.TransactionClient;
+    const tx = { [model]: { [method]: async () => { calls++; return model === "organisation" ? [{ id: 1 }] : { id: 1 }; } } } as unknown as Prisma.TransactionClient;
     assert.deepEqual(await resolveCommissionData(tx, input(type)), { commissionPartyType: type, commissionPartyCode: "BS001", commissionPercentage: 7.5 });
     assert.equal(calls, 1);
-    const missing = { [model]: { [method]: async () => null } } as unknown as Prisma.TransactionClient;
+    const missing = { [model]: { [method]: async () => model === "organisation" ? [] : null } } as unknown as Prisma.TransactionClient;
     await assert.rejects(resolveCommissionData(missing, input(type)), /must exist/);
   }
 });

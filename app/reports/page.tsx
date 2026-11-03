@@ -50,7 +50,6 @@ export default async function ReportsPage({
             <option value="">All</option>
             <option value="normal">Normal</option>
             <option value="direct_group">Direct group</option>
-            <option value="group_parent">Group parent</option>
           </Select>
           <Select name="order_status" label="Order Status" defaultValue={params.get("order_status") ?? ""}>
             <option value="">All</option>

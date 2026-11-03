@@ -1,3 +1,4 @@
+import { asSchool } from "../lib/school-reference";
 import { PrismaClient, SourceType } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -9,55 +10,54 @@ function date(value: string) {
 async function main() {
   await prisma.orderSheet3.deleteMany();
   await prisma.orderSheet2B2.deleteMany();
-  await prisma.orderSheet2B1.deleteMany();
   await prisma.orderSheet2A.deleteMany();
   await prisma.orderSheet1.deleteMany();
   await prisma.vendorSchool.deleteMany();
   await prisma.vendor.deleteMany();
-  await prisma.school.deleteMany();
+  await prisma.organisation.deleteMany();
   await prisma.item.deleteMany();
 
-  const [greenwood, riverside, sunrise] = await Promise.all([
-    prisma.school.create({
+  const [greenwood, riverside, sunrise] = (await Promise.all([
+    prisma.organisation.create({
       data: {
-        schoolCode: "SCH-001",
-        schoolName: "Greenwood Public School",
+        prCode: "PR000001", ptCode: "PT0001",
+        organisationName: "Greenwood Public School",
         address: "Sector 14",
         district: "Gautam Buddh Nagar",
         state: "Uttar Pradesh",
-        pincode: "201301",
+        pinCode: "201301",
         contactPerson: "Anita Rao",
         phone: "9876500011",
         email: "admin@greenwood.example"
       }
     }),
-    prisma.school.create({
+    prisma.organisation.create({
       data: {
-        schoolCode: "SCH-002",
-        schoolName: "Riverside International School",
+        prCode: "PR000002", ptCode: "PT0002",
+        organisationName: "Riverside International School",
         address: "Lake Road",
         district: "Kolkata",
         state: "West Bengal",
-        pincode: "700001",
+        pinCode: "700001",
         contactPerson: "Kabir Sen",
         phone: "9876500022",
         email: "orders@riverside.example"
       }
     }),
-    prisma.school.create({
+    prisma.organisation.create({
       data: {
-        schoolCode: "SCH-003",
-        schoolName: "Sunrise Model School",
+        prCode: "PR000003", ptCode: "PT0003",
+        organisationName: "Sunrise Model School",
         address: "MG Avenue",
         district: "Bhopal",
         state: "Madhya Pradesh",
-        pincode: "462001",
+        pinCode: "462001",
         contactPerson: "Meera Das",
         phone: "9876500033",
         email: "office@sunrise.example"
       }
     })
-  ]);
+  ])).map(asSchool);
 
   const [northBooks, cityDepot] = await Promise.all([
     prisma.vendor.create({
@@ -86,9 +86,9 @@ async function main() {
 
   await prisma.vendorSchool.createMany({
     data: [
-      { vendorId: northBooks.vendorId, schoolId: greenwood.schoolId },
-      { vendorId: northBooks.vendorId, schoolId: riverside.schoolId },
-      { vendorId: cityDepot.vendorId, schoolId: sunrise.schoolId }
+      { vendorId: northBooks.vendorId, organisationId: BigInt(greenwood.organisationId) },
+      { vendorId: northBooks.vendorId, organisationId: BigInt(riverside.organisationId) },
+      { vendorId: cityDepot.vendorId, organisationId: BigInt(sunrise.organisationId) }
     ]
   });
 
@@ -313,23 +313,6 @@ async function main() {
       pendingPayment: true,
       notes: "Vendor provided grouped quantities only."
     }
-  });
-
-  await prisma.orderSheet2B1.createMany({
-    data: [
-      {
-        orderSheet1Id: ambiguous.orderSheet1Id,
-        orderNo: 2,
-        schoolCode: greenwood.schoolCode,
-        schoolName: greenwood.schoolName
-      },
-      {
-        orderSheet1Id: ambiguous.orderSheet1Id,
-        orderNo: 2,
-        schoolCode: riverside.schoolCode,
-        schoolName: riverside.schoolName
-      }
-    ]
   });
 
   await prisma.orderSheet2B2.createMany({

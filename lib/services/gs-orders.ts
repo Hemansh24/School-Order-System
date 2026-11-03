@@ -18,19 +18,12 @@ async function ensureGsMemberPtCode(tx: Prisma.TransactionClient, id: bigint, re
   const fresh = await tx.organisation.findUniqueOrThrow({ where: { id } });
   const used = reservedCodes ?? (fresh.ptCode ? [] : await reservedPtCodes(tx));
   const ptCode = fresh.ptCode ?? nextSequentialCompactCode('PT', used, 4);
-  const prSchool = await tx.school.findUnique({ where: { schoolCode: fresh.prCode } });
-  if (prSchool) {
-    if (await tx.school.findUnique({ where: { schoolCode: ptCode } })) {
-      throw new Error(`Separate school records use ${fresh.prCode} and ${ptCode}. Resolve the duplicate schools and retry.`);
-    }
-    await tx.school.update({ where: { schoolId: prSchool.schoolId }, data: { schoolCode: ptCode } });
-  }
   await moveSchoolGroupCodeTx(tx, fresh.prCode, ptCode);
   if (!fresh.ptCode) {
     await tx.organisation.update({ where: { id }, data: { ptCode } });
     used.push(ptCode);
   }
-  await tx.school.upsert({ where: { schoolCode: ptCode }, create: { schoolCode: ptCode, schoolName: fresh.organisationName, address: fresh.address, district: fresh.district, state: fresh.state, pincode: fresh.pinCode, phone: fresh.phone, email: fresh.email }, update: {} });
+
   return { prCode: fresh.prCode, ptCode, schoolName: fresh.organisationName };
 }
 

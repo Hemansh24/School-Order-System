@@ -1,3 +1,4 @@
+import { asSchool } from "@/lib/school-reference";
 import Link from "next/link";
 import { Card, PageHeader } from "@/components/ui";
 import { deleteVendorAction, syncImportedBooksellersAction } from "@/app/vendors/actions";
@@ -16,11 +17,11 @@ export default async function VendorsPage({ searchParams }: { searchParams: Prom
     prisma.vendor.count(),
     prisma.vendor.findMany({
       orderBy: { vendorName: "asc" },
-      include: { vendorSchools: { include: { school: true } }, convertedPreBookseller: true },
+      include: { vendorSchools: { include: { organisation: true } }, convertedPreBookseller: true },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE
     }),
-    prisma.school.findMany({ orderBy: { schoolName: "asc" } }),
+    prisma.organisation.findMany({ orderBy: { organisationName: "asc" } }),
     nextVendorCode(),
     prisma.preBookseller.findMany({
       where: { OR: [{ sourceBsCode: { not: null } }, { assignedBsCode: { not: null } }] },
@@ -44,7 +45,7 @@ export default async function VendorsPage({ searchParams }: { searchParams: Prom
         description="Active vendors and booksellers available for orders. PBS history is managed in Pre-Booksellers."
         action={<InlineActionForm action={syncImportedBooksellersAction}>Replace With Imported Booksellers</InlineActionForm>}
       />
-      <AddVendorForm schools={schools} nextCode={vendorCode} />
+      <AddVendorForm schools={schools.map(asSchool)} nextCode={vendorCode} />
       <Card>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[860px] text-left text-sm">
@@ -72,7 +73,7 @@ export default async function VendorsPage({ searchParams }: { searchParams: Prom
                   <td className="px-4 py-3 text-muted whitespace-nowrap">{vendor.actualDiscount ?? "—"}</td>
                   <td className="px-4 py-3 text-muted">
                     {vendor.vendorSchools.length > 0
-                      ? vendor.vendorSchools.map((row) => row.school.schoolName).join(", ")
+                      ? vendor.vendorSchools.map((row) => row.organisation.organisationName).join(", ")
                       : "Not linked"}
                   </td>
                   <td className="px-4 py-3 text-muted">{vendor.contactPerson}</td>

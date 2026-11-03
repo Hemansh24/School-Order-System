@@ -1,3 +1,4 @@
+import { findSchoolByCode } from "@/lib/school-reference";
 import type { Prisma } from "@prisma/client";
 import type { CreateOrderInput } from "../validation/orders";
 
@@ -24,7 +25,7 @@ export async function resolveCommissionData(
   if (type !== "individual" && (current?.commissionPartyType !== type || current?.commissionPartyCode !== code)) {
     let exists: unknown;
     if (type === "school") {
-      exists = await tx.school.findUnique({ where: { schoolCode: code }, select: { schoolId: true } });
+      exists = await findSchoolByCode(tx, code);
     } else if (type === "vendor") {
       exists = await tx.vendor.findFirst({ where: { vendorCode: code }, select: { vendorId: true } });
     } else {

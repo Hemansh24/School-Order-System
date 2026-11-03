@@ -1,3 +1,4 @@
+import { asSchool, findSchoolByCode } from "../lib/school-reference";
 import assert from "node:assert/strict";
 import { prisma } from "../lib/prisma";
 import { createOrderSchema } from "../lib/validation/orders";
@@ -9,7 +10,7 @@ async function main() {
   const url = new URL(process.env.DATABASE_URL ?? "");
   assert.equal(url.hostname, "127.0.0.1");
   assert.equal(url.port, "55439");
-  assert.equal(url.pathname, "/order_revamp_verify");
+  assert.ok(["/order_revamp_verify", "/school_consolidation_verify"].includes(url.pathname));
   require("next/cache").revalidatePath = () => {};
   const { createOrder, updateOrderStatus, lockOrder, finalizeOrder, putOrderOnHold } = await import("../lib/services/orders");
   const suffix = Date.now().toString();
@@ -26,7 +27,7 @@ async function main() {
     const prCode = `PR${suffix}${++fixtureNo}`;
     const ptCode = imported ? await nextOrganisationPtCode() : null;
     const organisation = await prisma.organisation.create({ data: { prCode, ptCode, organisationName: `Cancellation ${prCode}` } });
-    const school = await prisma.school.create({ data: { schoolCode: ptCode ?? prCode, schoolName: organisation.organisationName } });
+    const school = asSchool(organisation);
     return { organisation, school };
   }
   const individual = (schoolCode: string) => createOrderSchema.parse({
@@ -35,7 +36,7 @@ async function main() {
   const currentOrganisation = (prCode: string) => prisma.organisation.findUniqueOrThrow({ where: { prCode } });
 
   const first = await school();
-  await prisma.vendorSchool.create({ data: { vendorId: vendor.vendorId, schoolId: first.school.schoolId } });
+  await prisma.vendorSchool.create({ data: { vendorId: vendor.vendorId, organisationId: first.organisation.id } });
   await prisma.schoolGroupSchool.create({ data: { ptCode: first.organisation.prCode } });
   const firstOrder = await createOrder(individual(first.organisation.prCode));
   const ptCode = firstOrder.descriptiveRows[0].schoolCode;
@@ -45,8 +46,8 @@ async function main() {
   assert.equal((await currentOrganisation(first.organisation.prCode)).ptCode, ptCode);
   await updateOrderStatus(secondOrder.orderSheet1Id, "cancelled");
   assert.equal((await currentOrganisation(first.organisation.prCode)).ptCode, null);
-  assert.equal((await prisma.school.findUniqueOrThrow({ where: { schoolId: first.school.schoolId } })).schoolCode, first.organisation.prCode);
-  assert.equal(await prisma.vendorSchool.count({ where: { schoolId: first.school.schoolId, vendorId: vendor.vendorId } }), 1);
+  assert.equal(asSchool(await prisma.organisation.findUniqueOrThrow({ where: { id: first.organisation.id } })).schoolCode, first.organisation.prCode);
+  assert.equal(await prisma.vendorSchool.count({ where: { organisationId: first.organisation.id, vendorId: vendor.vendorId } }), 1);
   assert.ok(await prisma.schoolGroupSchool.findUnique({ where: { ptCode: first.organisation.prCode } }));
   assert.equal((await prisma.orderSheet2A.findFirstOrThrow({ where: { orderSheet1Id: firstOrder.orderSheet1Id } })).schoolCode, ptCode);
   await updateOrderStatus(firstOrder.orderSheet1Id, "cancelled");
@@ -88,14 +89,10 @@ async function main() {
     combinedItems: [{ ...itemRef, pooledQuantity: 5 }]
   }));
   const bCode = (await currentOrganisation(b.organisation.prCode)).ptCode!;
-  const ambiguous = await createOrder(createOrderSchema.parse({ sheet1: { ...sheet1, orderType: "ambiguous" },
+  const ambiguous = await createOrder(createOrderSchema.parse({ sheet1: { ...sheet1, orderType: "ambiguous", billingToType: "school", billingToCode: bCode, billingToName: b.school.schoolName },
     ambiguousItems: [{ ...itemRef, groupedQuantity: 1 }]
   }));
-  // Historical school links still retain PT; new ambiguous submissions cannot add them.
-  await prisma.orderSheet2B1.create({ data: {
-    orderSheet1Id: ambiguous.orderSheet1Id, orderNo: ambiguous.orderNo,
-    schoolCode: bCode, schoolName: b.school.schoolName
-  } });
+  // A school billing reference on another order retains PT.
   await updateOrderStatus(pooled.orderSheet1Id, "cancelled");
   assert.equal((await currentOrganisation(a.organisation.prCode)).ptCode, null);
   assert.equal((await currentOrganisation(b.organisation.prCode)).ptCode, bCode);
@@ -118,7 +115,7 @@ async function main() {
   assert.ok((await getGroupMappingData(member.organisation.prCode)).organisationByPtCode.get(member.organisation.prCode));
   const gsAgain = await createOrder(gsInput);
   assert.notEqual(gsAgain.combinedSchools[0].schoolCode, gsPt);
-  assert.equal((await prisma.school.findUniqueOrThrow({ where: { schoolCode: gsAgain.combinedSchools[0].schoolCode } })).schoolId, member.school.schoolId);
+  assert.equal((await findSchoolByCode(prisma, gsAgain.combinedSchools[0].schoolCode))?.id, member.organisation.id);
 
   // A legacy participant snapshot keeps PT even without sheet-2 school rows.
   const direct = await school(true);
@@ -135,19 +132,12 @@ async function main() {
   await updateOrderStatus(snapshot.orderSheet1Id, "cancelled");
   assert.equal((await currentOrganisation(direct.organisation.prCode)).ptCode, null);
 
-  // Duplicate school and organisation codes abort the whole cancellation.
+  // The database rejects duplicate PT ownership before it can corrupt cancellation.
   const duplicate = await school(true);
-  const duplicateOrder = await createOrder(individual(duplicate.organisation.ptCode!));
-  const duplicatePrSchool = await prisma.school.create({ data: { schoolCode: duplicate.organisation.prCode, schoolName: "Duplicate" } });
-  await assert.rejects(() => updateOrderStatus(duplicateOrder.orderSheet1Id, "cancelled"), /duplicate schools/);
-  assert.equal((await prisma.orderSheet1.findUniqueOrThrow({ where: { orderSheet1Id: duplicateOrder.orderSheet1Id } })).orderStatus, "draft");
-  assert.equal((await currentOrganisation(duplicate.organisation.prCode)).ptCode, duplicate.organisation.ptCode);
-  await prisma.school.delete({ where: { schoolId: duplicatePrSchool.schoolId } });
   const duplicateOrganisation = await school();
-  await prisma.organisation.update({ where: { id: duplicateOrganisation.organisation.id }, data: { ptCode: duplicate.organisation.ptCode } });
-  await assert.rejects(() => updateOrderStatus(duplicateOrder.orderSheet1Id, "cancelled"), /multiple organisations/);
-  await prisma.organisation.update({ where: { id: duplicateOrganisation.organisation.id }, data: { ptCode: null } });
-  await updateOrderStatus(duplicateOrder.orderSheet1Id, "cancelled");
+  await assert.rejects(() => prisma.organisation.update({
+    where: { id: duplicateOrganisation.organisation.id }, data: { ptCode: duplicate.organisation.ptCode }
+  }), /Unique constraint/);
 
   // Concurrent last-order cancellations serialize and restore PR once.
   const concurrent = await school(true);

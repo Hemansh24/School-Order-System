@@ -128,11 +128,3 @@ export async function getGsOrderOptions() {
     return { optionKey: group.groupCode, schoolCode: group.groupCode, schoolName: group.groupName, contactNumbers: extractContactNumbers(group.phoneEmail), groupType: "GS" as const, schoolGroupId: group.schoolGroupId, addressSummary: locations.length === 1 ? formatSchoolAddress(locations[0]) : "", locations: locations.map(location => ({ schoolGroupLocationId: location.schoolGroupLocationId, subCode: location.subCode, addressSummary: formatSchoolAddress(location), usable: !!location.address })), members: organisations.filter(org => normalizeGroupCode(org.groupCode) === normalizeGroupCode(group.groupCode)).map(org => ({ schoolCode: org.ptCode ?? org.prCode, schoolName: org.organisationName, prCode: org.prCode, ptCode: org.ptCode })) };
   });
 }
-
-export async function getGroupOrderReferenceData() {
-  const [groups, orders] = await Promise.all([
-    getGsOrderOptions(),
-    prisma.orderSheet1.findMany({ where: { classification: "normal", billingToType: "school", schoolGroupId: null, groupParentLinks: { none: {} } }, select: { orderSheet1Id: true, orderNo: true, billingToCode: true, shippingToSummary: true, groupParentLinks: { select: { orderGroupChildOrderId: true } } }, orderBy: { orderNo: "desc" } })
-  ]);
-  return { groups, items: [], orders };
-}

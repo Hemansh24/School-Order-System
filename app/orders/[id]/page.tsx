@@ -132,8 +132,6 @@ export default async function OrderDetailsPage({
 
       {order.classification === "direct_group" ? (
         <div className="mb-6 grid gap-4 xl:grid-cols-2"><GroupParticipants rows={order.groupParticipants}/><GroupItems rows={order.groupItems}/></div>
-      ) : order.classification === "group_parent" ? (
-        <Card className="mb-6"><TableTitle title="Linked PT Orders" subtitle="These orders retain their own destinations and fulfillment workflow." /><SimpleTable headers={["Order", "PT Code", "Shipping", "Status"]} rows={order.groupChildLinks.map((link) => [link.childOrder.orderNo, link.childOrder.billingToCode ?? "", link.childOrder.shippingToSummary, link.childOrder.orderStatus])}/></Card>
       ) : (order.orderType === "descriptive" && !isPooledOrder(order)) ? (
         <Sheet2ATable rows={order.descriptiveRows} />
       ) : order.orderType === "ambiguous" ? (

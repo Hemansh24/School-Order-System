@@ -73,6 +73,7 @@ export const createSchoolSchema = schoolDetailsSchema.extend({
 });
 
 export const organisationDetailsSchema = z.object({
+  contactPerson: optionalText,
   groupCode: optionalText,
   organisationName: z.string().trim().min(1, "Organisation name is required"),
   address: optionalText,
@@ -126,7 +127,7 @@ export const createVendorSchema = z.object({
   contactPerson: optionalText,
   phone: optionalText,
   email: optionalText,
-  schoolIds: z.array(z.coerce.number().int().positive())
+  organisationIds: z.array(z.string().regex(/^[1-9]\d*$/, "Invalid organisation ID")).transform(ids => [...new Set(ids)].map(id => BigInt(id)))
 });
 
 export const createItemSchema = z.object({

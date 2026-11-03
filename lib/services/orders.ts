@@ -1,3 +1,4 @@
+import { findSchoolByCode } from "@/lib/school-reference";
 import { isGroupOrder, isPooledOrder } from "@/lib/order-model";
 import { getCurrentSessionYear } from "@/lib/session-year";
 import {
@@ -22,19 +23,18 @@ const orderInclude = {
   reorderOfOrder: { select: { orderSheet1Id: true, orderNo: true } },
   schoolExecutives: true,
   descriptiveRows: true,
-  ambiguousSchools: true,
   ambiguousItems: true,
   combinedSchools: true,
   combinedItems: true,
   groupParticipants: true,
   groupItems: true,
-  groupChildLinks: { include: { childOrder: true } },
   schoolGroup: true,
   schoolGroupLocation: true,
   finalRows: true
 } satisfies Prisma.OrderSheet1Include;
 
 type Tx = Prisma.TransactionClient;
+
 type SearchOrder = Prisma.OrderSheet1GetPayload<{
   include: {
     descriptiveRows: true;
@@ -63,9 +63,7 @@ async function assertShippingDestinationExists(tx: Tx, input: CreateOrderInput):
     return;
   }
   if (input.sheet1.shippingToType === "school") {
-    const school = await tx.school.findUnique({
-      where: { schoolCode: input.sheet1.shippingToCode }
-    });
+    const school = await findSchoolByCode(tx, input.sheet1.shippingToCode);
 
     if (!school && !(await findGroupLocationByCode(tx, input.sheet1.shippingToCode)) && !(await findGroupByCode(tx, input.sheet1.shippingToCode))) throw new Error("Shipping school, GS-code location, or Christian group must exist.");
 
@@ -147,10 +145,6 @@ function applyPtCodesToOrder(
           : input.sheet1.shippingToCode
     },
     descriptiveRows: input.descriptiveRows.map((row) => ({
-      ...row,
-      schoolCode: mappedCode(row.schoolCode)
-    })),
-    ambiguousSchools: input.ambiguousSchools.map((row) => ({
       ...row,
       schoolCode: mappedCode(row.schoolCode)
     })),
@@ -408,9 +402,6 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
     await Promise.all([
       tx.orderSheet3.deleteMany({ where: { orderSheet1Id } }),
       tx.orderSheet2A.deleteMany({ where: { orderSheet1Id } }),
-      ...(current.orderType === "ambiguous" && orderInput.sheet1.orderType === "ambiguous"
-        ? []
-        : [tx.orderSheet2B1.deleteMany({ where: { orderSheet1Id } })]),
       tx.orderSheet2B2.deleteMany({ where: { orderSheet1Id } }),
       tx.orderSheet2C1.deleteMany({ where: { orderSheet1Id } }),
       tx.orderSheet2C2.deleteMany({ where: { orderSheet1Id } })
@@ -603,7 +594,7 @@ export async function finalizeOrder(orderSheet1Id: number) {
 
     assertDescriptiveShape(order);
     if (order.orderType === "descriptive" && !isPooledOrder(order)) {
-      if (order.ambiguousSchools.length > 0 || order.ambiguousItems.length > 0 || order.combinedSchools.length > 0 || order.combinedItems.length > 0) {
+      if (order.ambiguousItems.length > 0 || order.combinedSchools.length > 0 || order.combinedItems.length > 0) {
         throw new Error("Descriptive orders cannot finalize with ambiguous or combined rows.");
       }
       if (order.descriptiveRows.length === 0) {
@@ -665,7 +656,7 @@ export async function finalizeOrder(orderSheet1Id: number) {
     }
 
     if (isPooledOrder(order)) {
-      if (order.descriptiveRows.length > 0 || order.ambiguousSchools.length > 0 || order.ambiguousItems.length > 0) {
+      if (order.descriptiveRows.length > 0 || order.ambiguousItems.length > 0) {
         throw new Error("Multiple descriptive orders cannot finalize with descriptive or ambiguous rows.");
       }
       if (order.combinedSchools.length === 0 || order.combinedItems.length === 0) {

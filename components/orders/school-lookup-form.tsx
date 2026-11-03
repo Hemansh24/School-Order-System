@@ -63,7 +63,7 @@ export function SchoolLookupForm() {
                 </thead>
                 <tbody>
                   {state.matches.map((match) => (
-                    <tr key={match.schoolId} className="border-t border-line">
+                    <tr key={match.organisationId} className="border-t border-line">
                       <td className="px-3 py-2 font-medium text-ink">{match.schoolCode}</td>
                       <td className="px-3 py-2 text-muted">{match.address || "-"}</td>
                       <td className="px-3 py-2 text-muted">{match.district || "-"}</td>

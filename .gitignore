@@ -78,3 +78,6 @@ dataconnect/.dataconnect/
 
 # TypeScript incremental build cache
 tsconfig.tsbuildinfo
+
+# Database migration backups and reconciliation reports
+backups/

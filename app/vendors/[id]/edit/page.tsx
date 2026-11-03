@@ -1,3 +1,4 @@
+import { asSchool } from "@/lib/school-reference";
 import { notFound } from "next/navigation";
 import { EditVendorForm } from "@/components/reference/reference-forms";
 import { ButtonLink, PageHeader } from "@/components/ui";
@@ -16,7 +17,7 @@ export default async function EditVendorPage({
       where: { vendorId: Number(id) },
       include: { vendorSchools: true }
     }),
-    prisma.school.findMany({ orderBy: { schoolName: "asc" } })
+    prisma.organisation.findMany({ orderBy: { organisationName: "asc" } })
   ]);
 
   if (!vendor) {
@@ -31,7 +32,7 @@ export default async function EditVendorPage({
         action={<ButtonLink href="/vendors">Back to vendors</ButtonLink>}
       />
       <EditVendorForm
-        schools={schools}
+        schools={schools.map(asSchool)}
         vendor={{
           vendorId: vendor.vendorId,
           vendorCode: vendor.vendorCode,
@@ -42,7 +43,7 @@ export default async function EditVendorPage({
           contactPerson: vendor.contactPerson,
           phone: vendor.phone,
           email: vendor.email,
-          schoolIds: vendor.vendorSchools.map((row) => row.schoolId)
+          organisationIds: vendor.vendorSchools.map((row) => row.organisationId.toString())
         }}
       />
     </>

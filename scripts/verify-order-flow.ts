@@ -1,3 +1,5 @@
+import { getCurrentSessionYear } from "../lib/session-year";
+import { asSchool } from "../lib/school-reference";
 import assert from "node:assert/strict";
 import { prisma } from "../lib/prisma";
 import { normalizeOrderEntry } from "../lib/order-entry";
@@ -9,10 +11,10 @@ async function main() {
   const url = new URL(process.env.DATABASE_URL ?? "");
   assert.equal(url.hostname, "127.0.0.1");
   assert.equal(url.port, "55439");
-  assert.equal(url.pathname, "/order_revamp_verify");
+  assert.ok(["/order_revamp_verify", "/school_consolidation_verify"].includes(url.pathname));
   require("next/cache").revalidatePath = () => {};
   const { createOrder, updateOrder, lockOrder, finalizeOrder, searchOrders } = await import("../lib/services/orders");
-  const schools = await prisma.school.findMany({ take: 2 });
+  const schools = (await prisma.organisation.findMany({ take: 2 })).map(asSchool);
   assert.equal(schools.length, 2);
   const item = await prisma.item.findFirstOrThrow();
   const itemRef = { itemCode: item.itemCode, itemName: item.itemName };
@@ -27,37 +29,26 @@ async function main() {
   const ambiguous = await createOrder(ambiguousInput);
   assert.equal(ambiguous.billingToCode, null);
   assert.equal(ambiguous.shippingToCode, null);
-  assert.equal(ambiguous.sessionYear, null);
+  assert.equal(ambiguous.sessionYear, getCurrentSessionYear());
   assert.equal(ambiguous.expectedDeliveryDate, null);
   assert.equal(ambiguous.orderReceivedDate, null);
-  assert.equal(ambiguous.ambiguousSchools.length, 0);
-  // Old school links stay in storage but never participate in quantity entry.
-  const historicalSchool = await prisma.orderSheet2B1.create({ data: {
-    orderSheet1Id: ambiguous.orderSheet1Id, orderNo: ambiguous.orderNo,
-    schoolCode: "HISTORICAL-UNKNOWN", schoolName: "Hidden legacy end school", notes: "Retain history"
-  } });
   const editedAmbiguous = await updateOrder(ambiguous.orderSheet1Id, {
     ...ambiguousInput, ambiguousItems: [{ ...itemRef, groupedQuantity: 11 }]
   });
-  assert.deepEqual(editedAmbiguous.ambiguousSchools, [historicalSchool]);
   assert.equal(editedAmbiguous.ambiguousItems[0].groupedQuantity, 11);
   await lockOrder(ambiguous.orderSheet1Id);
   const finalizedAmbiguous = await finalizeOrder(ambiguous.orderSheet1Id);
   assert.deepEqual(finalizedAmbiguous.finalRows.map(row => [row.sourceType, row.quantity]), [["TWO_B2", 11]]);
-  assert.deepEqual(finalizedAmbiguous.ambiguousSchools, [historicalSchool]);
   await assert.rejects(() => finalizeOrder(ambiguous.orderSheet1Id), /Only locked/);
   await assert.rejects(() => lockOrder(ambiguous.orderSheet1Id), /cannot be locked/);
 
   const changingType = await createOrder(ambiguousInput);
-  await prisma.orderSheet2B1.create({ data: {
-    orderSheet1Id: changingType.orderSheet1Id, orderNo: changingType.orderNo,
-    schoolCode: "HISTORICAL-UNKNOWN", schoolName: "Discard on explicit type change"
-  } });
   const changedType = await updateOrder(changingType.orderSheet1Id, createOrderSchema.parse({
     sheet1: { ...sheet1, orderType: "descriptive", descriptiveMode: "individual" },
     descriptiveRows: [{ schoolCode: schools[0].schoolCode, schoolName: schools[0].schoolName, ...itemRef, quantity: 2 }]
   }));
-  assert.equal(changedType.ambiguousSchools.length, 0);
+
+  assert.equal(changedType.ambiguousItems.length, 0);
 
   const schoolInput = createOrderSchema.parse({ sheet1: { ...sheet1, orderType: "descriptive", descriptiveMode: "individual" }, descriptiveRows: schools.slice(0, 1).map((school, index) => ({ schoolCode: school.schoolCode, schoolName: school.schoolName, ...itemRef, quantity: index + 3 })) });
   const schoolOrder = await createOrder(schoolInput);
@@ -130,14 +121,14 @@ async function main() {
 
   const gs = await prisma.schoolGroup.create({ data: { groupCode: `GS${suffix}`, groupName: "Verification GS group", sourceType: "GS" } });
   await prisma.organisation.create({ data: { prCode: `PR${suffix}1`, organisationName: "Verification GS member", groupCode: gs.groupCode } });
-  const gsInput = createOrderSchema.parse({ ...groupInput, sheet1: { ...groupInput.sheet1, endUserGroupCode: gs.groupCode } });
+  const gsInput = createOrderSchema.parse({ ...groupInput, combinedSchools: [{ schoolCode: `PR${suffix}1`, schoolName: "Verification GS member" }], sheet1: { ...groupInput.sheet1, endUserGroupCode: gs.groupCode } });
   const gsOrder = await createOrder(gsInput);
   assert.equal(gsOrder.combinedSchools.length, 1);
   assert.match(gsOrder.combinedSchools[0].schoolCode, /^PT\d+$/);
   assert.equal(gsOrder.shippingToSummary, sheet1.shippingToSummary);
   assert.equal(gsOrder.billingToType, "individual");
   await prisma.organisation.updateMany({ where: { groupCode: gs.groupCode }, data: { groupCode: null } });
-  const editedGs = await updateOrder(gsOrder.orderSheet1Id, { ...gsInput, sheet1: { ...gsInput.sheet1, shippingToSummary: "New independent GS destination" } });
+  const editedGs = await updateOrder(gsOrder.orderSheet1Id, { ...gsInput, combinedSchools: gsOrder.combinedSchools.map(row => ({ ...row, notes: row.notes ?? "" })), sheet1: { ...gsInput.sheet1, shippingToSummary: "New independent GS destination" } });
   assert.deepEqual(editedGs.combinedSchools.map(row => row.schoolCode), gsOrder.combinedSchools.map(row => row.schoolCode));
   assert.equal(editedGs.shippingToSummary, "New independent GS destination");
   await lockOrder(gsOrder.orderSheet1Id);

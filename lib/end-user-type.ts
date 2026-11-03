@@ -30,15 +30,11 @@ export function distinctEndUsers(rows: EndUser[]): EndUser[] {
 
 export function savedOrderEndUsers(order: {
   descriptiveRows: EndUser[];
-  ambiguousSchools: EndUser[];
   combinedSchools: EndUser[];
   groupParticipants: { ptCode: string; schoolName: string }[];
-  groupChildLinks: { childOrder: { billingToType: string; billingToCode: string | null; billingToName: string } }[];
 }): EndUser[] {
   return distinctEndUsers([
-    ...order.descriptiveRows, ...order.ambiguousSchools, ...order.combinedSchools,
-    ...order.groupParticipants.map(row => ({ schoolCode: row.ptCode, schoolName: row.schoolName })),
-    ...order.groupChildLinks.flatMap(({ childOrder }) => childOrder.billingToType === "school" && childOrder.billingToCode
-      ? [{ schoolCode: childOrder.billingToCode, schoolName: childOrder.billingToName }] : [])
+    ...order.descriptiveRows, ...order.combinedSchools,
+    ...order.groupParticipants.map(row => ({ schoolCode: row.ptCode, schoolName: row.schoolName }))
   ]);
 }

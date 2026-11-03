@@ -1,3 +1,4 @@
+import { asSchool } from "@/lib/school-reference";
 import { loadEnvConfig } from "@next/env";
 import { readFileSync } from "node:fs";
 import { connectorConfig, upsertSharedVendor, upsertSharedVendorSchool } from "@dataconnect/admin-generated";
@@ -23,7 +24,7 @@ function dataConnect() {
 export async function publishVendors() {
   const vendors = await prisma.vendor.findMany({
     orderBy: { vendorCode: "asc" },
-    include: { vendorSchools: { include: { school: { select: { schoolCode: true } } } } }
+    include: { vendorSchools: { include: { organisation: true } } }
   });
   const client = dataConnect();
   let mappings = 0;
@@ -48,7 +49,7 @@ export async function publishVendors() {
       paymentStatus: vendor.paymentStatus
     });
     for (const mapping of vendor.vendorSchools) {
-      await upsertSharedVendorSchool(client, { vendorCode: vendor.vendorCode, schoolCode: mapping.school.schoolCode });
+      await upsertSharedVendorSchool(client, { vendorCode: vendor.vendorCode, schoolCode: asSchool(mapping.organisation).schoolCode });
       mappings += 1;
     }
   }

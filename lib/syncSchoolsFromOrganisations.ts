@@ -1,3 +1,4 @@
+import { upsertImportedOrganisation } from "@/lib/services/organisation-import";
 import {
   listOrganisations,
   connectorConfig,
@@ -47,20 +48,6 @@ type OrganisationSource = {
 
 type ImportedOrganisation = ListOrganisationsData["organisations"][number];
 
-type ExistingVendor = Awaited<
-  ReturnType<
-    typeof prisma.vendor.findMany<{
-      include: {
-        vendorSchools: {
-          include: {
-            school: true;
-          };
-        };
-      };
-    }>
-  >
->[number];
-
 function normalizeText(value?: string | null) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
@@ -74,49 +61,6 @@ function ensureFirebaseApp() {
   return initializeApp({
     projectId: FIREBASE_PROJECT_ID
   });
-}
-
-function schoolIdentityKey(input: {
-  schoolName: string;
-  address?: string | null;
-  district?: string | null;
-  state?: string | null;
-  pincode?: string | null;
-}) {
-  return [
-    input.schoolName.trim().toLowerCase(),
-    normalizeText(input.address)?.toLowerCase() ?? "",
-    normalizeText(input.district)?.toLowerCase() ?? "",
-    normalizeText(input.state)?.toLowerCase() ?? "",
-    normalizeText(input.pincode)?.toLowerCase() ?? ""
-  ].join("|");
-}
-
-function deriveSchoolCode(organisation: { ptCode: string | null; prCode: string }) {
-  return organisation.ptCode?.trim() || organisation.prCode.trim();
-}
-
-function toSchoolData(organisation: {
-  prCode: string;
-  ptCode: string | null;
-  organisationName: string;
-  address: string | null;
-  district: string | null;
-  state: string | null;
-  pinCode: string | null;
-  phone: string | null;
-  email: string | null;
-}) {
-  return {
-    schoolCode: deriveSchoolCode(organisation),
-    schoolName: organisation.organisationName.trim(),
-    address: normalizeText(organisation.address),
-    district: normalizeText(organisation.district),
-    state: normalizeText(organisation.state),
-    pincode: normalizeText(organisation.pinCode),
-    phone: normalizeText(organisation.phone),
-    email: normalizeText(organisation.email)
-  };
 }
 
 function toOrganisationSource(organisation: ImportedOrganisation): OrganisationSource {
@@ -164,7 +108,7 @@ function toPrismaOrganisationData(
     academicYear: normalizeText(organisation.academicYear),
     strength: organisation.strength,
     boardType: normalizeText(organisation.boardType),
-    sessionStartFrom: organisation.sessionStartFrom,
+    sessionStartFrom: organisation.sessionStartFrom ? new Date(organisation.sessionStartFrom) : null,
     minorityType: normalizeText(organisation.minorityType),
     saturdayStatus: normalizeText(organisation.saturdayStatus),
     workingStatus: organisation.workingStatus,
@@ -198,141 +142,16 @@ async function loadImportedOrganisationsFromDataConnect(): Promise<OrganisationS
     );
 }
 
-async function loadOrganisationSources(): Promise<OrganisationSource[]> {
-  // Schools in the shared master-data workflow must use the Data Connect PT
-  // codes. Local Organisation rows may be partial or manually maintained and
-  // must not prevent vendor-to-school mappings from being resolved.
-  return loadImportedOrganisationsFromDataConnect();
-}
-
-function collectPreservedVendorLinks(existingVendors: ExistingVendor[], nextSchools: ReturnType<typeof toSchoolData>[]) {
-  const schoolCodeByIdentity = new Map(
-    nextSchools.map((school) => [schoolIdentityKey(school), school.schoolCode])
-  );
-
-  return existingVendors.flatMap((vendor) => {
-    const nextSchoolCodes = Array.from(
-      new Set(
-        vendor.vendorSchools
-          .map((row) => schoolCodeByIdentity.get(schoolIdentityKey(row.school)))
-          .filter((schoolCode): schoolCode is string => Boolean(schoolCode))
-      )
-    );
-
-    return nextSchoolCodes.map((schoolCode) => ({
-      vendorCode: vendor.vendorCode,
-      schoolCode
-    }));
-  });
-}
-
 export async function replaceSchoolsWithImportedOrganisations(): Promise<SchoolSyncSummary> {
-  const [organisations, existingVendors] = await Promise.all([
-    loadOrganisationSources(),
-    prisma.vendor.findMany({
-      include: {
-        vendorSchools: {
-          include: {
-            school: true
-          }
-        }
-      }
-    })
-  ]);
-
-  if (organisations.length === 0) {
-    throw new Error("No imported organisations were found. Sync organisations first.");
-  }
-
-  const nextSchools = Array.from(
-    new Map(
-      organisations.map((organisation) => {
-        const school = toSchoolData(organisation);
-        return [school.schoolCode, school] as const;
-      })
-    ).values()
-  );
-  const nextOrganisations = Array.from(
-    new Map(
-      organisations.map((organisation) => [
-        organisation.prCode.trim(),
-        toPrismaOrganisationData(organisation)
-      ])
-    ).values()
-  );
-
-  const preservedLinks = collectPreservedVendorLinks(existingVendors, nextSchools);
-
-  await prisma.$transaction(
-    async (tx) => {
-      await tx.vendorSchool.deleteMany();
-      await tx.school.deleteMany();
-      await tx.organisation.deleteMany();
-
-      await tx.organisation.createMany({ data: nextOrganisations });
-      await tx.school.createMany({
-        data: nextSchools
-      });
-
-      if (preservedLinks.length === 0) {
-        return;
-      }
-
-      const [vendors, schools] = await Promise.all([
-        tx.vendor.findMany({
-          where: {
-            vendorCode: {
-              in: Array.from(new Set(preservedLinks.map((row) => row.vendorCode)))
-            }
-          },
-          select: {
-            vendorId: true,
-            vendorCode: true
-          }
-        }),
-        tx.school.findMany({
-          where: {
-            schoolCode: {
-              in: Array.from(new Set(preservedLinks.map((row) => row.schoolCode)))
-            }
-          },
-          select: {
-            schoolId: true,
-            schoolCode: true
-          }
-        })
-      ]);
-
-      const vendorIdByCode = new Map(vendors.map((vendor) => [vendor.vendorCode, vendor.vendorId]));
-      const schoolIdByCode = new Map(schools.map((school) => [school.schoolCode, school.schoolId]));
-
-      const vendorSchoolRows = preservedLinks
-        .map((row) => {
-          const vendorId = vendorIdByCode.get(row.vendorCode);
-          const schoolId = schoolIdByCode.get(row.schoolCode);
-
-          if (!vendorId || !schoolId) {
-            return null;
-          }
-
-          return { vendorId, schoolId };
-        })
-        .filter((row): row is { vendorId: number; schoolId: number } => Boolean(row));
-
-      if (vendorSchoolRows.length > 0) {
-        await tx.vendorSchool.createMany({
-          data: vendorSchoolRows,
-          skipDuplicates: true
-        });
-      }
-    },
-    { maxWait: 10_000, timeout: MASTER_DATA_TRANSACTION_TIMEOUT_MS }
-  );
-
+  const organisations = await loadImportedOrganisationsFromDataConnect();
+  if (!organisations.length) throw new Error("No imported organisations were found.");
+  const rows = organisations.map(toPrismaOrganisationData);
+  await prisma.$transaction(async tx => {
+    await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(741024)`;
+    for (const row of rows) await upsertImportedOrganisation(tx, row);
+  }, { maxWait: 10_000, timeout: MASTER_DATA_TRANSACTION_TIMEOUT_MS });
   return {
-    importedOrganisations: organisations.length,
-    replacedOrganisations: nextOrganisations.length,
-    replacedSchools: nextSchools.length,
-    preservedVendorLinks: preservedLinks.length
+    importedOrganisations: rows.length, replacedOrganisations: rows.length,
+    replacedSchools: 0, preservedVendorLinks: await prisma.vendorSchool.count()
   };
 }

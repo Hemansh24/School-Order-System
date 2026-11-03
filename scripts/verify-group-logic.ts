@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict';
-import type { OrderSheet1 } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { prepareGsOrder } from '../lib/services/gs-orders';
-import { createParentGroupOrderTx } from '../lib/services/group-orders';
 import { parseGsRows } from '../lib/importGsGroups';
 import { createOrderSchema, type CreateOrderInput } from '../lib/validation/orders';
 
@@ -11,12 +9,12 @@ const code = 'GS99999999';
 const dates = { sessionYear: '2026-2027', orderPlacedDate: '2026-10-13', orderReceivedDate: '2026-10-13', expectedDeliveryDate: '2026-10-14' };
 const input = (groupId: number, locationId?: number): CreateOrderInput => ({
   sheet1: { ...dates, billingToType: 'individual', billingToCode: '', billingToName: 'Manual payer', shippingToType: 'individual', shippingToCode: '', shippingToName: 'Test group', shippingToSummary: 'Test address', orderType: 'descriptive', descriptiveMode: 'multiple_group', endUserGroupCode: code, pendingPayment: false, schoolGroupId: groupId, schoolGroupLocationId: locationId },
-  descriptiveRows: [], ambiguousSchools: [], ambiguousItems: [],
+  descriptiveRows: [], ambiguousItems: [],
   combinedSchools: [{ schoolCode: 'PR999999991', schoolName: 'PR-only test school' }],
   combinedItems: [{ itemCode: 'TEST', itemName: 'Test', pooledQuantity: 1 }]
 });
 async function main() {
-  const before = { orders: await prisma.orderSheet1.count(), organisations: await prisma.organisation.count(), schools: await prisma.school.count(), groups: await prisma.schoolGroup.count() };
+  const before = { orders: await prisma.orderSheet1.count(), organisations: await prisma.organisation.count(), groups: await prisma.schoolGroup.count() };
   let completed = false;
   try {
     await prisma.$transaction(async tx => {
@@ -47,26 +45,10 @@ async function main() {
       assert.equal(preserved.sheet1.shippingToSummary, 'Test address');
       assert.deepEqual(preserved.combinedSchools.map(row => row.schoolCode), prepared.combinedSchools.map(row => row.schoolCode));
       await tx.organisation.update({ where: { prCode: pr }, data: { groupCode: code } });
-      const children: OrderSheet1[] = [];
-      for (let index = 0; index < 2; index++) {
-        const child = await tx.orderSheet1.create({ data: { orderNo: -99999991 - index, sessionYear: dates.sessionYear, orderPlacedDate: new Date(dates.orderPlacedDate), orderReceivedDate: new Date(dates.orderReceivedDate), expectedDeliveryDate: new Date(dates.expectedDeliveryDate), billingToType: 'school', billingToCode: member.ptCode!, billingToName: member.organisationName, shippingToType: 'school', shippingToCode: member.ptCode!, shippingToName: member.organisationName, shippingToSummary: 'Separate address ' + index, orderType: 'descriptive' } });
-        children.push(child);
-      }
-      await assert.rejects(() => createParentGroupOrderTx(tx, group.schoolGroupId, [children[0].orderSheet1Id, children[0].orderSheet1Id], dates), /distinct/);
-      const parent = await createParentGroupOrderTx(tx, group.schoolGroupId, children.map(child => child.orderSheet1Id), dates);
-      assert.equal(parent.classification, 'group_parent');
-      for (const child of children) {
-        const after = await tx.orderSheet1.findUniqueOrThrow({ where: { orderSheet1Id: child.orderSheet1Id } });
-        assert.equal(after.shippingToSummary, child.shippingToSummary);
-        assert.equal(after.billingToCode, member.ptCode);
-        assert.equal(after.orderStatus, child.orderStatus);
-      }
-      assert.equal(await tx.orderSheet3.count({ where: { orderSheet1Id: parent.orderSheet1Id } }), 0);
-      await assert.rejects(() => createParentGroupOrderTx(tx, group.schoolGroupId, [children[0].orderSheet1Id], dates), /already belong/);
       const c1 = { ...input(group.schoolGroupId), sheet1: { ...input(group.schoolGroupId).sheet1, schoolGroupId: undefined, schoolGroupLocationId: undefined, descriptiveMode: 'individual' as const, endUserGroupCode: '', billingToCode: 'C1-001', shippingToCode: 'C1-001' } };
       assert.deepEqual(await prepareGsOrder(tx, c1), c1);
       const legacy = { ...snapshot, endUserGroupCode: code + '-1', billingToCode: code + '-1', shippingToCode: code + '-1', schoolGroupId: null, schoolGroupLocationId: null };
-      const oldInput = { ...input(group.schoolGroupId), sheet1: { ...input(group.schoolGroupId).sheet1, schoolGroupId: undefined, endUserGroupCode: code + '-1', billingToCode: code + '-1', shippingToCode: code + '-1' } };
+      const oldInput = { ...input(group.schoolGroupId), combinedSchools: prepared.combinedSchools, sheet1: { ...input(group.schoolGroupId).sheet1, schoolGroupId: undefined, endUserGroupCode: code + '-1', billingToCode: code + '-1', shippingToCode: code + '-1' } };
       assert.equal((await prepareGsOrder(tx, oldInput, legacy)).sheet1.shippingToSummary, 'Test address');
       assert.equal(createOrderSchema.safeParse(prepared).success, true);
       completed = true;
@@ -74,11 +56,11 @@ async function main() {
     }, { timeout: 120000 });
   } catch (error) { if (error !== rollback) throw error; }
   assert.equal(completed, true);
-  assert.deepEqual({ orders: await prisma.orderSheet1.count(), organisations: await prisma.organisation.count(), schools: await prisma.school.count(), groups: await prisma.schoolGroup.count() }, before);
+  assert.deepEqual({ orders: await prisma.orderSheet1.count(), organisations: await prisma.organisation.count(), groups: await prisma.schoolGroup.count() }, before);
   const headers = ['GS Code', 'GS Sub Code', 'Name', '', '', '', '', 'Address'];
   assert.throws(() => parseGsRows([headers]), /empty/);
   assert.throws(() => parseGsRows([headers, [code, '1', 'Name'], [code, '1', 'Other name']]), /Duplicate/);
   assert.equal(parseGsRows([headers, [code, '1', 'Name', '', '', '', '', 'NA']])[0].address, null);
-  console.log('Passed GS membership, PR conversion, snapshots, independent manual billing/shipping, reporting groups, C1 compatibility, legacy orders, and import validation. All fixtures rolled back.');
+  console.log('Passed GS membership, PR conversion, snapshots, independent manual billing/shipping, C1 compatibility, legacy orders, and import validation. All fixtures rolled back.');
 }
 main().catch(error => { console.error(error instanceof Error ? error.message : 'Verification failed'); process.exitCode = 1; }).finally(() => prisma.$disconnect());

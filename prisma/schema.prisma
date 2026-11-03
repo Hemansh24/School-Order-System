@@ -56,32 +56,10 @@ model PtCodeUsageHistory {
   @@map("pt_code_usage_history")
 }
 
-model School {
-  schoolId      Int      @id @default(autoincrement()) @map("school_id")
-  schoolCode    String   @unique @map("school_code")
-  schoolName    String   @map("school_name")
-  address       String?
-  district      String?
-  state         String?
-  pincode       String?
-  contactPerson String?  @map("contact_person")
-  phone         String?
-  email         String?
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
-
-  vendorSchools VendorSchool[]
-
-  @@index([district], map: "idx_schools_district")
-  @@index([schoolName], map: "idx_schools_school_name")
-  @@index([state], map: "idx_schools_state")
-  @@map("schools")
-}
-
 model Organisation {
   id               BigInt   @id @default(autoincrement())
   groupCode        String?  @map("group_code")
-  ptCode           String?  @map("pt_code")
+  ptCode           String?  @unique @map("pt_code")
   prCode           String   @unique @map("pr_code")
   organisationName String   @map("organisation_name")
   address          String?
@@ -106,6 +84,13 @@ model Organisation {
   updatedAt        DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   syncedAt         DateTime? @default(now()) @map("synced_at") @db.Timestamptz(6)
 
+  contactPerson    String? @map("contact_person")
+  legacySchoolIds  Int[] @default([]) @map("legacy_school_ids")
+  legacySchoolCodes String[] @default([]) @map("legacy_school_codes")
+  vendorSchools VendorSchool[]
+
+  @@index([legacySchoolCodes], type: Gin, map: "idx_organisations_legacy_codes")
+  @@index([legacySchoolIds], type: Gin, map: "idx_organisations_legacy_ids")
   @@index([district], map: "idx_organisations_district")
   @@index([organisationName], map: "idx_organisations_name")
   @@index([prCode], map: "idx_organisations_pr_code")
@@ -238,14 +223,14 @@ model PreBookseller {
 model VendorSchool {
   vendorSchoolId Int      @id @default(autoincrement()) @map("vendor_school_id")
   vendorId       Int      @map("vendor_id")
-  schoolId       Int      @map("school_id")
+  organisationId BigInt   @map("organisation_id")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
 
   vendor Vendor @relation(fields: [vendorId], references: [vendorId], onDelete: Cascade, onUpdate: NoAction)
-  school School @relation(fields: [schoolId], references: [schoolId], onDelete: Cascade, onUpdate: NoAction)
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
 
-  @@unique([vendorId, schoolId])
+  @@unique([vendorId, organisationId])
   @@map("vendor_schools")
 }
 
@@ -312,7 +297,6 @@ model OrderSheet1 {
   updatedAt            DateTime      @default(now()) @updatedAt @map("updated_at")
 
   descriptiveRows OrderSheet2A[]
-  ambiguousSchools OrderSheet2B1[]
   ambiguousItems OrderSheet2B2[]
   combinedSchools  OrderSheet2C1[]
   combinedItems    OrderSheet2C2[]
@@ -321,8 +305,6 @@ model OrderSheet1 {
   schoolGroupLocation SchoolGroupLocation? @relation(fields: [schoolGroupLocationId], references: [schoolGroupLocationId])
   groupParticipants OrderGroupParticipant[]
   groupItems OrderGroupItem[]
-  groupChildLinks OrderGroupChildOrder[] @relation("GroupParent")
-  groupParentLinks OrderGroupChildOrder[] @relation("GroupChild")
 
   @@index([orderType, orderStatus])
   @@index([reorderOfOrderId])
@@ -386,18 +368,6 @@ model OrderGroupItem {
   @@map("order_group_items")
 }
 
-model OrderGroupChildOrder {
-  orderGroupChildOrderId Int @id @default(autoincrement()) @map("order_group_child_order_id")
-  groupParentOrderId Int @map("group_parent_order_id")
-  childOrderId Int @map("child_order_id")
-  createdAt DateTime @default(now()) @map("created_at")
-  groupParent OrderSheet1 @relation("GroupParent", fields: [groupParentOrderId], references: [orderSheet1Id], onDelete: Cascade)
-  childOrder OrderSheet1 @relation("GroupChild", fields: [childOrderId], references: [orderSheet1Id], onDelete: Cascade)
-  @@unique([groupParentOrderId, childOrderId])
-  @@unique([childOrderId])
-  @@map("order_group_child_orders")
-}
-
 model OrderSheet2A {
   orderSheet2AId      Int      @id @default(autoincrement()) @map("order_sheet_2a_id")
   orderSheet1Id       Int      @map("order_sheet_1_id")
@@ -416,22 +386,6 @@ model OrderSheet2A {
 
   @@index([orderNo])
   @@map("order_sheet_2a")
-}
-
-model OrderSheet2B1 {
-  orderSheet2B1Id Int      @id @default(autoincrement()) @map("order_sheet_2b1_id")
-  orderSheet1Id   Int      @map("order_sheet_1_id")
-  orderNo         Int      @map("order_no")
-  schoolCode      String   @map("school_code")
-  schoolName      String   @map("school_name")
-  notes           String?
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
-
-  order OrderSheet1 @relation(fields: [orderSheet1Id], references: [orderSheet1Id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([orderNo])
-  @@map("order_sheet_2b1")
 }
 
 model OrderSheet2B2 {

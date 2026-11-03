@@ -52,7 +52,6 @@ export function savedOrderToInput(order: SavedOrderInput): CreateOrderInput {
             notes: row.notes ?? ""
           }))
         : [],
-    ambiguousSchools: [],
     ambiguousItems:
       order.orderType === "ambiguous"
         ? order.ambiguousItems.map((row) => ({

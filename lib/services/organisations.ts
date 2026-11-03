@@ -1,3 +1,4 @@
+import { findSchoolByCode, organisationCodes } from "@/lib/school-reference";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { nextCompactCode, nextSequentialCompactCode } from "@/lib/reference-codes";
@@ -6,8 +7,30 @@ import { moveSchoolGroupCodeTx, reservedPtCodes } from "@/lib/pt-codes";
 const ORGANISATIONS_PAGE_SIZE = 25;
 type Tx = Prisma.TransactionClient;
 
+export async function deleteOrganisation(id: bigint) {
+  return prisma.$transaction(async tx => {
+    await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(741024)`;
+    const organisation = await tx.organisation.findUniqueOrThrow({ where: { id } });
+    if (await tx.vendorSchool.count({ where: { organisationId: id } })) {
+      throw new Error("Remove this organisation's bookseller links before deleting it.");
+    }
+    const codes = organisationCodes(organisation);
+    const order = await tx.orderSheet1.findFirst({ where: { OR: [
+      { billingToType: "school", billingToCode: { in: codes } },
+      { shippingToType: "school", shippingToCode: { in: codes } },
+      { commissionPartyType: "school", commissionPartyCode: { in: codes } },
+      { descriptiveRows: { some: { schoolCode: { in: codes } } } },
+      { combinedSchools: { some: { schoolCode: { in: codes } } } },
+      { groupParticipants: { some: { ptCode: { in: codes } } } }
+    ] }, select: { orderSheet1Id: true } });
+    if (order) throw new Error("This organisation is referenced by an order and cannot be deleted.");
+    return tx.organisation.delete({ where: { id } });
+  });
+}
+
 type OrganisationAddressInput = {
   organisationName: string;
+  contactPerson?: string | null;
   address?: string | null;
   district?: string | null;
   state?: string | null;
@@ -35,6 +58,7 @@ export type OrganisationListItem = {
   id: string;
   prCode: string;
   organisationName: string;
+  contactPerson?: string | null;
   district: string | null;
   state: string | null;
   pinCode: string | null;
@@ -51,6 +75,7 @@ export type OrganisationDetail = {
   groupCode: string | null;
   ptCode: string | null;
   organisationName: string;
+  contactPerson?: string | null;
   address: string | null;
   district: string | null;
   state: string | null;
@@ -72,6 +97,7 @@ export type OrganisationDetail = {
 export type OrganisationLookupFilters = {
   prCode: string;
   organisationName: string;
+  contactPerson?: string | null;
   district: string;
   state: string;
   actionStatus: string;
@@ -130,6 +156,7 @@ export function normalizeOrganisationInput(input: OrganisationMutationInput) {
     groupCode: normalizeText(input.groupCode),
     prCode: input.prCode.trim(),
     organisationName: input.organisationName.trim(),
+    contactPerson: normalizeText(input.contactPerson),
     address: normalizeText(input.address),
     district: normalizeText(input.district),
     state: normalizeText(input.state),
@@ -179,6 +206,7 @@ function mapListItem(record: {
   id: bigint;
   prCode: string;
   organisationName: string;
+  contactPerson?: string | null;
   district: string | null;
   state: string | null;
   pinCode: string | null;
@@ -192,6 +220,7 @@ function mapListItem(record: {
     id: record.id.toString(),
     prCode: record.prCode,
     organisationName: record.organisationName,
+    contactPerson: record.contactPerson,
     district: record.district ?? null,
     state: record.state ?? null,
     pinCode: record.pinCode ?? null,
@@ -209,6 +238,7 @@ function mapDetail(record: {
   groupCode: string | null;
   ptCode: string | null;
   organisationName: string;
+  contactPerson?: string | null;
   address: string | null;
   district: string | null;
   state: string | null;
@@ -232,6 +262,7 @@ function mapDetail(record: {
     groupCode: record.groupCode ?? null,
     ptCode: record.ptCode ?? null,
     organisationName: record.organisationName,
+    contactPerson: record.contactPerson,
     address: record.address ?? null,
     district: record.district ?? null,
     state: record.state ?? null,
@@ -266,6 +297,7 @@ async function findMatchingOrganisation(
     select: {
       id: true,
       prCode: true,
+      legacySchoolCodes: true,
       ptCode: true,
       organisationName: true,
       address: true,
@@ -284,6 +316,7 @@ async function findMatchingOrganisation(
 
 export async function createOrReuseOrganisation(input: OrganisationMutationInput) {
   return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(741024)`;
     const normalized = normalizeOrganisationInput(input);
     const { organisations, match } = await findMatchingOrganisation(tx, normalized);
 
@@ -297,8 +330,9 @@ export async function createOrReuseOrganisation(input: OrganisationMutationInput
     const organisation = await tx.organisation.create({
       data: {
         groupCode: normalized.groupCode,
-        prCode: normalized.prCode,
+        prCode: nextCompactCode("PR", organisations.flatMap(row => [row.prCode, ...row.legacySchoolCodes])),
         organisationName: normalized.organisationName,
+        contactPerson: normalized.contactPerson,
         address: normalized.address,
         district: normalized.district,
         state: normalized.state,
@@ -319,6 +353,7 @@ export async function createOrReuseOrganisation(input: OrganisationMutationInput
       select: {
         id: true,
         prCode: true,
+      legacySchoolCodes: true,
         ptCode: true,
         organisationName: true,
         address: true,
@@ -335,59 +370,6 @@ export async function createOrReuseOrganisation(input: OrganisationMutationInput
   });
 }
 
-export async function ensureOrganisationForSchoolTx(
-  tx: Tx,
-  school: {
-    schoolName: string;
-    address?: string | null;
-    district?: string | null;
-    state?: string | null;
-    pincode?: string | null;
-    phone?: string | null;
-    email?: string | null;
-  }
-) {
-  const { organisations, match } = await findMatchingOrganisation(tx, {
-    organisationName: school.schoolName,
-    address: school.address,
-    district: school.district,
-    state: school.state,
-    pinCode: school.pincode,
-    phone: school.phone,
-    email: school.email
-  });
-
-  if (match) {
-    return match;
-  }
-
-  return tx.organisation.create({
-    data: {
-      prCode: nextCompactCode(
-        "PR",
-        organisations.map((organisation) => organisation.prCode)
-      ),
-      organisationName: school.schoolName.trim(),
-      address: normalizeText(school.address),
-      district: normalizeText(school.district),
-      state: normalizeText(school.state),
-      pinCode: normalizeText(school.pincode),
-      phone: normalizeText(school.phone),
-      email: normalizeText(school.email)
-    },
-    select: {
-      id: true,
-      prCode: true,
-      ptCode: true,
-      organisationName: true,
-      address: true,
-      district: true,
-      state: true,
-      pinCode: true
-    }
-  });
-}
-
 export async function ensurePtCodesForSchoolCodesTx(tx: Tx, schoolCodes: string[]) {
   await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(741024)`;
   const ptCodeByOriginalCode = new Map<string, string>();
@@ -396,138 +378,26 @@ export async function ensurePtCodesForSchoolCodesTx(tx: Tx, schoolCodes: string[
     return ptCodeByOriginalCode;
   }
 
-  const schools = await tx.school.findMany({
-    where: { schoolCode: { in: uniqueCodes } },
-    select: {
-      schoolId: true,
-      schoolCode: true,
-      schoolName: true,
-      address: true,
-      district: true,
-      state: true,
-      pincode: true,
-      phone: true,
-      email: true
-    }
-  });
-
+  const usedPtCodes = await reservedPtCodes(tx);
   for (const code of uniqueCodes) {
-    if (/^(PT|PR)-?\d+$/i.test(code) && !schools.some(school => school.schoolCode === code)) {
+    const organisation = await findSchoolByCode(tx, code);
+    if (!organisation) {
+      // Historical headers can use group/location codes with party type "school".
+      const location = code.match(/^(GS\d+)-\d+$/i);
+      if (/^(GS|C)\d/i.test(code) && await tx.schoolGroup.findFirst({
+        where: { groupCode: { equals: location?.[1] ?? code, mode: "insensitive" } }, select: { schoolGroupId: true }
+      })) continue;
       throw new Error(`School code ${code} has changed or no longer exists. Refresh the school selection and retry.`);
     }
-  }
-
-  const cache = await tx.organisation.findMany({
-    select: {
-      id: true,
-      prCode: true,
-      ptCode: true,
-      organisationName: true,
-      address: true,
-      district: true,
-      state: true,
-      pinCode: true
+    let ptCode = organisation.ptCode;
+    if (!ptCode) {
+      ptCode = nextSequentialCompactCode("PT", usedPtCodes, 4);
+      await tx.organisation.update({ where: { id: organisation.id }, data: { ptCode } });
+      usedPtCodes.push(ptCode);
+      await moveSchoolGroupCodeTx(tx, organisation.prCode, ptCode);
     }
-  });
-
-  const usedPtCodes = await reservedPtCodes(tx);
-
-  for (const school of schools) {
-    let organisation =
-      cache.find((candidate) => candidate.prCode === school.schoolCode) ??
-      cache.find((candidate) => candidate.ptCode === school.schoolCode) ??
-      cache.find((candidate) =>
-        sameOrganisationIdentity(candidate, {
-          organisationName: school.schoolName,
-          address: school.address,
-          district: school.district,
-          state: school.state,
-          pinCode: school.pincode
-        })
-      ) ?? null;
-
-    if (!organisation) {
-      organisation = await tx.organisation.create({
-        data: {
-          prCode: /^PR\d+$/i.test(school.schoolCode)
-            ? school.schoolCode
-            : nextCompactCode("PR", cache.map((candidate) => candidate.prCode)),
-          organisationName: school.schoolName.trim(),
-          address: normalizeText(school.address),
-          district: normalizeText(school.district),
-          state: normalizeText(school.state),
-          pinCode: normalizeText(school.pincode),
-          phone: normalizeText(school.phone),
-          email: normalizeText(school.email)
-        },
-        select: {
-          id: true,
-          prCode: true,
-          ptCode: true,
-          organisationName: true,
-          address: true,
-          district: true,
-          state: true,
-          pinCode: true
-        }
-      });
-      cache.push(organisation);
-    }
-
-    if (!organisation.ptCode) {
-      const updated = await tx.organisation.update({
-        where: { id: organisation.id },
-        data: {
-          ptCode: nextSequentialCompactCode(
-            "PT",
-            usedPtCodes,
-            4
-          )
-        },
-        select: {
-          id: true,
-          prCode: true,
-          ptCode: true,
-          organisationName: true,
-          address: true,
-          district: true,
-          state: true,
-          pinCode: true
-        }
-      });
-
-      const index = cache.findIndex((candidate) => candidate.id === updated.id);
-      cache[index] = updated;
-      organisation = updated;
-      if (updated.ptCode) usedPtCodes.push(updated.ptCode);
-    }
-
-    if (organisation.ptCode) {
-      const targetSchool = await tx.school.findUnique({
-        where: { schoolCode: organisation.ptCode },
-        select: { schoolId: true }
-      });
-
-      // A school code is unique. Two legacy school records can resolve to the
-      // same organisation/PT code, so do not overwrite one record's code with
-      // the other's while an order is being created. Keep the selected
-      // school's valid code in that case; it also keeps vendor-school links
-      // and the order input in sync.
-      if (targetSchool && targetSchool.schoolId !== school.schoolId) {
-        ptCodeByOriginalCode.set(school.schoolCode, school.schoolCode);
-        continue;
-      }
-
-      ptCodeByOriginalCode.set(school.schoolCode, organisation.ptCode);
-
-      if (school.schoolCode !== organisation.ptCode) {
-        await moveSchoolGroupCodeTx(tx, school.schoolCode, organisation.ptCode);
-        await tx.school.update({
-          where: { schoolId: school.schoolId },
-          data: { schoolCode: organisation.ptCode }
-        });
-      }
-    }
+    if (code !== ptCode) await moveSchoolGroupCodeTx(tx, code, ptCode);
+    ptCodeByOriginalCode.set(code, ptCode);
   }
 
   return ptCodeByOriginalCode;
@@ -585,7 +455,7 @@ async function loadSelectedOrganisation(prCode: string) {
   const selected = await prisma.organisation.findUnique({
     where: { prCode },
     select: {
-      id: true, prCode: true, groupCode: true, ptCode: true, organisationName: true,
+      id: true, prCode: true, groupCode: true, ptCode: true, organisationName: true, contactPerson: true,
       address: true, district: true, state: true, pinCode: true, phone: true, email: true,
       website: true, actionStatus: true, remark: true, academicYear: true, strength: true,
       boardType: true, sessionStartFrom: true, minorityType: true, saturdayStatus: true,

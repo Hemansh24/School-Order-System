@@ -80,17 +80,16 @@ test("all billing/shipping combinations support either order type", () => {
   }
 });
 
-test("ambiguous orders accept only item quantities and reject schools", () => {
+test("ambiguous orders require item quantities", () => {
   assert.equal(createOrderSchema.safeParse(ambiguous).success, true);
-  assert.equal(createOrderSchema.safeParse({ ...ambiguous, ambiguousSchools: [school] }).success, false);
   assert.equal(createOrderSchema.safeParse({ ...ambiguous, ambiguousItems: [] }).success, false);
 });
 
-test("older ambiguous orders and drafts hide schools without changing quantities", () => {
+test("older ambiguous drafts discard obsolete school links without changing quantities", () => {
   const legacy = { ...createOrderSchema.parse(ambiguous), ambiguousSchools: [{ ...school, notes: "Historical link" }] };
   const snapshot = structuredClone(legacy);
-  const editable = normalizeOrderEntry(legacy);
-  assert.deepEqual(editable.ambiguousSchools, []);
+  const editable = normalizeOrderEntry(createOrderSchema.parse(legacy));
+  assert.equal("ambiguousSchools" in editable, false);
   assert.deepEqual(editable.ambiguousItems, legacy.ambiguousItems);
   assert.equal(createOrderSchema.safeParse(editable).success, true);
   assert.deepEqual(legacy, snapshot);

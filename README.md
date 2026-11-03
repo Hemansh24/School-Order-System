@@ -14,7 +14,7 @@ Next.js App Router application for school-book order processing with the require
 
 - Each order uses one stable `order_no`; editing it before finalization never changes that number.
 - Descriptive orders create only Order Sheet 2A rows.
-- Ambiguous orders create only Order Sheet 2B2 item quantities; older school links remain hidden historical data.
+- Ambiguous orders create only Order Sheet 2B2 item quantities.
 - Ambiguous quantities are not forced into school-wise allocations.
 - Finalization creates Order Sheet 3 rows from either 2A or 2B2.
 - Order Sheet 3 has its own `order_sheet_3_id`, plus `source_type` and `source_id`.
@@ -94,9 +94,9 @@ npm run prisma:deploy
 npm run master-data:sync
 ```
 
-The import order is significant: schools must exist before bookseller-school mappings are created. The import commands replace the local organisation, school, vendor, and item master tables. These Firebase imports require no Google Sheets credentials, but the GS refresh at the end of `master-data:sync` requires Google Sheets read access.
+The import order is significant: organisations must exist before bookseller-school mappings are created. Organisation imports update records in place by PR code, preserving IDs, local contact-person details, locally assigned PT codes, records absent from the source, and bookseller links. Vendor and item imports retain their own refresh behavior. These Firebase imports require no Google Sheets credentials, but the GS refresh at the end of `master-data:sync` requires Google Sheets read access.
 
-`schools:sync` always imports the shared Firebase/Data Connect organisations and their PT codes. Local Organisation records are not used for this shared master-data import, so they cannot prevent bookseller-to-school mappings from being created.
+`npm run organisations:import` imports the shared Firebase/Data Connect organisations. `schools:sync` remains a compatibility alias. Conflicting PT reassignment fails without changing the master records. `organisations:sync` remains the separate Google Sheets refresh and uses the same identity-preserving upsert rules.
 
 ### Bookseller actual discounts
 
@@ -170,7 +170,7 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-8. Verify the Organisations, Schools, Vendors, Items, Create Order, Orders, and Reports/Search pages. Create one test order to verify local PostgreSQL writes.
+8. Verify the Organisations, Vendors, Items, Create Order, Orders, and Reports/Search pages, plus the legacy Schools redirects. Create one test order to verify local PostgreSQL writes.
 
 ### Optional data workflows
 
@@ -184,7 +184,7 @@ The seed command deletes existing application data before inserting demo records
 
 `npm run organisations:sync` is a separate Google Sheets-to-local-PostgreSQL import. It requires `GOOGLE_SHEETS_ID`, `GOOGLE_SHEETS_RANGE`, Google Application Default Credentials, and read access to the spreadsheet. It is not required for the normal Firebase Data Connect setup above.
 
-The shared imports are also available through replace buttons on the Schools, Vendors, and Items pages. Each clone uses its own PostgreSQL database from `DATABASE_URL`; Git never transfers PostgreSQL contents or `.env` secrets.
+The shared imports are also available on the Organisations, Vendors, and Items pages. Each clone uses its own PostgreSQL database from `DATABASE_URL`; Git never transfers PostgreSQL contents or `.env` secrets.
 
 ### Production check
 
@@ -207,3 +207,20 @@ npm start
 ## Authentication
 
 The project includes a login-ready structure and a stub current user in `lib/auth.ts`. Replace this with NextAuth, custom sessions, or your preferred provider when real authentication is required.
+
+
+## Organisation-only school master
+
+`organisations` is the only school master. Orders keep their school-code/name snapshots; school is a billing, shipping, or end-user role. Bookseller relationships in `vendor_schools` reference the stable BigInt organisation ID. Forms serialize this ID as a decimal string. `/schools` redirects to Organisations; old school edit links resolve through migrated legacy IDs. Contact Person is now editable on Organisations. Deleting an organisation used by orders or booksellers is blocked.
+
+For an existing installation, stop the app and master-data writers, then run:
+
+```bash
+npm run schools:preflight -- --backup
+npm run prisma:deploy
+npm run build
+```
+
+Preflight saves a full PostgreSQL custom-format dump and differing source values under the ignored `backups/school-consolidation-*` directory. It rehearses the exact migration inside a rolled-back transaction, verifies all school IDs and bookseller links, and reports counts. PostgreSQL client tools (`pg_dump`, `pg_restore`) must be available. The migration aborts on duplicate PT ownership, ambiguous identity matches, or conflicting aliases. It drops `schools` only after reconciliation; existing order and fulfillment snapshots are preserved. Apply the new app and migration together. Rollback requires stopping the app, restoring the full dump to the intended database with `pg_restore`, and restoring the previous app version; rehearse this on a disposable database first.
+
+Run `npm test` and `npm run test:migration` for unit and temporary-table migration tests. Migration tests require the configured local PostgreSQL connection and roll back every fixture. `scripts/verify-organisation-master.ts` additionally verifies concurrent PT allocation, aliases, stable links, contact preservation, repeat imports, and cancellation on the disposable `school_consolidation_verify` database at `127.0.0.1:55439`. Existing order verification scripts also accept that database. Never point committed workflow verification at the working database.

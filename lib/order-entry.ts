@@ -4,7 +4,7 @@ import type { CreateOrderInput } from "./validation/orders";
 /** Read adapter only: saved orders/drafts upgrade when explicitly saved. */
 export function normalizeOrderEntry(input: CreateOrderInput): CreateOrderInput {
   input = { ...input, schoolExecutives: input.schoolExecutives ?? [] };
-  if (input.sheet1.orderType === "ambiguous") return { ...input, ambiguousSchools: [] };
+  if (input.sheet1.orderType === "ambiguous") return input;
   const mode = entryModeForOrder({ ...input.sheet1, descriptiveRows: input.descriptiveRows });
   const sheet1 = {
     ...input.sheet1, orderType: "descriptive" as const, descriptiveMode: mode,

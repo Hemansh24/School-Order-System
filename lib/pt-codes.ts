@@ -7,12 +7,12 @@ export async function reservedPtCodes(tx: Prisma.TransactionClient): Promise<str
     SELECT code FROM (
       SELECT pt_code AS code FROM organisations
       UNION SELECT pt_code FROM pt_code_usage_history
-      UNION SELECT school_code FROM schools
+      UNION SELECT unnest(legacy_school_codes) FROM organisations
       UNION SELECT pt_code FROM school_group_schools
       UNION SELECT billing_to_code FROM order_sheet_1 WHERE billing_to_type = 'school'
       UNION SELECT shipping_to_code FROM order_sheet_1 WHERE shipping_to_type = 'school'
+      UNION SELECT commission_party_code FROM order_sheet_1 WHERE commission_party_type = 'school'
       UNION SELECT school_code FROM order_sheet_2a
-      UNION SELECT school_code FROM order_sheet_2b1
       UNION SELECT school_code FROM order_sheet_2c1
       UNION SELECT pt_code FROM order_group_participants
     ) AS reserved WHERE code ~* '^PT-?[0-9]+$'

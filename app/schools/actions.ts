@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { formatActionError } from "@/lib/action-errors";
-import { prisma } from "@/lib/prisma";
 import { createOrReuseSchool, findSchoolsByFields, type SchoolMatch } from "@/lib/services/schools";
 import { replaceSchoolsWithImportedOrganisations } from "@/lib/syncSchoolsFromOrganisations";
 import { createSchoolSchema, lookupSchoolSchema } from "@/lib/validation/reference";
@@ -11,7 +10,7 @@ export type ReferenceActionState = {
   ok: boolean;
   message?: string;
   school?: {
-    schoolId: number;
+    organisationId: string;
     schoolCode: string;
     schoolName: string;
   };
@@ -26,14 +25,14 @@ function schoolActionMessage(error: unknown, fallback: string) {
   });
 }
 
-function revalidateSchoolPaths(schoolId?: number) {
+function revalidateSchoolPaths(organisationId?: string) {
   revalidatePath("/schools");
   revalidatePath("/organisations");
   revalidatePath("/vendors");
   revalidatePath("/orders/new");
   revalidatePath("/orders");
-  if (schoolId !== undefined) {
-    revalidatePath(`/schools/${schoolId}/edit`);
+  if (organisationId !== undefined) {
+    revalidatePath(`/schools/${organisationId}/edit`);
   }
 }
 
@@ -76,7 +75,7 @@ export async function createSchoolAction(
       ok: true,
       created: result.created,
       school: {
-        schoolId: result.school.schoolId,
+        organisationId: result.school.organisationId,
         schoolCode: result.school.schoolCode,
         schoolName: result.school.schoolName
       },
@@ -147,7 +146,7 @@ export async function lookupSchoolAction(
       created: result.created,
       matches: matches.length > 1 ? matches : undefined,
       school: {
-        schoolId: result.school.schoolId,
+        organisationId: result.school.organisationId,
         schoolCode: result.school.schoolCode,
         schoolName: result.school.schoolName
       },
@@ -166,113 +165,14 @@ export async function lookupSchoolAction(
   }
 }
 
-export async function updateSchoolAction(
-  schoolId: number,
-  _previousState: ReferenceActionState,
-  formData: FormData
-): Promise<ReferenceActionState> {
-  try {
-    const existing = await prisma.school.findUnique({
-      where: { schoolId },
-      select: { schoolCode: true }
-    });
-    if (!existing) {
-      throw new Error("School not found.");
-    }
-
-    const parsed = createSchoolSchema.parse({
-      schoolCode: existing.schoolCode,
-      schoolName: formData.get("schoolName"),
-      address: formData.get("address"),
-      district: formData.get("district"),
-      state: formData.get("state"),
-      pincode: formData.get("pincode"),
-      contactPerson: formData.get("contactPerson"),
-      phone: formData.get("phone"),
-      email: formData.get("email")
-    });
-
-    const duplicate = await prisma.school.findFirst({
-      where: {
-        schoolId: { not: schoolId },
-        schoolName: {
-          equals: parsed.schoolName,
-          mode: "insensitive"
-        }
-      },
-      select: { schoolId: true }
-    });
-
-    if (duplicate) {
-      throw new Error("A school with this name already exists.");
-    }
-
-    await prisma.school.update({
-      where: { schoolId },
-      data: {
-        schoolName: parsed.schoolName,
-        address: parsed.address,
-        district: parsed.district,
-        state: parsed.state,
-        pincode: parsed.pincode,
-        contactPerson: parsed.contactPerson,
-        phone: parsed.phone,
-        email: parsed.email
-      }
-    });
-
-    revalidateSchoolPaths(schoolId);
-    return { ok: true, message: "School saved." };
-  } catch (error) {
-    return {
-      ok: false,
-      message: schoolActionMessage(
-        error,
-        "Could not update this school. Please review the form and try again."
-      )
-    };
-  }
-}
-
-export async function deleteSchoolAction(
-  schoolId: number,
-  _previousState: ReferenceActionState,
-  _formData: FormData
-): Promise<ReferenceActionState> {
-  try {
-    await prisma.school.delete({
-      where: { schoolId }
-    });
-
-    revalidateSchoolPaths(schoolId);
-    return { ok: true, message: "School deleted." };
-  } catch (error) {
-    return {
-      ok: false,
-      message: schoolActionMessage(error, "Could not delete this school. Please try again.")
-    };
-  }
-}
-
 export async function syncImportedOrganisationsAsSchoolsAction(
-  _previousState: ReferenceActionState,
-  _formData: FormData
+  _previousState: ReferenceActionState, _formData: FormData
 ): Promise<ReferenceActionState> {
   try {
     const summary = await replaceSchoolsWithImportedOrganisations();
-
     revalidateSchoolPaths();
-    return {
-      ok: true,
-      message: `Replaced ${summary.replacedOrganisations} local organisations and ${summary.replacedSchools} schools; preserved ${summary.preservedVendorLinks} vendor links.`
-    };
+    return { ok: true, message: `Imported ${summary.importedOrganisations} organisations; preserved ${summary.preservedVendorLinks} vendor links.` };
   } catch (error) {
-    return {
-      ok: false,
-      message: schoolActionMessage(
-        error,
-        "Could not replace schools from organisations. Please try again."
-      )
-    };
+    return { ok: false, message: schoolActionMessage(error, "Could not import organisations.") };
   }
 }

@@ -20,6 +20,7 @@ import { EndUserTypesPreview } from "@/components/orders/end-user-types-preview"
 import { ExecutivePicker, type ExecutiveOption } from "@/components/orders/executive-picker";
 
 type SchoolRef = {
+  referenceCodes?: string[];
   optionKey: string;
   schoolCode: string;
   schoolName: string;
@@ -86,7 +87,6 @@ function isSavedOrderDraft(value: unknown): value is CreateOrderInput {
     !!draft.sheet1 &&
     typeof draft.sheet1 === "object" &&
     Array.isArray(draft.descriptiveRows) &&
-    Array.isArray(draft.ambiguousSchools) &&
     Array.isArray(draft.ambiguousItems) &&
     Array.isArray(draft.combinedSchools) &&
     Array.isArray(draft.combinedItems)
@@ -192,7 +192,6 @@ export function CreateOrderForm({
       },
       schoolExecutives: [],
       descriptiveRows: [],
-      ambiguousSchools: [],
       ambiguousItems: [],
       combinedSchools: [],
       combinedItems: []
@@ -212,7 +211,7 @@ export function CreateOrderForm({
     return (
       options.find(
         (option) => option.schoolCode === schoolCode && option.schoolName === schoolName
-      ) ?? options.find((option) => option.schoolCode === schoolCode)
+      ) ?? options.find((option) => option.schoolCode === schoolCode || option.referenceCodes?.includes(schoolCode ?? ""))
     );
   }
 
@@ -267,7 +266,7 @@ export function CreateOrderForm({
 
   useEffect(() => {
     if (!isDraftReady) return;
-    for (const name of ["combinedSchools", "descriptiveRows", "ambiguousSchools"] as const) {
+    for (const name of ["combinedSchools", "descriptiveRows"] as const) {
       const rows = form.getValues(name);
       if (rows.some(row => ptCodes[row.schoolCode] && ptCodes[row.schoolCode] !== row.schoolCode)) {
         form.setValue(name, rows.map(row => ({ ...row, schoolCode: ptCodes[row.schoolCode] ?? row.schoolCode })), { shouldDirty: true, shouldValidate: true });
@@ -709,7 +708,7 @@ export function CreateOrderForm({
 
   function changeEntry(type: "descriptive" | "ambiguous", mode: DescriptiveMode = descriptiveMode) {
     if (type === orderType && mode === descriptiveMode) return;
-    const hasRows = ["descriptiveRows", "ambiguousSchools", "ambiguousItems", "combinedSchools", "combinedItems"].some(key => (form.getValues(key as "descriptiveRows") ?? []).length);
+    const hasRows = ["descriptiveRows", "ambiguousItems", "combinedSchools", "combinedItems"].some(key => (form.getValues(key as "descriptiveRows") ?? []).length);
     if (hasRows && !window.confirm("Changing the order entry will discard the current schools and item quantities. Continue?")) return;
     setLegacySchoolConversion(false);
     setSelectedDescriptiveSchoolKey("");
@@ -719,7 +718,6 @@ export function CreateOrderForm({
     form.setValue("sheet1.schoolGroupId", undefined);
     form.setValue("sheet1.schoolGroupLocationId", undefined);
     form.setValue("descriptiveRows", []);
-    form.setValue("ambiguousSchools", []);
     form.setValue("ambiguousItems", []);
     form.setValue("combinedSchools", []);
     form.setValue("combinedItems", []);
@@ -1302,7 +1300,7 @@ export function CreateOrderForm({
       /> : null}
 
       {step === 2 ? <div className="space-y-1 text-sm text-red-700">
-        {[errors.descriptiveRows, errors.ambiguousSchools, errors.ambiguousItems, errors.combinedSchools, errors.combinedItems].map((error, index) => error?.message || error?.root?.message ? <p key={index}>{error.message ?? error.root?.message}</p> : null)}
+        {[errors.descriptiveRows, errors.ambiguousItems, errors.combinedSchools, errors.combinedItems].map((error, index) => error?.message || error?.root?.message ? <p key={index}>{error.message ?? error.root?.message}</p> : null)}
       </div> : null}
 
       {step === 3 ? (

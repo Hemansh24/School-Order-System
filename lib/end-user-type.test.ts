@@ -27,12 +27,11 @@ test("end-user rows deduplicate school codes and exclude group and empty codes",
   ]).map(row => row.schoolCode), ["PT0001", "PR2"]);
 });
 
-test("details collect multiple-school, direct-group and parent-group participants", () => {
+test("details collect multiple-school and direct-group participants", () => {
   assert.deepEqual(savedOrderEndUsers({
-    descriptiveRows: [{ schoolCode: "PT1", schoolName: "First" }], ambiguousSchools: [],
+    descriptiveRows: [{ schoolCode: "PT1", schoolName: "First" }],
     combinedSchools: [{ schoolCode: "PT2", schoolName: "Second" }],
-    groupParticipants: [{ ptCode: "PT3", schoolName: "Third" }],
-    groupChildLinks: [{ childOrder: { billingToType: "school", billingToCode: "PT4", billingToName: "Fourth" } }]
-  }).map(row => row.schoolCode), ["PT1", "PT2", "PT3", "PT4"]);
-  assert.deepEqual(savedOrderEndUsers({ descriptiveRows: [], ambiguousSchools: [], combinedSchools: [], groupParticipants: [], groupChildLinks: [] }), []);
+    groupParticipants: [{ ptCode: "PT3", schoolName: "Third" }]
+  }).map(row => row.schoolCode), ["PT1", "PT2", "PT3"]);
+  assert.deepEqual(savedOrderEndUsers({ descriptiveRows: [], combinedSchools: [], groupParticipants: [] }), []);
 });

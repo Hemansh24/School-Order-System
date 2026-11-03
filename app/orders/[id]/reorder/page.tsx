@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 
 function toSchoolOptions(
   schools: Array<{
+    referenceCodes: string[];
     schoolCode: string;
     schoolName: string;
     phone: string | null;
@@ -22,6 +23,7 @@ function toSchoolOptions(
     pincode: string | null;
   }>
 ): Array<{
+  referenceCodes: string[];
   optionKey: string;
   schoolCode: string;
   schoolName: string;
@@ -29,6 +31,7 @@ function toSchoolOptions(
   contactNumbers: string[];
 }> {
   return schools.map((school) => ({
+    referenceCodes: school.referenceCodes,
     optionKey: school.schoolCode,
     schoolCode: school.schoolCode,
     schoolName: school.schoolName,

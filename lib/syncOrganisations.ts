@@ -1,3 +1,4 @@
+import { upsertImportedOrganisation } from "@/lib/services/organisation-import";
 import { createHash } from "node:crypto";
 
 import { Prisma } from "@prisma/client";
@@ -284,20 +285,9 @@ export async function syncOrganisations(): Promise<OrganisationSyncSummary> {
         continue;
       }
 
-      await prisma.organisation.upsert({
-        where: {
-          prCode: data.prCode
-        },
-        create: {
-          ...data,
-          sourceHash,
-          syncedAt: new Date()
-        },
-        update: {
-          ...data,
-          sourceHash,
-          syncedAt: new Date()
-        }
+      await prisma.$transaction(async tx => {
+        await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(741024)`;
+        await upsertImportedOrganisation(tx, { ...data, sourceHash, syncedAt: new Date() });
       });
 
       if (existingOrganisation) {

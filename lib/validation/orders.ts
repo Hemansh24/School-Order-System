@@ -92,12 +92,6 @@ export const sheet2ARowSchema = z.object({
   notes: z.string().optional()
 });
 
-export const sheet2B1RowSchema = z.object({
-  schoolCode: z.string().min(1, "School code is required"),
-  schoolName: z.string().min(1, "School name is required"),
-  notes: z.string().optional()
-});
-
 export const sheet2B2RowSchema = z.object({
   itemCode: itemCodeSchema,
   itemName: z.string().min(1, "Item name is required"),
@@ -131,7 +125,6 @@ export const createOrderSchema = z
     })).optional(),
     sheet1: sheet1Schema,
     descriptiveRows: z.array(sheet2ARowSchema).default([]),
-    ambiguousSchools: z.array(sheet2B1RowSchema).max(0, "Ambiguous orders accept item quantities only").default([]),
     ambiguousItems: z.array(sheet2B2RowSchema).default([]),
     combinedSchools: z.array(sheet2C1RowSchema).default([]),
     combinedItems: z.array(sheet2C2RowSchema).default([])
@@ -160,14 +153,13 @@ export const createOrderSchema = z
       if (!data.combinedItems.length) issue(["combinedItems"], "Multiple orders require pooled items");
     }
     if (orderType === "ambiguous" && !data.ambiguousItems.length) issue(["ambiguousItems"], "Add at least one grouped item quantity");
-    if ((!school && data.descriptiveRows.length) || (!pooled && (data.combinedSchools.length || data.combinedItems.length)) || (orderType !== "ambiguous" && (data.ambiguousSchools.length || data.ambiguousItems.length))) {
+    if ((!school && data.descriptiveRows.length) || (!pooled && (data.combinedSchools.length || data.combinedItems.length)) || (orderType !== "ambiguous" && data.ambiguousItems.length)) {
       issue(["sheet1", "orderType"], "Remove rows belonging to another order type or descriptive mode");
     }
     for (const [name, keys] of [
       ["descriptiveRows", data.descriptiveRows.map(row => `${row.schoolCode}:${row.itemCode}`)],
       ["combinedSchools", data.combinedSchools.map(row => row.schoolCode)],
       ["combinedItems", data.combinedItems.map(row => row.itemCode)],
-      ["ambiguousSchools", data.ambiguousSchools.map(row => row.schoolCode)],
       ["ambiguousItems", data.ambiguousItems.map(row => row.itemCode)]
     ] as const) {
       if (new Set(keys).size !== keys.length) issue([name], "Duplicate entries are not allowed");

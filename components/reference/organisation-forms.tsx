@@ -15,6 +15,7 @@ type OrganisationFormValues = {
   prCode: string;
   ptCode: string | null;
   organisationName: string;
+  contactPerson: string | null;
   address: string | null;
   district: string | null;
   state: string | null;
@@ -75,6 +76,7 @@ export function AddOrganisationForm({ nextCode }: { nextCode: string }) {
       <TextField name="district" label="District" />
       <TextField name="state" label="State" />
       <TextField name="pinCode" label="Pin Code" />
+      <TextField name="contactPerson" label="Contact Person" />
       <TextField name="phone" label="Phone" />
       <TextField name="email" label="Email" />
       <TextField name="website" label="Website" placeholder="school.example" />
@@ -132,6 +134,7 @@ export function EditOrganisationForm({
       <TextField name="district" label="District" defaultValue={organisation.district} />
       <TextField name="state" label="State" defaultValue={organisation.state} />
       <TextField name="pinCode" label="Pin Code" defaultValue={organisation.pinCode} />
+      <TextField name="contactPerson" label="Contact Person" defaultValue={organisation.contactPerson} />
       <TextField name="phone" label="Phone" defaultValue={organisation.phone} />
       <TextField name="email" label="Email" defaultValue={organisation.email} />
       <TextField name="website" label="Website" defaultValue={organisation.website} />

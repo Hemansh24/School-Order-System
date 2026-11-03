@@ -1,3 +1,4 @@
+import { organisationCodes, schoolCodeWhere } from "@/lib/school-reference";
 import {
   listBooksellerSchoolMapping,
   listBooksellers,
@@ -191,13 +192,7 @@ export async function replaceVendorsWithImportedBooksellers(): Promise<Bookselle
   const mappedSchoolCodes = flattenMappedSchoolCodes(schoolCodesByVendorCode);
 
   if (mappingRows.length > 0 && mappedSchoolCodes.length > 0) {
-    const matchingSchools = await prisma.school.count({
-      where: {
-        schoolCode: {
-          in: mappedSchoolCodes
-        }
-      }
-    });
+    const matchingSchools = await prisma.organisation.count({ where: schoolCodeWhere(mappedSchoolCodes) });
 
     if (matchingSchools === 0) {
       throw new Error(
@@ -294,14 +289,14 @@ async function replaceVendorsWithSharedData(vendors: SharedVendor[], mappings: S
     await tx.vendorSchool.deleteMany();
     const [localVendors, schools] = await Promise.all([
       tx.vendor.findMany({ where: { vendorCode: { in: vendors.map((vendor) => vendor.vendorCode) } }, select: { vendorId: true, vendorCode: true } }),
-      tx.school.findMany({ where: { schoolCode: { in: mappings.map((mapping) => mapping.schoolCode) } }, select: { schoolId: true, schoolCode: true } })
+      tx.organisation.findMany({ where: schoolCodeWhere(mappings.map(mapping => mapping.schoolCode)) })
     ]);
     const vendorIdByCode = new Map(localVendors.map((vendor) => [vendor.vendorCode, vendor.vendorId]));
-    const schoolIdByCode = new Map(schools.map((school) => [school.schoolCode, school.schoolId]));
+    const organisationIdByCode = new Map(schools.flatMap(organisation => organisationCodes(organisation).map(code => [code, organisation.id] as const)));
     const rows = mappings.flatMap((mapping) => {
       const vendorId = vendorIdByCode.get(mapping.vendorCode);
-      const schoolId = schoolIdByCode.get(mapping.schoolCode);
-      return vendorId && schoolId ? [{ vendorId, schoolId }] : [];
+      const organisationId = organisationIdByCode.get(mapping.schoolCode);
+      return vendorId && organisationId ? [{ vendorId, organisationId }] : [];
     });
     if (rows.length) await tx.vendorSchool.createMany({ data: rows, skipDuplicates: true });
     linkedSchoolMappings = rows.length;
@@ -367,14 +362,11 @@ async function resolveVendorSchoolRows(
       where: { vendorCode: { in: mappedVendorCodes } },
       select: { vendorId: true, vendorCode: true }
     }),
-    tx.school.findMany({
-      where: { schoolCode: { in: mappedSchoolCodes } },
-      select: { schoolId: true, schoolCode: true }
-    })
+    tx.organisation.findMany({ where: schoolCodeWhere(mappedSchoolCodes) })
   ]);
 
   const vendorIdByCode = new Map(vendors.map((vendor) => [vendor.vendorCode, vendor.vendorId]));
-  const schoolIdByCode = new Map(schools.map((school) => [school.schoolCode, school.schoolId]));
+  const organisationIdByCode = new Map(schools.flatMap(organisation => organisationCodes(organisation).map(code => [code, organisation.id] as const)));
 
   return mappedVendorCodes.flatMap((vendorCode) => {
     const vendorId = vendorIdByCode.get(vendorCode);
@@ -386,9 +378,9 @@ async function resolveVendorSchoolRows(
 
     return Array.from(schoolCodes)
       .map((schoolCode) => {
-        const schoolId = schoolIdByCode.get(schoolCode);
-        return schoolId ? { vendorId, schoolId } : null;
+        const organisationId = organisationIdByCode.get(schoolCode);
+        return organisationId ? { vendorId, organisationId } : null;
       })
-      .filter((row): row is { vendorId: number; schoolId: number } => Boolean(row));
+      .filter((row): row is { vendorId: number; organisationId: bigint } => Boolean(row));
   });
 }

@@ -4,7 +4,7 @@ import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { createItemAction, updateItemAction } from "@/app/items/actions";
 import type { ReferenceActionState as ItemActionState } from "@/app/items/actions";
-import { createSchoolAction, updateSchoolAction } from "@/app/schools/actions";
+import { createSchoolAction } from "@/app/schools/actions";
 import type { ReferenceActionState as SchoolActionState } from "@/app/schools/actions";
 import { createVendorAction, updateVendorAction } from "@/app/vendors/actions";
 import type { ReferenceActionState as VendorActionState } from "@/app/vendors/actions";
@@ -12,22 +12,9 @@ import { Card, SubmitButton } from "@/components/ui";
 import { DEFAULT_LANGUAGE_CODE, generateItemCode } from "@/lib/item-code";
 
 type SchoolOption = {
-  schoolId: number;
+  organisationId: string;
   schoolCode: string;
   schoolName: string;
-};
-
-type SchoolFormValues = {
-  schoolId: number;
-  schoolCode: string;
-  schoolName: string;
-  address: string | null;
-  district: string | null;
-  state: string | null;
-  pincode: string | null;
-  contactPerson: string | null;
-  phone: string | null;
-  email: string | null;
 };
 
 type VendorFormValues = {
@@ -40,7 +27,7 @@ type VendorFormValues = {
   contactPerson: string | null;
   phone: string | null;
   email: string | null;
-  schoolIds: number[];
+  organisationIds: string[];
 };
 
 type ItemFormValues = {
@@ -106,41 +93,6 @@ export function AddSchoolForm() {
   );
 }
 
-export function EditSchoolForm({ school }: { school: SchoolFormValues }) {
-  const [state, action] = useActionState<SchoolActionState, FormData>(
-    updateSchoolAction.bind(null, school.schoolId),
-    initialState
-  );
-
-  return (
-    <ReferenceForm action={action} title="Edit School" state={state}>
-      <TextField
-        name="schoolCode"
-        label="PT/PR Code"
-        required
-        defaultValue={school.schoolCode}
-        helpText="Organisation PT code, falling back to PR code."
-        readOnly
-      />
-      <TextField
-        name="schoolName"
-        label="Name"
-        required
-        defaultValue={school.schoolName}
-        placeholder="Greenwood Public School"
-      />
-      <TextField name="address" label="Address" defaultValue={school.address} placeholder="Sector 14, Block A" />
-      <TextField name="district" label="District" defaultValue={school.district} placeholder="Gautam Buddh Nagar" />
-      <TextField name="state" label="State" defaultValue={school.state} placeholder="Uttar Pradesh" />
-      <TextField name="pincode" label="Pincode" defaultValue={school.pincode} placeholder="201301" />
-      <TextField name="contactPerson" label="Contact" defaultValue={school.contactPerson} placeholder="Anita Rao" />
-      <TextField name="phone" label="Phone" defaultValue={school.phone} placeholder="9876500011" />
-      <TextField name="email" label="Email" defaultValue={school.email} placeholder="admin@school.example" />
-      <FormSubmit>Save School</FormSubmit>
-    </ReferenceForm>
-  );
-}
-
 export function AddVendorForm({
   schools,
   nextCode
@@ -149,7 +101,7 @@ export function AddVendorForm({
   nextCode: string;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
-  const [selectedSchoolIds, setSelectedSchoolIds] = useState<number[]>([]);
+  const [selectedOrganisationIds, setSelectedOrganisationIds] = useState<string[]>([]);
   const [state, action] = useActionState<VendorActionState, FormData>(
     createVendorAction,
     initialState
@@ -158,7 +110,7 @@ export function AddVendorForm({
   useEffect(() => {
     if (state.ok) {
       formRef.current?.reset();
-      setSelectedSchoolIds([]);
+      setSelectedOrganisationIds([]);
     }
   }, [state.ok]);
 
@@ -182,8 +134,8 @@ export function AddVendorForm({
       <TextField name="address" label="Address" placeholder="Market Road" />
       <SchoolCheckboxes
         schools={schools}
-        selectedSchoolIds={selectedSchoolIds}
-        onSelectionChange={setSelectedSchoolIds}
+        selectedOrganisationIds={selectedOrganisationIds}
+        onSelectionChange={setSelectedOrganisationIds}
       />
       <FormSubmit>
         Add Vendor
@@ -199,15 +151,15 @@ export function EditVendorForm({
   vendor: VendorFormValues;
   schools: SchoolOption[];
 }) {
-  const [selectedSchoolIds, setSelectedSchoolIds] = useState<number[]>(vendor.schoolIds);
+  const [selectedOrganisationIds, setSelectedOrganisationIds] = useState<string[]>(vendor.organisationIds);
   const [state, action] = useActionState<VendorActionState, FormData>(
     updateVendorAction.bind(null, vendor.vendorId),
     initialState
   );
 
   useEffect(() => {
-    setSelectedSchoolIds(vendor.schoolIds);
-  }, [vendor.schoolIds]);
+    setSelectedOrganisationIds(vendor.organisationIds);
+  }, [vendor.organisationIds]);
 
   return (
     <ReferenceForm action={action} title="Edit Vendor" state={state}>
@@ -229,8 +181,8 @@ export function EditVendorForm({
       <TextField name="address" label="Address" defaultValue={vendor.address} placeholder="Market Road" />
       <SchoolCheckboxes
         schools={schools}
-        selectedSchoolIds={selectedSchoolIds}
-        onSelectionChange={setSelectedSchoolIds}
+        selectedOrganisationIds={selectedOrganisationIds}
+        onSelectionChange={setSelectedOrganisationIds}
       />
       <FormSubmit>
         Save Vendor
@@ -435,12 +387,12 @@ function TextField({
 
 function SchoolCheckboxes({
   schools,
-  selectedSchoolIds,
+  selectedOrganisationIds,
   onSelectionChange
 }: {
   schools: SchoolOption[];
-  selectedSchoolIds: number[];
-  onSelectionChange?: (schoolIds: number[]) => void;
+  selectedOrganisationIds: string[];
+  onSelectionChange?: (organisationIds: string[]) => void;
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -468,15 +420,15 @@ function SchoolCheckboxes({
     return () => document.removeEventListener("mousedown", closeOnOutsideClick);
   }, []);
 
-  function toggleSchool(schoolId: number, checked: boolean) {
+  function toggleSchool(organisationId: string, checked: boolean) {
     if (!onSelectionChange) {
       return;
     }
 
     onSelectionChange(
       checked
-        ? [...selectedSchoolIds, schoolId]
-        : selectedSchoolIds.filter((selectedId) => selectedId !== schoolId)
+        ? [...selectedOrganisationIds, organisationId]
+        : selectedOrganisationIds.filter((selectedId) => selectedId !== organisationId)
     );
   }
 
@@ -492,9 +444,9 @@ function SchoolCheckboxes({
           className="focus-ring flex h-10 w-full items-center justify-between gap-3 rounded-md border border-line bg-white px-3 text-left text-ink"
         >
           <span className="truncate">
-            {selectedSchoolIds.length === 0
+            {selectedOrganisationIds.length === 0
               ? "No linked schools (optional)"
-              : `${selectedSchoolIds.length} school${selectedSchoolIds.length === 1 ? "" : "s"} selected`}
+              : `${selectedOrganisationIds.length} school${selectedOrganisationIds.length === 1 ? "" : "s"} selected`}
           </span>
           <span className={`text-xs text-muted transition-transform ${isOpen ? "rotate-180" : ""}`} aria-hidden="true">
             ▼
@@ -515,14 +467,14 @@ function SchoolCheckboxes({
           />
           <div className="mt-3 grid max-h-60 gap-2 overflow-y-auto sm:grid-cols-2 xl:grid-cols-3">
             {matchingSchools.map((school) => (
-              <label key={school.schoolId} className="flex items-center gap-2 rounded px-1 py-1 text-ink hover:bg-canvas">
+              <label key={school.organisationId} className="flex items-center gap-2 rounded px-1 py-1 text-ink hover:bg-canvas">
                 <input
-                  name="schoolIds"
+                  name="organisationIds"
                   type="checkbox"
-                  value={school.schoolId}
+                  value={school.organisationId}
                   className="h-4 w-4 shrink-0"
-                  checked={selectedSchoolIds.includes(school.schoolId)}
-                  onChange={(event) => toggleSchool(school.schoolId, event.target.checked)}
+                  checked={selectedOrganisationIds.includes(school.organisationId)}
+                  onChange={(event) => toggleSchool(school.organisationId, event.target.checked)}
                 />
                 <span className="min-w-0">
                   <span className="block truncate font-medium">{school.schoolName}</span>

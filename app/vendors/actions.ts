@@ -57,17 +57,17 @@ export async function createVendorAction(
       contactPerson: formData.get("contactPerson"),
       phone: formData.get("phone"),
       email: formData.get("email"),
-      schoolIds: formData.getAll("schoolIds")
+      organisationIds: formData.getAll("organisationIds")
     });
 
-    const { schoolIds, ...vendorData } = parsed;
+    const { organisationIds, ...vendorData } = parsed;
 
     await prisma.vendor.create({
       data: {
         ...vendorData,
         vendorSchools: {
-          create: schoolIds.map((schoolId) => ({
-            school: { connect: { schoolId } }
+          create: organisationIds.map((organisationId) => ({
+            organisation: { connect: { id: organisationId } }
           }))
         }
       }
@@ -107,10 +107,10 @@ export async function updateVendorAction(
       contactPerson: formData.get("contactPerson"),
       phone: formData.get("phone"),
       email: formData.get("email"),
-      schoolIds: formData.getAll("schoolIds")
+      organisationIds: formData.getAll("organisationIds")
     });
 
-    const { schoolIds, ...vendorData } = parsed;
+    const { organisationIds, ...vendorData } = parsed;
 
     await prisma.$transaction([
       prisma.vendor.update({
@@ -119,7 +119,7 @@ export async function updateVendorAction(
       }),
       prisma.vendorSchool.deleteMany({ where: { vendorId } }),
       prisma.vendorSchool.createMany({
-        data: schoolIds.map((schoolId) => ({ vendorId, schoolId }))
+        data: organisationIds.map((organisationId) => ({ vendorId, organisationId }))
       })
     ]);
 

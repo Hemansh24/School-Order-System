@@ -54,10 +54,10 @@ export async function nextVendorCode() {
 }
 
 export async function nextOrganisationPrCode() {
-  const organisations = await prisma.organisation.findMany({ select: { prCode: true } });
+  const organisations = await prisma.organisation.findMany({ select: { prCode: true, legacySchoolCodes: true } });
   return nextCompactCode(
     "PR",
-    organisations.map((organisation) => organisation.prCode)
+    organisations.flatMap(organisation => [organisation.prCode, ...organisation.legacySchoolCodes])
   );
 }
 

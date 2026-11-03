@@ -1,3 +1,4 @@
+import { syncImportedOrganisationsAsSchoolsAction } from "@/app/schools/actions";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { deleteOrganisationAction } from "@/app/organisations/actions";
@@ -42,6 +43,7 @@ export default async function OrganisationsPage({
     <>
       <PageHeader
         title="Organisations"
+        action={<InlineActionForm action={syncImportedOrganisationsAsSchoolsAction}>Import Shared Organisations</InlineActionForm>}
         description="Assign PR codes when schools are introduced. PT codes are issued automatically on the first order."
       />
       {organisationPermissionMessage ? (

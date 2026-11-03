@@ -21,7 +21,7 @@ function fixture() {
       .map(order => ({ ...order, billingToType: "individual", billingToCode: null,
         shippingToType: "individual", shippingToCode: null,
         descriptiveRows: order.codes.map(schoolCode => ({ schoolCode })),
-        ambiguousSchools: [], combinedSchools: [], groupParticipants: [] })) }
+        combinedSchools: [], groupParticipants: [] })) }
   } as unknown as Prisma.TransactionClient;
   return db;
 }

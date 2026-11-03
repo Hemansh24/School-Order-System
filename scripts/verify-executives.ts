@@ -40,9 +40,8 @@ async function main() {
     await saveOrderExecutives(tx, order.orderSheet1Id, input);
     assert.equal((await assignment()).name, "Custom name");
     assert.equal((await savedDefault())?.name, "Custom name");
-    // Replacing school masters cannot cascade into PR-keyed defaults.
-    await tx.school.create({ data: { schoolCode: ptCode, schoolName: "Temporary school" } });
-    await tx.school.delete({ where: { schoolCode: ptCode } });
+    // Organisation changes cannot cascade into PR-keyed executive defaults.
+    await tx.organisation.update({ where: { prCode }, data: { organisationName: "Updated organisation" } });
     await tx.organisation.update({ where: { prCode }, data: { ptCode: null } });
     assert.equal((await savedDefault())?.name, "Custom name");
     input.schoolExecutives = [{ schoolCode: prCode, name: "", incumbentCode: null, updateDefault: true }];

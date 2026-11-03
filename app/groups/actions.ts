@@ -8,7 +8,7 @@ export async function syncGsAction() {
   let destination: string;
   try {
     const summary = await importGsGroups(undefined, true);
-    revalidatePath("/groups"); revalidatePath("/orders/new"); revalidatePath("/orders/group/new");
+    revalidatePath("/groups"); revalidatePath("/orders/new");
     destination = `/groups?message=${encodeURIComponent(`Imported ${summary.groups} GS groups and ${summary.locations} locations.`)}`;
   } catch (error) {
     destination = `/groups?error=${encodeURIComponent(`GS refresh failed; check Google Sheets read access. ${error instanceof Error ? error.message : "Unknown error"}`)}`;

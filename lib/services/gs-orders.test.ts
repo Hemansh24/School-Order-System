@@ -11,7 +11,7 @@ const members = [
 function input(codes: string[]): CreateOrderInput {
   return {
     sheet1: { sessionYear: "", orderPlacedDate: "2026-10-22", orderReceivedDate: "", expectedDeliveryDate: "", billingToType: "individual", billingToCode: "", billingToName: "Payer", shippingToType: "individual", shippingToCode: "", shippingToName: "Recipient", shippingToSummary: "Address", orderType: "descriptive", descriptiveMode: "multiple_group", endUserGroupCode: "GS1", pendingPayment: false },
-    descriptiveRows: [], ambiguousSchools: [], ambiguousItems: [],
+    descriptiveRows: [], ambiguousItems: [],
     combinedSchools: codes.map(schoolCode => ({ schoolCode, schoolName: "Submitted name", notes: "Order note" })),
     combinedItems: [{ itemCode: "ITEM1", itemName: "Book", pooledQuantity: 5 }]
   };
@@ -24,7 +24,6 @@ function fixture(masterExists = true) {
       findMany: async () => members,
       findUniqueOrThrow: async ({ where }: { where: { id: number } }) => { touched.push(where.id); return members.find(member => member.id === where.id)!; }
     },
-    school: { findUnique: async () => null, upsert: async () => ({}) },
     schoolGroupSchool: { findMany: async () => [] },
     $queryRaw: async () => []
   } as unknown as Prisma.TransactionClient;
@@ -86,10 +85,6 @@ function conversionFixture() {
         Object.assign(organisations.find(member => member.id === where.id)!, data);
       }
     },
-    school: {
-      findUnique: async () => state.conflict ? { schoolId: 1 } : null,
-      upsert: async () => { writes.push("school"); }
-    },
     schoolGroupSchool: { findMany: async () => [] },
     $queryRaw: async (query: TemplateStringsArray) => {
       calls.push(query.join("").includes("pg_advisory") ? "lock" : "reserved");
@@ -120,14 +115,6 @@ test("explicit conversion rejects unrelated schools and inactive or non-GS group
   state.active = true;
   state.sourceType = "CHRISTIAN";
   await assert.rejects(() => convertGsMemberTx(tx, "GS1", "PR2"), /active GS group/);
-  assert.deepEqual(writes, []);
-});
-
-test("explicit conversion detects school conflicts before assigning a code", async () => {
-  const { tx, writes, organisations, state } = conversionFixture();
-  state.conflict = true;
-  await assert.rejects(() => convertGsMemberTx(tx, "GS1", "PR2"), /Separate school records/);
-  assert.equal(organisations[1].ptCode, null);
   assert.deepEqual(writes, []);
 });
 

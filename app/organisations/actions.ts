@@ -5,6 +5,7 @@ import { formatActionError } from "@/lib/action-errors";
 import { prisma } from "@/lib/prisma";
 import {
   createOrReuseOrganisation,
+  deleteOrganisation,
   normalizeOrganisationInput
 } from "@/lib/services/organisations";
 import { nextOrganisationPrCode } from "@/lib/reference-codes";
@@ -25,7 +26,10 @@ export type OrganisationActionState = {
 function revalidateOrganisationPaths(organisationId?: bigint) {
   revalidatePath("/organisations");
   revalidatePath("/orders/new");
-  revalidatePath("/orders");
+  revalidatePath("/orders", "layout");
+  revalidatePath("/vendors", "layout");
+  revalidatePath("/groups");
+  revalidatePath("/orders/school-lookup");
   if (organisationId !== undefined) {
     revalidatePath(`/organisations/${organisationId.toString()}/edit`);
   }
@@ -43,6 +47,7 @@ function parseOrganisationForm(formData: FormData, prCode: string) {
     prCode,
     groupCode: formData.get("groupCode"),
     organisationName: formData.get("organisationName"),
+    contactPerson: formData.get("contactPerson"),
     address: formData.get("address"),
     district: formData.get("district"),
     state: formData.get("state"),
@@ -136,6 +141,7 @@ export async function updateOrganisationAction(
       data: {
         groupCode: normalized.groupCode,
         organisationName: normalized.organisationName,
+        contactPerson: normalized.contactPerson,
         address: normalized.address,
         district: normalized.district,
         state: normalized.state,
@@ -175,7 +181,7 @@ export async function deleteOrganisationAction(
 ): Promise<OrganisationActionState> {
   try {
     const id = BigInt(organisationId);
-    await prisma.organisation.delete({ where: { id } });
+    await deleteOrganisation(id);
     revalidateOrganisationPaths(id);
     return { ok: true, message: "Organisation deleted." };
   } catch (error) {
