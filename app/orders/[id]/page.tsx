@@ -73,7 +73,8 @@ export default async function OrderDetailsPage({
             ) : null}
             <Info label="Billing To">
               {order.billingToName}
-              {order.billingToType === "vendor" ? <BooksellerDiscount value={order.booksellerDiscount} /> : null}
+              {order.billingAddress ? <span className="block text-xs text-muted">{order.billingAddress}</span> : null}
+              <BooksellerDiscount value={order.booksellerDiscount} />
               <span className="block text-xs text-muted">
                 {order.billingToType}{order.billingToCode ? ` - ${order.billingToCode}` : ""}
               </span>

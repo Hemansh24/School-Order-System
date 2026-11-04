@@ -41,9 +41,10 @@ function toSchoolOptions(
 }
 
 export default async function ReorderPage({
-  params
+  params, searchParams
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ matched?: string }>;
 }) {
   const { id } = await params;
   const order = await getOrder(Number(id));
@@ -61,6 +62,8 @@ export default async function ReorderPage({
   const executiveReference = await getExecutiveReferenceData();
   const gsOptions = await getGsOrderOptions();
   const { values: initialValues, individualSchool } = reorderDefaults(order);
+  const matchedSession = (await searchParams).matched === "1" ? order.sessionYear ?? undefined : undefined;
+  if (matchedSession) initialValues.sheet1.sessionYear = matchedSession;
 
   return (
     <>
@@ -102,6 +105,7 @@ export default async function ReorderPage({
         initialValues={initialValues}
         reorderSourceId={order.orderSheet1Id}
         reorderSourceNo={order.orderNo}
+        matchedSession={matchedSession}
         reorderSchool={individualSchool}
         submitLabel="Place Reorder"
       />

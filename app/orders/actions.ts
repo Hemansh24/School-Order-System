@@ -17,8 +17,18 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { convertGsMemberTx } from "@/lib/services/gs-orders";
 import type { ReorderInput } from "@/lib/reorder";
-import { searchReorderOrders } from "@/lib/services/reorder-search";
+import { findMatchingFinalizedOrder, searchReorderOrders } from "@/lib/services/reorder-search";
 import type { ReorderSearchResponse } from "@/lib/reorder-search";
+
+export async function findMatchingOrderAction(input: { sessionYear: string; billingCode: string; orderType: "descriptive" | "ambiguous"; endUsers: string[] }) {
+  try {
+    const parsed = z.object({ sessionYear: z.string().regex(/^\d{4}-\d{4}$/), billingCode: z.string().trim().min(1), orderType: z.enum(["descriptive", "ambiguous"]), endUsers: z.array(z.string().trim().min(1)).max(1000) }).parse(input);
+    if (parsed.orderType === "descriptive" && !parsed.endUsers.length) throw new Error("Select at least one end user.");
+    return { ok: true as const, orderId: await findMatchingFinalizedOrder(parsed) };
+  } catch {
+    return { ok: false as const, message: "Could not check existing orders. Please try again." };
+  }
+}
 
 export async function searchReorderOrdersAction(search: string): Promise<ReorderSearchResponse> {
   try {

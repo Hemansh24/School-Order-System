@@ -30,6 +30,7 @@ export const sheet1Schema = z
     billingToType: billingToTypeSchema,
     billingToCode: z.string().trim().default(""),
     billingToName: z.string().trim().min(1, "Billing name is required"),
+    billingAddress: z.string().trim().optional(),
     shippingToType: shippingToTypeSchema,
     shippingToCode: z.string().trim().default(""),
     shippingToName: z.string().trim().min(1, "Shipping name is required"),

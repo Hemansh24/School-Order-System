@@ -6,7 +6,7 @@ type SavedDiscount = { billingToType: string; billingToCode: string | null; book
 
 /** Called inside the order transaction. Unrelated edits never replay an older default. */
 export async function resolveOrderDiscount(tx: Prisma.TransactionClient, sheet1: CreateOrderInput["sheet1"], current?: SavedDiscount): Promise<string | null> {
-  if (sheet1.billingToType !== "vendor") return null;
+  if (sheet1.billingToType !== "vendor") return sheet1.booksellerDiscount ?? null;
   const submitted = sheet1.booksellerDiscount;
   const sameVendor = current?.billingToType === "vendor" && current.billingToCode === sheet1.billingToCode;
   if (sameVendor && (submitted === undefined || submitted === current.booksellerDiscount)) return current.booksellerDiscount;

@@ -6,6 +6,7 @@ import { getCurrentSessionYear } from "./session-year";
 import { createOrderSchema, shippingToTypeSchema, sheet2ARowSchema, sheet2B2RowSchema, sheet2C2RowSchema } from "./validation/orders";
 
 export const reorderSchema = z.object({
+  matchedSession: z.string().optional(),
   shipping: z.object({
     shippingToType: shippingToTypeSchema,
     shippingToCode: z.string().trim().default(""),
@@ -40,9 +41,10 @@ export function reorderDefaults(source: SavedOrderInput, now = new Date()) {
 export function buildReorderInput(source: SavedOrderInput, input: ReorderInput, now = new Date()) {
   const { values, individualSchool } = reorderDefaults(source, now);
   const parsed = reorderSchema.parse(input);
+  if (parsed.matchedSession && parsed.matchedSession !== source.sessionYear) throw new Error("The matched session no longer matches the original order.");
   return createOrderSchema.parse({
     ...values,
-    sheet1: { ...values.sheet1, ...parsed.shipping },
+    sheet1: { ...values.sheet1, ...parsed.shipping, sessionYear: parsed.matchedSession || values.sheet1.sessionYear },
     descriptiveRows: parsed.descriptiveItems.map(item => ({ ...item, ...individualSchool })),
     ambiguousItems: parsed.ambiguousItems,
     combinedItems: parsed.combinedItems

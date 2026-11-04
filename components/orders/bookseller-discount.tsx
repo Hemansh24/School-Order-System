@@ -2,10 +2,11 @@
 
 import { useId, useState } from "react";
 
-export function BooksellerDiscount({ value, onChange, error }: {
+export function BooksellerDiscount({ value, onChange, error, vendor = true }: {
   value: string | null | undefined;
   onChange?: (value: string) => void;
   error?: string;
+  vendor?: boolean;
 }) {
   const [visible, setVisible] = useState(false);
   const inputId = useId();
@@ -20,7 +21,7 @@ export function BooksellerDiscount({ value, onChange, error }: {
         <input id={inputId} name="sheet1.booksellerDiscount" className="focus-ring h-10 w-full rounded-md border border-line bg-white px-3 text-sm"
           value={value ?? ""} maxLength={500} placeholder={value == null ? "Discount not recorded" : "Enter discount"}
           onChange={event => onChange(event.target.value)} onKeyDown={event => { if (event.key === "Enter") event.preventDefault(); }} />
-        <p className="text-xs">Saved with this order. Changes also update the bookseller’s default for future new orders.</p>
+        <p className="text-xs">{vendor ? "Saved with this order. Changes also update the bookseller’s default for future new orders." : "Saved with this order."}</p>
       </> : <p className="whitespace-pre-wrap">{value == null ? "Discount not recorded" : value || "No discount"}</p>}
       {error ? <p role="alert" className="text-xs text-red-700">{error}</p> : null}
     </div> : null}

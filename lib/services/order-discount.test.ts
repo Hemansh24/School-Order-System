@@ -60,7 +60,7 @@ test("omitted new-order discount captures actual or committed default without wr
 test("unknown and non-bookseller orders never borrow or change a bookseller default", async () => {
   const noDatabase = {} as Prisma.TransactionClient;
   assert.equal(await resolveOrderDiscount(noDatabase, sheet(null)), null);
-  assert.equal(await resolveOrderDiscount(noDatabase, { ...sheet("Y"), billingToType: "school" }), null);
+  assert.equal(await resolveOrderDiscount(noDatabase, { ...sheet("Y"), billingToType: "school" }), "Y");
 });
 
 test("accepting an unchanged committed suggestion does not overwrite its source", async () => {

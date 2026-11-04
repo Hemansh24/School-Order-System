@@ -1,6 +1,5 @@
 import { findSchoolByCode } from "@/lib/school-reference";
 import { isGroupOrder, isPooledOrder } from "@/lib/order-model";
-import { getCurrentSessionYear } from "@/lib/session-year";
 import {
   BillingToType,
   OrderStatus,
@@ -248,7 +247,7 @@ export async function createOrder(input: CreateOrderInput) {
         orderNo,
         ...commissionData,
         booksellerDiscount,
-        sessionYear: getCurrentSessionYear(),
+        sessionYear: orderInput.sheet1.sessionYear,
         orderPlacedDate: toDate(orderInput.sheet1.orderPlacedDate),
         orderReceivedDate: orderInput.sheet1.orderReceivedDate ? toDate(orderInput.sheet1.orderReceivedDate) : null,
         expectedDeliveryDate: orderInput.sheet1.expectedDeliveryDate ? toDate(orderInput.sheet1.expectedDeliveryDate) : null,
@@ -257,6 +256,7 @@ export async function createOrder(input: CreateOrderInput) {
         billingToType: orderInput.sheet1.billingToType as BillingToType,
         billingToCode: orderInput.sheet1.billingToCode || null,
         billingToName: orderInput.sheet1.billingToName,
+        billingAddress: orderInput.sheet1.billingAddress || null,
         shippingToType: orderInput.sheet1.shippingToType as BillingToType,
         shippingToCode: orderInput.sheet1.shippingToCode || null,
         shippingToName: orderInput.sheet1.shippingToName,
@@ -349,7 +349,7 @@ export async function createReorder(sourceOrderId: number, input: ReorderInput) 
       orderPlacedDate: toDate(values.sheet1.orderPlacedDate),
       orderReceivedDate: toDate(values.sheet1.orderReceivedDate),
       expectedDeliveryDate: values.sheet1.expectedDeliveryDate ? toDate(values.sheet1.expectedDeliveryDate) : null,
-      billingToType: source.billingToType, billingToCode: source.billingToCode, billingToName: source.billingToName,
+      billingToType: source.billingToType, billingToCode: source.billingToCode, billingToName: source.billingToName, billingAddress: source.billingAddress,
       shippingToType: values.sheet1.shippingToType, shippingToCode: values.sheet1.shippingToCode || null,
       shippingToName: values.sheet1.shippingToName, shippingToSummary: values.sheet1.shippingToSummary,
       orderType: values.sheet1.orderType,
@@ -423,6 +423,7 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
         billingToType: orderInput.sheet1.billingToType as BillingToType,
         billingToCode: orderInput.sheet1.billingToCode || null,
         billingToName: orderInput.sheet1.billingToName,
+        billingAddress: orderInput.sheet1.billingAddress || null,
         shippingToType: orderInput.sheet1.shippingToType as BillingToType,
         shippingToCode: orderInput.sheet1.shippingToCode || null,
         shippingToName: orderInput.sheet1.shippingToName,

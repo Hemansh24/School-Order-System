@@ -21,6 +21,7 @@ export function savedOrderToInput(order: SavedOrderInput): CreateOrderInput {
       billingToType: order.billingToType === "school" && /^(GS|C)\d/i.test(order.billingToCode ?? "") ? "group" : order.billingToType,
       billingToCode: order.billingToCode ?? "",
       billingToName: order.billingToName,
+      billingAddress: order.billingAddress ?? "",
       shippingToType: order.shippingToType === "school" && /^(GS|C)\d/i.test(order.shippingToCode ?? "") ? "group" : order.shippingToType,
       shippingToCode: order.shippingToCode ?? "",
       shippingToName: order.shippingToName,

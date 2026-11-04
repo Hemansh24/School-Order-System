@@ -1,6 +1,16 @@
 import { prisma } from "@/lib/prisma";
 import { savedOrderEndUsers } from "@/lib/end-user-type";
 import { reorderSearchQuery, type ReorderSearchResult } from "@/lib/reorder-search";
+import { sameEndUsers } from "@/lib/order-match";
+
+export async function findMatchingFinalizedOrder(input: { sessionYear: string; billingCode: string; orderType: "descriptive" | "ambiguous"; endUsers: string[] }) {
+  const orders = await prisma.orderSheet1.findMany({
+    where: { sessionYear: input.sessionYear, billingToCode: { equals: input.billingCode, mode: "insensitive" }, orderType: input.orderType, orderStatus: "finalized", classification: "normal" },
+    select: { orderSheet1Id: true, descriptiveRows: { select: { schoolCode: true, schoolName: true } }, combinedSchools: { select: { schoolCode: true, schoolName: true } }, groupParticipants: { select: { ptCode: true, schoolName: true } } },
+    orderBy: [{ createdAt: "desc" }, { orderSheet1Id: "desc" }]
+  });
+  return orders.find(order => input.orderType === "ambiguous" || sameEndUsers(savedOrderEndUsers(order).map(row => row.schoolCode), input.endUsers))?.orderSheet1Id ?? null;
+}
 
 export async function searchReorderOrders(search: string): Promise<{ orders: ReorderSearchResult[]; hasMore: boolean }> {
   if (!search.trim()) return { orders: [], hasMore: false };

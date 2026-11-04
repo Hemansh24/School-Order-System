@@ -8,7 +8,7 @@ function source(overrides: Partial<SavedOrderInput> = {}): SavedOrderInput {
   return {
     orderSheet1Id: 1, orderNo: 71, reorderOfOrderId: null, sessionYear: "2025-2026",
     orderPlacedDate: new Date("2025-01-01"), orderReceivedDate: null, expectedDeliveryDate: new Date("2025-02-01"),
-    billingToType: "individual", billingToCode: null, billingToName: "Saved payer",
+    billingToType: "individual", billingToCode: null, billingToName: "Saved payer", billingAddress: null,
     shippingToType: "individual", shippingToCode: null, shippingToName: "Saved recipient", shippingToSummary: "Saved address",
     orderType: "descriptive", descriptiveMode: "individual", endUserGroupCode: null,
     classification: "normal", schoolGroupId: null, schoolGroupLocationId: null, orderStatus: "finalized",
@@ -26,6 +26,12 @@ const now = new Date("2026-10-27T19:00:00Z");
 const shipping = { shippingToType: "individual" as const, shippingToCode: "", shippingToName: "New recipient", shippingToSummary: "New address", expectedDeliveryDate: "" };
 const item = { itemCode: "NEW", itemName: "New book", quantity: 3 };
 const request: ReorderInput = { shipping, descriptiveItems: [item], ambiguousItems: [], combinedItems: [] };
+
+test("matched reorders retain the source session and reject a different session", () => {
+  const original = source();
+  assert.equal(buildReorderInput(original, { ...request, matchedSession: "2025-2026" }, now).sheet1.sessionYear, "2025-2026");
+  assert.throws(() => buildReorderInput(original, { ...request, matchedSession: "2026-2027" }, now));
+});
 
 test("reorders copy known, blank, and unknown discounts from the source and reject browser overrides", () => {
   for (const booksellerDiscount of ["Y: 30%", "", null]) {

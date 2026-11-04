@@ -5,14 +5,14 @@ import { Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
-import { convertGsMemberAction, createOrderAction, createReorderAction, updateOrderAction } from "@/app/orders/actions";
+import { convertGsMemberAction, createOrderAction, createReorderAction, findMatchingOrderAction, updateOrderAction } from "@/app/orders/actions";
 import { BooksellerDiscount } from "@/components/orders/bookseller-discount";
 import { defaultBooksellerDiscount } from "@/lib/bookseller-discount";
 import { Card, SubmitButton } from "@/components/ui";
 import { compareEditionCodes, DEFAULT_LANGUAGE_CODE } from "@/lib/item-code";
 import { hasLegacySchoolAllocations, isPooledOrder, orderTypeLabel, type DescriptiveMode } from "@/lib/order-model";
 import { normalizeOrderEntry } from "@/lib/order-entry";
-import { getCurrentSessionYear } from "@/lib/session-year";
+import { getAcademicSessionOptions, getCurrentSessionYear } from "@/lib/session-year";
 import { getOrderEnteredDate } from "@/lib/order-dates";
 import { createOrderSchema, type CreateOrderInput } from "@/lib/validation/orders";
 import { distinctEndUsers } from "@/lib/end-user-type";
@@ -63,6 +63,7 @@ type Props = {
   initialValues?: CreateOrderInput;
   reorderSourceId?: number;
   reorderSourceNo?: number;
+  matchedSession?: string;
   reorderSchool?: { schoolCode: string; schoolName: string };
   orderSheet1Id?: number;
   orderCreatedAt?: string;
@@ -103,6 +104,7 @@ export function CreateOrderForm({
   initialValues,
   reorderSourceId,
   reorderSourceNo,
+  matchedSession,
   reorderSchool,
   orderSheet1Id,
   orderCreatedAt,
@@ -136,6 +138,7 @@ export function CreateOrderForm({
   const [isShippingDropdownOpen, setIsShippingDropdownOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const isNewOrder = orderSheet1Id === undefined && initialValues === undefined;
+  const [initialComplete, setInitialComplete] = useState(!isNewOrder);
   const [isDraftReady, setIsDraftReady] = useState(!isNewOrder);
   const [currentEntryDate, setCurrentEntryDate] = useState("");
   const orderEnteredDate = orderCreatedAt
@@ -168,13 +171,14 @@ export function CreateOrderForm({
   const newOrderDefaults = useMemo<CreateOrderInput>(
     () => ({
       sheet1: {
-        sessionYear: getCurrentSessionYear(),
+        sessionYear: getAcademicSessionOptions()[0],
         orderPlacedDate: today,
         orderReceivedDate: "",
         expectedDeliveryDate: "",
         billingToType: "school",
         billingToCode: "",
         billingToName: "",
+        billingAddress: "",
         shippingToType: "school",
         shippingToCode: "",
         shippingToName: "",
@@ -225,8 +229,8 @@ export function CreateOrderForm({
     if (!isReorder || !currentEntryDate) return;
     form.setValue("sheet1.orderPlacedDate", currentEntryDate);
     form.setValue("sheet1.orderReceivedDate", currentEntryDate);
-    form.setValue("sheet1.sessionYear", getCurrentSessionYear(new Date(`${currentEntryDate}T12:00:00+05:30`)));
-  }, [form, isReorder, currentEntryDate]);
+    form.setValue("sheet1.sessionYear", matchedSession ?? getCurrentSessionYear(new Date(`${currentEntryDate}T12:00:00+05:30`)));
+  }, [form, isReorder, currentEntryDate, matchedSession]);
 
   const orderType = form.watch("sheet1.orderType");
   const commissionEnabled = form.watch("sheet1.commissionEnabled") ?? false;
@@ -320,7 +324,7 @@ export function CreateOrderForm({
           if (typeof savedSchoolKey === "string") setSelectedDescriptiveSchoolKey(savedSchoolKey);
           form.reset(normalizeOrderEntry({
             ...parsedDraft,
-            sheet1: { ...parsedDraft.sheet1, sessionYear: getCurrentSessionYear(), orderPlacedDate: parsedDraft.sheet1.orderPlacedDate || parsedDraft.sheet1.orderReceivedDate }
+            sheet1: { ...parsedDraft.sheet1, sessionYear: getAcademicSessionOptions().includes(parsedDraft.sheet1.sessionYear) ? parsedDraft.sheet1.sessionYear : getAcademicSessionOptions()[0], orderPlacedDate: parsedDraft.sheet1.orderPlacedDate || parsedDraft.sheet1.orderReceivedDate }
           }));
         }
       }
@@ -580,6 +584,7 @@ export function CreateOrderForm({
     if (selected?.code !== form.getValues("sheet1.billingToCode")) form.setValue("sheet1.booksellerDiscount", billingToType === "vendor" ? selected?.discount ?? "" : null, { shouldDirty: true });
     form.setValue("sheet1.billingToCode", selected?.code ?? "");
     form.setValue("sheet1.billingToName", selected?.name ?? "");
+    form.setValue("sheet1.billingAddress", selected?.addressSummary ?? "", { shouldDirty: true });
     form.setValue("sheet1.booksellerType", selected?.type ?? "");
     form.setValue("sheet1.booksellerRating", selected?.rating ?? "");
     setIsBillingDropdownOpen(false);
@@ -588,6 +593,7 @@ export function CreateOrderForm({
     if (rawCode !== form.getValues("sheet1.billingToCode")) form.setValue("sheet1.booksellerDiscount", null, { shouldDirty: true });
     form.setValue("sheet1.billingToCode", rawCode);
     form.setValue("sheet1.billingToName", "");
+    form.setValue("sheet1.billingAddress", "", { shouldDirty: true });
     setIsBillingDropdownOpen(true);
     const selected = billingOptions.find(option => option.code.toLowerCase() === rawCode.trim().toLowerCase());
     if (selected) setBilling(selected.value);
@@ -733,6 +739,7 @@ export function CreateOrderForm({
       const result =
         reorderSourceId !== undefined
           ? await createReorderAction(reorderSourceId, {
+              matchedSession,
               shipping: { shippingToType: values.sheet1.shippingToType, shippingToCode: values.sheet1.shippingToCode, shippingToName: values.sheet1.shippingToName, shippingToSummary: values.sheet1.shippingToSummary, expectedDeliveryDate: values.sheet1.expectedDeliveryDate },
               descriptiveItems: values.descriptiveRows.map(({ itemCode, itemName, quantity, notes }) => ({ itemCode, itemName, quantity, notes })),
               ambiguousItems: values.ambiguousItems, combinedItems: values.combinedItems
@@ -762,6 +769,23 @@ export function CreateOrderForm({
     }
 
     setStep((current) => Math.min(4, current + 1));
+  }
+
+  async function checkInitialDetails() {
+    const sheet = form.getValues("sheet1");
+    const users = sheet.orderType === "ambiguous" ? [] : isMultiple ? form.getValues("combinedSchools").map(row => row.schoolCode).filter(Boolean) : activeDescriptiveSchool ? [activeDescriptiveSchool.schoolCode] : [];
+    if (!sheet.billingToCode || !sheet.billingToName || (sheet.orderType === "descriptive" && (users.length < (descriptiveMode === "multiple_schools" ? 2 : 1) || new Set(users).size !== users.length || (isMultiple && users.length !== form.getValues("combinedSchools").length) || (isGroup && !sheet.endUserGroupCode)))) {
+      setServerError("Select a billing code and the required end users before continuing.");
+      return;
+    }
+    setServerError(null);
+    startTransition(async () => {
+      const result = await findMatchingOrderAction({ sessionYear: sheet.sessionYear, billingCode: sheet.billingToCode, orderType: sheet.orderType, endUsers: users });
+      if (!result.ok) { setServerError(result.message); return; }
+      if (result.orderId) { router.push(`/orders/${result.orderId}/reorder?matched=1`); return; }
+      setStep(1);
+      setInitialComplete(true);
+    });
   }
 
   function clearOrder() {
@@ -799,6 +823,25 @@ export function CreateOrderForm({
 
   return (
     <form onSubmit={form.handleSubmit(submit)} className="space-y-6">
+      {!initialComplete ? <Card className="space-y-4 p-5">
+        <h2 className="text-lg font-semibold">Order details and end users</h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Academic session"><select className={inputClass} {...form.register("sheet1.sessionYear")}>{getAcademicSessionOptions().map(session => <option key={session} value={session}>{session}</option>)}</select></Field>
+          <Field label="Order type"><select className={inputClass} value={orderType} onChange={event => changeEntry(event.target.value as "descriptive" | "ambiguous", "individual")}><option value="descriptive">Descriptive</option><option value="ambiguous">Ambiguous</option></select></Field>
+          <Field label="Billing type"><select className={inputClass} value={billingToType} onChange={event => { form.setValue("sheet1.billingToType", event.target.value as "school" | "vendor" | "group"); form.setValue("sheet1.billingToCode", ""); form.setValue("sheet1.billingToName", ""); form.setValue("sheet1.billingAddress", ""); form.setValue("sheet1.booksellerDiscount", null); }}><option value="school">School</option><option value="vendor">Vendor</option><option value="group">Group</option></select></Field>
+          <Field label="Billing code"><div className="relative"><input className={inputClass} value={billingToCode} placeholder="Search by code or name" onChange={event => setBillingCode(event.target.value)} onFocus={() => setIsBillingDropdownOpen(true)} onBlur={() => window.setTimeout(() => setIsBillingDropdownOpen(false), 150)} />{form.watch("sheet1.billingToName") ? <p className="mt-1 text-sm text-muted">{form.watch("sheet1.billingToName")}</p> : null}{isBillingDropdownOpen ? <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-white shadow-lg">{filteredBillingOptions.length ? filteredBillingOptions.map(option => <button key={option.value} type="button" className="block w-full px-3 py-2 text-left text-sm hover:bg-canvas" onMouseDown={event => { event.preventDefault(); setBilling(option.value); }}>{option.code} — {option.name}</button>) : <p className="p-3 text-sm text-muted">No billing matches found.</p>}</div> : null}</div></Field>
+          <Field label="Billing address"><textarea className={textAreaClass} {...form.register("sheet1.billingAddress")} /></Field>
+          <BooksellerDiscount vendor={billingToType === "vendor"} value={booksellerDiscount} onChange={value => form.setValue("sheet1.booksellerDiscount", value, { shouldDirty: true, shouldValidate: true })} />
+          {orderType === "descriptive" ? <Field label="Descriptive entry"><select className={inputClass} value={descriptiveMode} onChange={event => changeEntry("descriptive", event.target.value as DescriptiveMode)}><option value="individual">Individual</option><option value="multiple_schools">Multiple schools</option><option value="multiple_group">Group</option></select></Field> : null}
+          {orderType === "descriptive" && !isMultiple ? <Field label="End user"><ReferencePicker schools={schools} selectedKey={activeDescriptiveSchoolKey} onChange={setSelectedDescriptiveSchoolKey} /></Field> : null}
+          {isGroup ? <Field label="End-school group"><ReferencePicker kind="group" schools={groups} selectedKey={groups.find(group => group.schoolCode === endUserGroupCode)?.optionKey ?? ""} onChange={key => { form.setValue("combinedSchools", []); form.setValue("sheet1.endUserGroupCode", groups.find(group => group.optionKey === key)?.schoolCode ?? ""); }} /></Field> : null}
+        </div>
+        {isMultiple ? <div className="space-y-2"><p className="font-semibold">Participating schools</p>{hasGsParticipants ? gsSchoolOptions.map(school => <label key={school.schoolCode} className="flex gap-2 text-sm"><input type="checkbox" checked={watchedCombinedSchools.some(row => row.schoolCode === school.schoolCode)} onChange={event => { const rows = form.getValues("combinedSchools"); form.setValue("combinedSchools", event.target.checked ? [...rows, school] : rows.filter(row => row.schoolCode !== school.schoolCode)); }} />{school.schoolCode} — {school.schoolName}</label>) : <><button type="button" onClick={appendCombinedSchool} className="text-brand-dark">Add school</button>{combinedSchools.fields.map((row, index) => <div key={row.id} className="flex gap-2"><ReferencePicker schools={schools.filter(school => school.schoolCode === form.watch(`combinedSchools.${index}.schoolCode`) || !watchedCombinedSchools.some(other => other.schoolCode === school.schoolCode))} selectedKey={findSchoolOptionByStoredValue(schools, form.watch(`combinedSchools.${index}.schoolCode`))?.optionKey ?? ""} onChange={key => setCombinedSchool(index, key)} /><button type="button" onClick={() => combinedSchools.remove(index)}>Remove</button></div>)}</>}</div> : null}
+        {orderType === "descriptive" && executiveSchools.length ? <section className="space-y-3"><h3 className="font-semibold">Executives</h3>{executiveSchools.map(school => <div key={school.schoolCode}><p className="mb-1 text-sm">{school.schoolCode} — {school.schoolName}</p>{renderExecutivePicker(school.schoolCode)}</div>)}</section> : null}
+        {serverError ? <p role="alert" className="text-red-700">{serverError}</p> : null}
+        <SubmitButton type="button" disabled={isPending} onClick={checkInitialDetails}>Continue</SubmitButton>
+      </Card> : null}
+      {initialComplete ? <>
       {isReorder ? <p className="rounded-md border border-line bg-canvas p-3 text-sm">Reorder of Order {reorderSourceNo}. Billing, end users, and other saved details are fixed. Choose new items and quantities; shipping and expected delivery can change. Placed and received dates are set to today when saved.</p> : null}
       <div className="grid gap-3 sm:grid-cols-4">
         {["Order Sheet 1", orderType === "ambiguous" ? "Order Sheet 2B2 - Item quantities" : isMultiple ? "Order Sheet 2C1 + 2C2" : "Order Sheet 2A", "Review", "Lock/Finalize"].map(
@@ -838,7 +881,6 @@ export function CreateOrderForm({
           <div className="grid gap-4 md:grid-cols-3">
             <Field label="Session Year" error={errors.sheet1?.sessionYear?.message}>
               <input readOnly={isNewOrder || isReorder} className={inputClass} {...form.register("sheet1.sessionYear")} />
-              {isNewOrder ? <p className="mt-1 text-xs text-muted">Set automatically for use in the next academic year.</p> : null}
             </Field>
             <Field label="Order Placed Date" error={errors.sheet1?.orderPlacedDate?.message}>
               <input type="date" readOnly={isReorder} className={inputClass} {...form.register("sheet1.orderPlacedDate")} />
@@ -862,10 +904,11 @@ export function CreateOrderForm({
               <p className="mt-1 text-xs text-muted">{orderCreatedAt ? "Recorded automatically when this order was first saved (India time)." : "Set automatically when the order is first saved (India time)."}</p>
             </Field>
             <Field label="Billing To Type">
-              <select disabled={isReorder} className={inputClass} value={billingPartyType} onChange={event => {
+              <select disabled={isReorder || isNewOrder} className={inputClass} value={billingPartyType} onChange={event => {
                 form.setValue("sheet1.billingToType", event.target.value as "school" | "vendor" | "group" | "individual");
                 form.setValue("sheet1.billingToCode", "");
                 form.setValue("sheet1.billingToName", "");
+                form.setValue("sheet1.billingAddress", "");
                 form.setValue("sheet1.booksellerType", "");
                 form.setValue("sheet1.booksellerRating", "");
                 form.setValue("sheet1.booksellerDiscount", null, { shouldDirty: true });
@@ -881,10 +924,10 @@ export function CreateOrderForm({
                 <div className="relative">
                   <input
                     className={inputClass}
-                    readOnly={isReorder}
+                    readOnly={isReorder || isNewOrder}
                     value={billingToType === "individual" ? form.watch("sheet1.billingToName") : form.watch("sheet1.billingToCode")}
                     onChange={event => billingToType === "individual" ? form.setValue("sheet1.billingToName", event.target.value) : setBillingCode(event.target.value)}
-                    onFocus={() => { if (!isReorder) setIsBillingDropdownOpen(true); }}
+                    onFocus={() => { if (!isReorder && !isNewOrder) setIsBillingDropdownOpen(true); }}
                     onBlur={() => {
                       window.setTimeout(() => setIsBillingDropdownOpen(false), 150);
                     }}
@@ -918,11 +961,14 @@ export function CreateOrderForm({
                   ) : null}
                 </div>
               </Field>
-                {billingToType === "vendor" ? <BooksellerDiscount
+                <BooksellerDiscount vendor={billingToType === "vendor"}
                   key={billingToCode} value={booksellerDiscount}
                   onChange={isReorder ? undefined : value => form.setValue("sheet1.booksellerDiscount", value, { shouldDirty: true, shouldValidate: true })}
                   error={errors.sheet1?.booksellerDiscount?.message}
-                /> : null}
+                />
+                <Field label="Billing Address">
+                  <textarea readOnly={isReorder} className={textAreaClass} {...form.register("sheet1.billingAddress")} />
+                </Field>
             </div>
             <Field label="Shipping To Type">
               <select className={inputClass} value={shippingPartyType} onChange={event => {
@@ -979,7 +1025,7 @@ export function CreateOrderForm({
               <select
                 className={inputClass}
                 value={orderType}
-                disabled={isReorder}
+                disabled={isReorder || isNewOrder}
                 onChange={event => changeEntry(event.target.value as "descriptive" | "ambiguous")}
               >
                 <option value="descriptive">Descriptive</option>
@@ -1089,11 +1135,12 @@ export function CreateOrderForm({
               <textarea readOnly={isReorder} className={textAreaClass} {...form.register("sheet1.notes")} />
             </Field>
           </div>
+          {!isNewOrder && orderType === "descriptive" && executiveSchools.length ? <section className="mt-4 space-y-3"><h3 className="font-semibold">Executives</h3>{executiveSchools.map(school => <div key={school.schoolCode}><p className="mb-1 text-sm">{school.schoolCode} — {school.schoolName}</p>{renderExecutivePicker(school.schoolCode)}</div>)}</section> : null}
         </Card>
       ) : null}
 
       {step === 2 && orderType === "descriptive" ? <Card className="mb-4 p-5">
-        <fieldset disabled={isReorder}>
+        <fieldset disabled>
         <Field label="Descriptive entry">
           <select className={inputClass} value={descriptiveMode} onChange={event => changeEntry("descriptive", event.target.value as DescriptiveMode)}>
             <option value="individual">Individual</option>
@@ -1126,27 +1173,14 @@ export function CreateOrderForm({
           <div className="mb-4">
             <div>
               <h2 className="text-lg font-semibold text-ink">Order Sheet 2A</h2>
-              <p className="text-sm text-muted">{isReorder ? "Enter new item quantities for the original end school." : "Select one school and enter its item quantities."}</p>
+              <p className="text-sm text-muted">Enter item quantities for the selected end school.</p>
             </div>
           </div>
           <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
             <Field label="School">
-              {isReorder ? <p className="py-2 text-sm">{reorderSchool?.schoolCode} - {reorderSchool?.schoolName}</p> : <ReferencePicker
-                schools={schools}
-                selectedKey={activeDescriptiveSchoolKey}
-                onChange={optionKey => {
-                  const nextCode = schools.find(school => school.optionKey === optionKey)?.schoolCode;
-                  const currentRows = form.getValues("descriptiveRows");
-                  if (currentRows.length && nextCode !== currentRows[0].schoolCode) {
-                    if (!window.confirm("Changing the school will discard its item quantities. Continue?")) return;
-                    form.setValue("descriptiveRows", []);
-                  }
-                  setSelectedDescriptiveSchoolKey(optionKey);
-                }}
-              />}
+              <p className="py-2 text-sm">{activeDescriptiveSchool?.schoolCode ?? watchedDescriptiveRows[0]?.schoolCode} - {activeDescriptiveSchool?.schoolName ?? watchedDescriptiveRows[0]?.schoolName}</p>
             </Field>
-            {renderExecutivePicker(activeDescriptiveSchool?.schoolCode)}
             </div>
             <ItemSelectionFilters
               categories={categoryOptions}
@@ -1203,72 +1237,13 @@ export function CreateOrderForm({
         <Card className="p-5">
           <h2 className="text-lg font-semibold text-ink">{isGroup ? "Group" : "Multiple Schools"} Entry</h2>
           <p className="mb-4 text-sm text-muted">
-            {isReorder ? "The participating schools are copied from the original order." : isGroup ? "Choose the schools participating in this order. GS schools come from the selected group." : "Select at least two schools."} Enter one shared total per item for all participating schools.
+            Enter one shared total per item for the selected participating schools.
           </p>
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            {isReorder ? <div>
-              <h3 className="mb-3 font-semibold text-ink">Participating Schools</h3>
-              <div className="space-y-3">{watchedCombinedSchools.map(school => <div key={school.schoolCode} className="rounded border border-line p-3 text-sm">
-                <p>{school.schoolCode} - {school.schoolName}</p>
-                {renderExecutivePicker(school.schoolCode)}
-              </div>)}</div>
-            </div> : (<>
             <div>
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="font-semibold text-ink">Order Sheet 2C1 Participating Schools</h3>
-                {!hasGsParticipants ? <SubmitButton type="button" variant="secondary" onClick={appendCombinedSchool} disabled={combinedSchools.fields.length >= schools.length}>
-                  <Plus className="mr-2 h-4 w-4" /> Add school
-                </SubmitButton> : null}
-              </div>
-              <div className="space-y-3">
-                {hasGsParticipants ? <>
-                  <p className="text-sm text-muted">{watchedCombinedSchools.length} of {gsSchoolOptions.length} schools selected. Uncheck schools that are not participating. Selected PR-only members receive PT codes when saved.</p>
-                  <p className="text-sm text-muted">Use Convert to PT to assign a code now. The PT code stays assigned even if you discard this order.</p>
-                  <div className="flex gap-3">
-                    <button type="button" className="focus-ring text-sm font-semibold text-brand-dark" onClick={() => form.setValue("combinedSchools", gsSchoolOptions, { shouldDirty: true, shouldValidate: true })}>Select all</button>
-                    <button type="button" className="focus-ring text-sm font-semibold text-brand-dark" onClick={() => form.setValue("combinedSchools", [], { shouldDirty: true, shouldValidate: true })}>Deselect all</button>
-                  </div>
-                  {gsSchoolOptions.map(school => {
-                    const member = selectedGs?.members?.find(member => member.schoolCode === school.schoolCode);
-                    return <div key={member?.prCode ?? school.schoolCode} className="rounded border border-line p-3 text-sm">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <label className="flex items-start gap-3">
-                          <input type="checkbox" className="focus-ring mt-1" checked={watchedCombinedSchools.some(row => row.schoolCode === school.schoolCode)} onChange={event => {
-                            const rows = form.getValues("combinedSchools");
-                            form.setValue("combinedSchools", event.target.checked ? [...rows, school] : rows.filter(row => row.schoolCode !== school.schoolCode), { shouldDirty: true, shouldValidate: true });
-                          }} />
-                          <span>{school.schoolCode} — {school.schoolName}
-                            {member?.ptCode ? <span className="block text-xs text-muted">PR: {member.prCode}</span> : null}
-                          </span>
-                        </label>
-                        {member && !member.ptCode ? <button type="button" className="focus-ring shrink-0 rounded border border-line px-3 py-1 text-sm font-semibold text-brand-dark disabled:opacity-50" disabled={!!convertingPrCode || isPending} onClick={() => convertSchool(member.prCode)}>
-                          {convertingPrCode === member.prCode ? "Converting..." : "Convert to PT"}
-                        </button> : null}
-                      </div>
-                      {conversionError && conversionError.prCode === member?.prCode ? <p role="alert" className="mt-2 text-sm text-red-700">{conversionError.message}</p> : null}
-                      {watchedCombinedSchools.some(row => row.schoolCode === school.schoolCode) ? <div className="mt-3">{renderExecutivePicker(school.schoolCode)}</div> : null}
-                    </div>;
-                  })}
-                </> : combinedSchools.fields.map((field, index) => (
-                  <LineRow key={field.id} onRemove={() => combinedSchools.remove(index)}>
-                    <div className="min-w-0 space-y-3">
-                    <Field label="School">
-                    <ReferencePicker
-                      schools={schools.filter((school) => {
-                        const selectedCode = form.watch(`combinedSchools.${index}.schoolCode`);
-                        return school.schoolCode === selectedCode || !form.getValues("combinedSchools").some((row, rowIndex) => rowIndex !== index && row.schoolCode === school.schoolCode);
-                      })}
-                      selectedKey={findSchoolOptionByStoredValue(schools, form.watch(`combinedSchools.${index}.schoolCode`), form.watch(`combinedSchools.${index}.schoolName`))?.optionKey ?? ""}
-                      onChange={(optionKey) => setCombinedSchool(index, optionKey)}
-                    />
-                    </Field>
-                    {renderExecutivePicker(form.watch(`combinedSchools.${index}.schoolCode`))}
-                    </div>
-                  </LineRow>
-                ))}
-              </div>
+              <h3 className="mb-3 font-semibold text-ink">Participating Schools</h3>
+              <div className="space-y-3">{watchedCombinedSchools.map(school => <div key={school.schoolCode} className="rounded border border-line p-3 text-sm">{school.schoolCode} - {school.schoolName}</div>)}</div>
             </div>
-            </>)}
             <div>
               <h3 className="mb-3 font-semibold text-ink">Order Sheet 2C2 Pooled Items</h3>
               <ItemSelectionFilters
@@ -1332,6 +1307,7 @@ export function CreateOrderForm({
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-sm text-muted">
+          {isNewOrder ? <button type="button" className="mr-3 text-brand-dark" onClick={() => setInitialComplete(false)}>Change initial details</button> : null}
           {Object.keys(errors).length > 0 ? "Resolve validation errors before submitting." : null}
         </div>
         <div className="flex gap-2">
@@ -1358,6 +1334,7 @@ export function CreateOrderForm({
           ) : null}
         </div>
       </div>
+      </> : null}
     </form>
   );
 }
@@ -1643,7 +1620,8 @@ function ReviewBlock({ values, orderEnteredDate }: { values: CreateOrderInput; o
       <div className="rounded-md border border-line bg-canvas p-4">
         <p className="font-semibold text-ink">Sheet 1</p>
         <p className="mt-2 text-muted">Billing: {values.sheet1.billingToName}</p>
-        {values.sheet1.billingToType === "vendor" ? <BooksellerDiscount value={values.sheet1.booksellerDiscount} /> : null}
+        {values.sheet1.billingAddress ? <p className="text-muted">Billing address: {values.sheet1.billingAddress}</p> : null}
+        <BooksellerDiscount value={values.sheet1.booksellerDiscount} />
         <p className="text-muted">Shipping: {values.sheet1.shippingToName}</p>
         <p className="text-muted">Contact numbers: {values.sheet1.contactNumbers?.filter(number => number.trim()).join(", ") || "—"}</p>
         {values.sheet1.commissionEnabled ? <p className="text-muted">Commission: {values.sheet1.commissionPartyCode} · {values.sheet1.commissionPercentage}%</p> : null}
