@@ -4,12 +4,17 @@ import { reorderSearchQuery, type ReorderSearchResult } from "@/lib/reorder-sear
 import { sameEndUsers } from "@/lib/order-match";
 
 export async function findMatchingFinalizedOrder(input: { sessionYear: string; billingCode: string; orderType: "descriptive" | "ambiguous"; endUsers: string[] }) {
+  const where = { sessionYear: input.sessionYear, billingToCode: { equals: input.billingCode, mode: "insensitive" as const }, orderType: input.orderType, orderStatus: "finalized" as const, classification: "normal" as const };
+  if (input.orderType === "ambiguous") {
+    const order = await prisma.orderSheet1.findFirst({ where, select: { orderSheet1Id: true }, orderBy: [{ createdAt: "desc" }, { orderSheet1Id: "desc" }] });
+    return order?.orderSheet1Id ?? null;
+  }
   const orders = await prisma.orderSheet1.findMany({
-    where: { sessionYear: input.sessionYear, billingToCode: { equals: input.billingCode, mode: "insensitive" }, orderType: input.orderType, orderStatus: "finalized", classification: "normal" },
+    where,
     select: { orderSheet1Id: true, descriptiveRows: { select: { schoolCode: true, schoolName: true } }, combinedSchools: { select: { schoolCode: true, schoolName: true } }, groupParticipants: { select: { ptCode: true, schoolName: true } } },
     orderBy: [{ createdAt: "desc" }, { orderSheet1Id: "desc" }]
   });
-  return orders.find(order => input.orderType === "ambiguous" || sameEndUsers(savedOrderEndUsers(order).map(row => row.schoolCode), input.endUsers))?.orderSheet1Id ?? null;
+  return orders.find(order => sameEndUsers(savedOrderEndUsers(order).map(row => row.schoolCode), input.endUsers))?.orderSheet1Id ?? null;
 }
 
 export async function searchReorderOrders(search: string): Promise<{ orders: ReorderSearchResult[]; hasMore: boolean }> {

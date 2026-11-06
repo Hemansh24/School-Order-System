@@ -64,6 +64,7 @@ type Props = {
   reorderSourceId?: number;
   reorderSourceNo?: number;
   matchedSession?: string;
+  clearCreateOrderDraftOnSuccess?: boolean;
   reorderSchool?: { schoolCode: string; schoolName: string };
   orderSheet1Id?: number;
   orderCreatedAt?: string;
@@ -105,6 +106,7 @@ export function CreateOrderForm({
   reorderSourceId,
   reorderSourceNo,
   matchedSession,
+  clearCreateOrderDraftOnSuccess = false,
   reorderSchool,
   orderSheet1Id,
   orderCreatedAt,
@@ -126,6 +128,7 @@ export function CreateOrderForm({
   }), [sourceGroups, convertedCodes, isReorder]);
   const schools = useMemo(() => sourceSchools.map(school => ({ ...school, schoolCode: ptCodes[school.schoolCode] ?? school.schoolCode })), [sourceSchools, ptCodes]);
   const groups = useMemo(() => sourceGroups.map(group => ({ ...group, members: group.members?.map(member => ({ ...member, schoolCode: ptCodes[member.prCode] ?? member.schoolCode, ptCode: ptCodes[member.prCode] ?? member.ptCode })) })), [sourceGroups, ptCodes]);
+  const groupByOptionKey = useMemo(() => new Map(groups.map(group => [group.optionKey, group])), [groups]);
   const [selectedDescriptiveSchoolKey, setSelectedDescriptiveSchoolKey] = useState(reorderSchool?.schoolCode ?? "");
   const executiveSeenSchools = useRef(new Set([
     ...(initialValues?.descriptiveRows ?? []), ...(initialValues?.combinedSchools ?? [])
@@ -140,6 +143,7 @@ export function CreateOrderForm({
   const isNewOrder = orderSheet1Id === undefined && initialValues === undefined;
   const [initialComplete, setInitialComplete] = useState(!isNewOrder);
   const [isDraftReady, setIsDraftReady] = useState(!isNewOrder);
+  const draftSubmitted = useRef(false);
   const [currentEntryDate, setCurrentEntryDate] = useState("");
   const orderEnteredDate = orderCreatedAt
     ? getOrderEnteredDate(new Date(orderCreatedAt))
@@ -341,6 +345,8 @@ export function CreateOrderForm({
     }
 
     const subscription = form.watch((values) => {
+      // Resetting a submitted form must not save its values as a new draft.
+      if (draftSubmitted.current) return;
       window.sessionStorage.setItem(ORDER_DRAFT_STORAGE_KEY, JSON.stringify({ ...values, legacySchoolConversion, selectedDescriptiveSchoolKey }));
     });
 
@@ -359,8 +365,8 @@ export function CreateOrderForm({
           discount: null,
           addressSummary: school.addressSummary,
           contactNumbers: school.contactNumbers ?? [],
-          isGroup: groups.some((group) => group.optionKey === school.optionKey),
-          groupType: groups.find((group) => group.optionKey === school.optionKey)?.groupType
+          isGroup: groupByOptionKey.has(school.optionKey),
+          groupType: groupByOptionKey.get(school.optionKey)?.groupType
           }))
         : vendors.map((vendor) => ({
             value: vendor.vendorCode,
@@ -374,7 +380,7 @@ export function CreateOrderForm({
           isGroup: false,
           groupType: undefined
           })),
-    [billingToType, schools, groups, vendors]
+    [billingToType, schools, groups, vendors, groupByOptionKey]
   );
   const booksellerDiscount = form.watch("sheet1.booksellerDiscount");
   const selectedBillingOption = useMemo(
@@ -439,15 +445,14 @@ export function CreateOrderForm({
   const filteredBillingOptions = useMemo(() => {
     const query = billingToCode.trim().toLowerCase();
 
-    return billingOptions
-      .filter((option) => billingPartyType === "individual" ? false : billingPartyType === "vendor" || option.isGroup === (billingPartyType === "group"))
-      .filter(
-        (option) =>
-          !query ||
-          option.code.toLowerCase().includes(query) ||
-          option.name.toLowerCase().includes(query)
-      )
-      .slice(0, 50);
+    const matches: Array<(typeof billingOptions)[number]> = [];
+    for (const option of billingOptions) {
+      if (billingPartyType === "individual" || (billingPartyType !== "vendor" && option.isGroup !== (billingPartyType === "group"))) continue;
+      if (query && !option.code.toLowerCase().includes(query) && !option.name.toLowerCase().includes(query)) continue;
+      matches.push(option);
+      if (matches.length === 50) break;
+    }
+    return matches;
   }, [billingOptions, billingToCode, billingPartyType]);
 
   const shippingOptions = useMemo(
@@ -457,7 +462,7 @@ export function CreateOrderForm({
             value: school.optionKey,
             code: school.schoolCode,
             name: school.schoolName,
-            isGroup: groups.some((group) => group.optionKey === school.optionKey),
+            isGroup: groupByOptionKey.has(school.optionKey),
             addressSummary: school.addressSummary
           }))
         : vendors.map((vendor) => ({
@@ -467,7 +472,7 @@ export function CreateOrderForm({
             isGroup: false,
             addressSummary: vendor.addressSummary
           })),
-    [shippingToType, schools, groups, vendors]
+    [shippingToType, schools, groups, vendors, groupByOptionKey]
   );
   const filteredShippingOptions = useMemo(() => {
     const query = shippingToCode.trim().toLowerCase();
@@ -752,6 +757,9 @@ export function CreateOrderForm({
         return;
       }
       if (isNewOrder) {
+        draftSubmitted.current = true;
+        clearOrder();
+      } else if (clearCreateOrderDraftOnSuccess) {
         window.sessionStorage.removeItem(ORDER_DRAFT_STORAGE_KEY);
       }
       router.push(`/orders/${result.orderSheet1Id}`);
@@ -790,6 +798,7 @@ export function CreateOrderForm({
 
   function clearOrder() {
     form.reset(newOrderDefaults);
+    setInitialComplete(false);
     setLegacySchoolConversion(false);
     setStep(1);
     setServerError(null);
@@ -799,6 +808,11 @@ export function CreateOrderForm({
     setIsBillingDropdownOpen(false);
     setIsShippingDropdownOpen(false);
     setIsCommissionDropdownOpen(false);
+    setConversionError(null);
+    executiveSeenSchools.current.clear();
+    appliedDiscountBilling.current = null;
+    appliedContactCode.current = null;
+    appliedGs.current = null;
     window.sessionStorage.removeItem(ORDER_DRAFT_STORAGE_KEY);
   }
 
@@ -839,7 +853,10 @@ export function CreateOrderForm({
         {isMultiple ? <div className="space-y-2"><p className="font-semibold">Participating schools</p>{hasGsParticipants ? gsSchoolOptions.map(school => <label key={school.schoolCode} className="flex gap-2 text-sm"><input type="checkbox" checked={watchedCombinedSchools.some(row => row.schoolCode === school.schoolCode)} onChange={event => { const rows = form.getValues("combinedSchools"); form.setValue("combinedSchools", event.target.checked ? [...rows, school] : rows.filter(row => row.schoolCode !== school.schoolCode)); }} />{school.schoolCode} — {school.schoolName}</label>) : <><button type="button" onClick={appendCombinedSchool} className="text-brand-dark">Add school</button>{combinedSchools.fields.map((row, index) => <div key={row.id} className="flex gap-2"><ReferencePicker schools={schools.filter(school => school.schoolCode === form.watch(`combinedSchools.${index}.schoolCode`) || !watchedCombinedSchools.some(other => other.schoolCode === school.schoolCode))} selectedKey={findSchoolOptionByStoredValue(schools, form.watch(`combinedSchools.${index}.schoolCode`))?.optionKey ?? ""} onChange={key => setCombinedSchool(index, key)} /><button type="button" onClick={() => combinedSchools.remove(index)}>Remove</button></div>)}</>}</div> : null}
         {orderType === "descriptive" && executiveSchools.length ? <section className="space-y-3"><h3 className="font-semibold">Executives</h3>{executiveSchools.map(school => <div key={school.schoolCode}><p className="mb-1 text-sm">{school.schoolCode} — {school.schoolName}</p>{renderExecutivePicker(school.schoolCode)}</div>)}</section> : null}
         {serverError ? <p role="alert" className="text-red-700">{serverError}</p> : null}
-        <SubmitButton type="button" disabled={isPending} onClick={checkInitialDetails}>Continue</SubmitButton>
+        <div className="flex flex-wrap gap-2">
+          <SubmitButton type="button" disabled={isPending} onClick={checkInitialDetails}>Continue</SubmitButton>
+          <SubmitButton type="button" variant="secondary" disabled={isPending || !!convertingPrCode} onClick={clearOrder}>Clear all</SubmitButton>
+        </div>
       </Card> : null}
       {initialComplete ? <>
       {isReorder ? <p className="rounded-md border border-line bg-canvas p-3 text-sm">Reorder of Order {reorderSourceNo}. Billing, end users, and other saved details are fixed. Choose new items and quantities; shipping and expected delivery can change. Placed and received dates are set to today when saved.</p> : null}
@@ -1417,13 +1434,13 @@ function ReferencePicker({
       return schools.slice(0, 50);
     }
 
-    return schools
-      .filter(
-        (school) =>
-          school.schoolCode.toLowerCase().includes(normalizedQuery) ||
-          school.schoolName.toLowerCase().includes(normalizedQuery)
-      )
-      .slice(0, 50);
+    const matches: SchoolRef[] = [];
+    for (const school of schools) {
+      if (!school.schoolCode.toLowerCase().includes(normalizedQuery) && !school.schoolName.toLowerCase().includes(normalizedQuery)) continue;
+      matches.push(school);
+      if (matches.length === 50) break;
+    }
+    return matches;
   }, [normalizedQuery, schools]);
   const displayValue = isOpen ? query : selectedSchool ? `${selectedSchool.schoolCode} - ${selectedSchool.schoolName}${selectedSchool.groupType ? ` (${selectedSchool.groupType})` : ""}` : "";
 

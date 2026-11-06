@@ -62,7 +62,8 @@ export default async function ReorderPage({
   const executiveReference = await getExecutiveReferenceData();
   const gsOptions = await getGsOrderOptions();
   const { values: initialValues, individualSchool } = reorderDefaults(order);
-  const matchedSession = (await searchParams).matched === "1" ? order.sessionYear ?? undefined : undefined;
+  const fromCreateOrder = (await searchParams).matched === "1";
+  const matchedSession = fromCreateOrder ? order.sessionYear ?? undefined : undefined;
   if (matchedSession) initialValues.sheet1.sessionYear = matchedSession;
 
   return (
@@ -106,6 +107,7 @@ export default async function ReorderPage({
         reorderSourceId={order.orderSheet1Id}
         reorderSourceNo={order.orderNo}
         matchedSession={matchedSession}
+        clearCreateOrderDraftOnSuccess={fromCreateOrder}
         reorderSchool={individualSchool}
         submitLabel="Place Reorder"
       />

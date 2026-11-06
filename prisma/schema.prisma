@@ -308,6 +308,7 @@ model OrderSheet1 {
   groupItems OrderGroupItem[]
 
   @@index([orderType, orderStatus])
+  @@index([sessionYear, orderType, orderStatus, classification, createdAt(sort: Desc), orderSheet1Id(sort: Desc)], map: "order_match_lookup_idx")
   @@index([reorderOfOrderId])
   @@map("order_sheet_1")
 }
