@@ -1,4 +1,4 @@
-import { upsertImportedOrganisation } from "@/lib/services/organisation-import";
+import { upsertImportedOrganisationsInBatches } from "@/lib/services/organisation-import";
 import {
   listOrganisations,
   connectorConfig,
@@ -20,8 +20,6 @@ const FIREBASE_PROJECT_ID =
   process.env.FIREBASE_PROJECT_ID ??
   process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ??
   "system-order-34c0a";
-
-const MASTER_DATA_TRANSACTION_TIMEOUT_MS = 120_000;
 
 type OrganisationSource = {
   groupCode: string | null;
@@ -146,10 +144,9 @@ export async function replaceSchoolsWithImportedOrganisations(): Promise<SchoolS
   const organisations = await loadImportedOrganisationsFromDataConnect();
   if (!organisations.length) throw new Error("No imported organisations were found.");
   const rows = organisations.map(toPrismaOrganisationData);
-  await prisma.$transaction(async tx => {
-    await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(741024)`;
-    for (const row of rows) await upsertImportedOrganisation(tx, row);
-  }, { maxWait: 10_000, timeout: MASTER_DATA_TRANSACTION_TIMEOUT_MS });
+  await upsertImportedOrganisationsInBatches(prisma, rows, (imported, total) => {
+    console.log(`[organisations:import] Imported ${imported}/${total} organisations.`);
+  });
   return {
     importedOrganisations: rows.length, replacedOrganisations: rows.length,
     replacedSchools: 0, preservedVendorLinks: await prisma.vendorSchool.count()
