@@ -3,7 +3,7 @@ import { moveSchoolGroupCodeTx } from "@/lib/pt-codes";
 import { schoolCodeWhere } from "@/lib/school-reference";
 
 // Bound the work per transaction so a full master refresh can exceed two minutes.
-const IMPORT_BATCH_SIZE = 400;
+const IMPORT_BATCH_SIZE = 50;
 const IMPORT_TRANSACTION_TIMEOUT_MS = 120_000;
 
 export async function upsertImportedOrganisationsInBatches(
