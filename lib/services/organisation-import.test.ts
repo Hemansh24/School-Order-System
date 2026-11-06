@@ -49,7 +49,7 @@ function fixture(initial: SavedRow[] = []) {
               if (where.prCode === state.failAt) throw new Error("Simulated database failure");
               transaction.writes++;
               // Model a device where processing the full dataset in one transaction expires.
-              if (transaction.writes > 200) throw new Error("Transaction expired");
+              if (transaction.writes > 400) throw new Error("Transaction expired");
               const existing = pending.get(where.prCode);
               const row = existing
                 ? { ...existing, ...update, id: existing.id }
@@ -72,42 +72,42 @@ function fixture(initial: SavedRow[] = []) {
 test("large imports commit bounded transactions and report only committed progress", async () => {
   const state = fixture();
   const progress: number[] = [];
-  await upsertImportedOrganisationsInBatches(state.db, rows(403), (imported, total) => {
-    assert.equal(total, 403);
+  await upsertImportedOrganisationsInBatches(state.db, rows(803), (imported, total) => {
+    assert.equal(total, 803);
     assert.equal(state.saved.size, imported);
     assert.ok(state.transactions.at(-1)?.committed);
     progress.push(imported);
   });
-  assert.deepEqual(progress, [200, 400, 403]);
-  assert.deepEqual(state.transactions.map(tx => tx.writes), [200, 200, 3]);
-  assert.equal(state.saved.size, 403);
+  assert.deepEqual(progress, [400, 800, 803]);
+  assert.deepEqual(state.transactions.map(tx => tx.writes), [400, 400, 3]);
+  assert.equal(state.saved.size, 803);
 });
 
 test("failed batch rolls back, stops subsequent batches and supports a safe rerun", async () => {
   const state = fixture();
-  state.failAt = "PR202";
+  state.failAt = "PR402";
   const progress: number[] = [];
   await assert.rejects(
-    upsertImportedOrganisationsInBatches(state.db, rows(403), count => progress.push(count)),
+    upsertImportedOrganisationsInBatches(state.db, rows(803), count => progress.push(count)),
     (error: Error) => {
-      assert.match(error.message, /PR202.*batch rows 201-400/);
-      assert.match(error.message, /200 of 403 rows were committed/);
+      assert.match(error.message, /PR402.*batch rows 401-800/);
+      assert.match(error.message, /400 of 803 rows were committed/);
       assert.match(error.message, /This batch was rolled back/);
       assert.match(error.message, /Simulated database failure/);
       assert.equal((error.cause as Error).message, "Simulated database failure");
       return true;
     }
   );
-  assert.deepEqual(progress, [200]);
+  assert.deepEqual(progress, [400]);
   assert.equal(state.transactions.length, 2);
-  assert.equal(state.saved.size, 200);
-  assert.equal(state.saved.has("PR201"), false, "Earlier writes in the failed batch roll back");
+  assert.equal(state.saved.size, 400);
+  assert.equal(state.saved.has("PR401"), false, "Earlier writes in the failed batch roll back");
   const originalIds = [...state.saved.values()].map(row => row.id);
 
   state.failAt = "";
-  await upsertImportedOrganisationsInBatches(state.db, rows(403));
-  assert.equal(state.saved.size, 403);
-  assert.deepEqual([...state.saved.values()].slice(0, 200).map(row => row.id), originalIds);
+  await upsertImportedOrganisationsInBatches(state.db, rows(803));
+  assert.equal(state.saved.size, 803);
+  assert.deepEqual([...state.saved.values()].slice(0, 400).map(row => row.id), originalIds);
 });
 
 test("batch imports preserve local identity, PT codes and contacts and reject PT reassignment", async () => {
