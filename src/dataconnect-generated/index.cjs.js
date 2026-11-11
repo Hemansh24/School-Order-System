@@ -181,6 +181,20 @@ exports.upsertSharedOrderSchoolExecutive = function upsertSharedOrderSchoolExecu
 }
 ;
 
+const upsertSharedBooksellerExecutiveRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertSharedBooksellerExecutive', inputVars);
+}
+upsertSharedBooksellerExecutiveRef.operationName = 'UpsertSharedBooksellerExecutive';
+exports.upsertSharedBooksellerExecutiveRef = upsertSharedBooksellerExecutiveRef;
+
+exports.upsertSharedBooksellerExecutive = function upsertSharedBooksellerExecutive(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertSharedBooksellerExecutiveRef(dcInstance, inputVars));
+}
+;
+
 const listOrganisationsRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
   dcInstance._useGeneratedSdk();

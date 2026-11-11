@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "executives:import": "tsx scripts/import-executives.ts",
+    "bookseller-executives:import": "tsx scripts/import-bookseller-executives.ts",
+    "bookseller-executives:publish": "tsx -e \"import { publishBooksellerExecutives } from './lib/publishBooksellerExecutives'; publishBooksellerExecutives().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",
     "executives:publish": "tsx -e \"import { publishExecutives } from './lib/publishExecutives'; publishExecutives().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",
     "executives:sync": "tsx -e \"import { replaceExecutivesWithSharedData } from './lib/syncExecutives'; replaceExecutivesWithSharedData().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",
     "dev": "next dev",

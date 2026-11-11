@@ -8,6 +8,7 @@ import { useFieldArray, useForm } from "react-hook-form";
 import { convertGsMemberAction, createOrderAction, createReorderAction, findMatchingOrderAction, updateOrderAction } from "@/app/orders/actions";
 import { BooksellerDiscount } from "@/components/orders/bookseller-discount";
 import { defaultBooksellerDiscount } from "@/lib/bookseller-discount";
+import { createPartySearchMatcher } from "@/lib/party-search";
 import { Card, SubmitButton } from "@/components/ui";
 import { compareEditionCodes, DEFAULT_LANGUAGE_CODE } from "@/lib/item-code";
 import { hasLegacySchoolAllocations, isPooledOrder, orderTypeLabel, type DescriptiveMode } from "@/lib/order-model";
@@ -250,8 +251,9 @@ export function CreateOrderForm({
   const commissionOptions = useMemo(() => [...new Map([
     ...schools.map(school => ({ type: "school" as const, code: school.schoolCode, name: school.schoolName })),
     ...vendors.map(vendor => ({ type: "vendor" as const, code: vendor.vendorCode, name: vendor.vendorName })),
-    ...groups.map(group => ({ type: "group" as const, code: group.schoolCode, name: group.schoolName }))
-  ].map(option => [`${option.type}:${option.code}`, option])).values()], [schools, vendors, groups]);
+    ...groups.map(group => ({ type: "group" as const, code: group.schoolCode, name: group.schoolName })),
+    ...executives.map(executive => ({ type: "executive" as const, code: executive.incumbentCode, name: executive.name }))
+  ].map(option => [`${option.type}:${option.code}`, option])).values()], [schools, vendors, groups, executives]);
   const selectedCommissionOption = commissionOptions.find(option => option.type === commissionPartyType && option.code === commissionPartyCode);
   const filteredCommissionOptions = commissionOptions.filter(option => {
     const query = commissionPartyCode.trim().toLowerCase();
@@ -449,12 +451,12 @@ export function CreateOrderForm({
   }, [endUserGroupCode, selectedGs, isGroup, isAllocated, isDraftReady, isReorder, form]);
 
   const filteredBillingOptions = useMemo(() => {
-    const query = billingToCode.trim().toLowerCase();
+    const matchesSearch = createPartySearchMatcher(billingToCode);
 
     const matches: Array<(typeof billingOptions)[number]> = [];
     for (const option of billingOptions) {
       if (billingPartyType === "individual" || (billingPartyType !== "vendor" && option.isGroup !== (billingPartyType === "group"))) continue;
-      if (query && !option.code.toLowerCase().includes(query) && !option.name.toLowerCase().includes(query)) continue;
+      if (!matchesSearch(option)) continue;
       matches.push(option);
       if (matches.length === 50) break;
     }
@@ -481,16 +483,11 @@ export function CreateOrderForm({
     [shippingToType, schools, groups, vendors, groupByOptionKey]
   );
   const filteredShippingOptions = useMemo(() => {
-    const query = shippingToCode.trim().toLowerCase();
+    const matchesSearch = createPartySearchMatcher(shippingToCode);
 
     return shippingOptions
       .filter((option) => shippingPartyType === "individual" ? false : shippingPartyType === "vendor" || option.isGroup === (shippingPartyType === "group"))
-      .filter(
-        (option) =>
-          !query ||
-          option.code.toLowerCase().includes(query) ||
-          option.name.toLowerCase().includes(query)
-      )
+      .filter(matchesSearch)
       .slice(0, 50);
   }, [shippingOptions, shippingToCode, shippingPartyType]);
 
@@ -860,7 +857,7 @@ export function CreateOrderForm({
           <Field label="Billing type"><select className={inputClass} value={billingToType} onChange={event => { form.setValue("sheet1.billingToType", event.target.value as "school" | "vendor" | "group"); form.setValue("sheet1.billingToCode", ""); form.setValue("sheet1.billingToName", ""); form.setValue("sheet1.billingAddress", ""); form.setValue("sheet1.booksellerDiscount", null); }}><option value="school">School</option><option value="vendor">Vendor</option><option value="group">Group</option></select></Field>
           <Field label="Billing code">
             <div className="relative">
-              <input className={inputClass} value={billingToCode} placeholder="Search by code or name" onChange={event => setBillingCode(event.target.value)} onFocus={() => setIsBillingDropdownOpen(true)} onBlur={() => window.setTimeout(() => setIsBillingDropdownOpen(false), 150)} />
+              <input className={inputClass} value={billingToCode} placeholder="Search by code, name, or address" onChange={event => setBillingCode(event.target.value)} onFocus={() => setIsBillingDropdownOpen(true)} onBlur={() => window.setTimeout(() => setIsBillingDropdownOpen(false), 150)} />
               {form.watch("sheet1.billingToName") ? <p className="mt-1 text-sm text-muted">{form.watch("sheet1.billingToName")}</p> : null}
               {isBillingDropdownOpen ? (
                 <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-white shadow-lg">
@@ -999,7 +996,7 @@ export function CreateOrderForm({
                   onBlur={() => {
                     window.setTimeout(() => setIsShippingDropdownOpen(false), 150);
                   }}
-                  placeholder="Select a reference or choose manual entry"
+                  placeholder={shippingToType === "individual" ? "Select a reference or choose manual entry" : "Search by code, name, or address"}
                 />
                 {shippingToType !== "individual" && form.watch("sheet1.shippingToName") ? <p className="mt-1 text-sm text-muted">{form.watch("sheet1.shippingToName")}</p> : null}
                 {isShippingDropdownOpen && shippingToType !== "individual" ? (

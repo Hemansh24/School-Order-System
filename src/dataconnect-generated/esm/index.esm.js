@@ -154,6 +154,18 @@ export function upsertSharedOrderSchoolExecutive(dcOrVars, vars) {
   return executeMutation(upsertSharedOrderSchoolExecutiveRef(dcInstance, inputVars));
 }
 
+export const upsertSharedBooksellerExecutiveRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertSharedBooksellerExecutive', inputVars);
+}
+upsertSharedBooksellerExecutiveRef.operationName = 'UpsertSharedBooksellerExecutive';
+
+export function upsertSharedBooksellerExecutive(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertSharedBooksellerExecutiveRef(dcInstance, inputVars));
+}
+
 export const listOrganisationsRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
   dcInstance._useGeneratedSdk();

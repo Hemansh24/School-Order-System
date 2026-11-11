@@ -48,6 +48,13 @@ test("commission accepts external names and codes without an existing reference"
   }
 });
 
+test("executives are accepted for commission while billing and shipping keep their existing types", () => {
+  const input = { ...sheet1, commissionEnabled: true, commissionPartyType: "executive", commissionPartyCode: "IN001", commissionPercentage: 7.5 };
+  assert.equal(sheet1Schema.parse(input).commissionPartyType, "executive");
+  assert.equal(sheet1Schema.safeParse({ ...input, billingToType: "executive" }).success, false);
+  assert.equal(sheet1Schema.safeParse({ ...input, shippingToType: "executive" }).success, false);
+});
+
 test("disabled commission clears values and older drafts remain compatible", () => {
   const parsed = sheet1Schema.parse({ ...sheet1, commissionEnabled: false, commissionPartyType: "school", commissionPartyCode: "PT1", commissionPercentage: 10 });
   assert.equal(parsed.commissionPartyType, undefined);

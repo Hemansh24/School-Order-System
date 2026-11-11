@@ -4,7 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { createOrderSchema } from "../validation/orders";
 import { resolveCommissionData } from "./order-commission";
 
-function input(type: "school" | "vendor" | "group" | "individual" = "vendor", code = "BS001") {
+function input(type: "school" | "vendor" | "group" | "individual" | "executive" = "vendor", code = "BS001") {
   return createOrderSchema.parse({ sheet1: {
     orderPlacedDate: "2026-10-24", orderType: "ambiguous",
     billingToType: "individual", billingToName: "Payer",
@@ -42,6 +42,20 @@ test("unchanged historical parties can be retained; changed identities must exis
   assert.deepEqual(await resolveCommissionData(tx, { ...input(), commissionEnabled: false }, saved), {
     commissionPartyType: null, commissionPartyCode: null, commissionPercentage: null
   });
+});
+
+test("executive commission validates incumbent codes and preserves historical selections", async () => {
+  const tx = { executive: { findUnique: async ({ where }: { where: unknown }) => {
+    assert.deepEqual(where, { incumbentCode: "IN001" });
+    return { incumbentCode: "IN001" };
+  } } } as unknown as Prisma.TransactionClient;
+  const selection = input("executive", "IN001");
+  const expected = { commissionPartyType: "executive", commissionPartyCode: "IN001", commissionPercentage: 7.5 };
+  assert.deepEqual(await resolveCommissionData(tx, selection), expected);
+  const missing = { executive: { findUnique: async () => null } } as unknown as Prisma.TransactionClient;
+  await assert.rejects(resolveCommissionData(missing, selection), /must exist/);
+  assert.deepEqual(await resolveCommissionData(missing, selection, expected), expected);
+  await assert.rejects(resolveCommissionData(missing, input("executive", "IN002"), expected), /must exist/);
 });
 
 test("existing GS locations can be commissioned parties", async () => {

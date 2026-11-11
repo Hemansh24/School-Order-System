@@ -91,6 +91,13 @@ function upsertSharedOrderSchoolExecutive(dcOrVarsOrOptions, varsOrOptions, opti
 }
 exports.upsertSharedOrderSchoolExecutive = upsertSharedOrderSchoolExecutive;
 
+function upsertSharedBooksellerExecutive(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('UpsertSharedBooksellerExecutive', inputVars, inputOpts);
+}
+exports.upsertSharedBooksellerExecutive = upsertSharedBooksellerExecutive;
+
 function listOrganisations(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, false);
   dcInstance.useGen(true);

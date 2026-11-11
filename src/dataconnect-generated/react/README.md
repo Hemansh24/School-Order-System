@@ -48,6 +48,7 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*UpsertSharedExecutive*](#upsertsharedexecutive)
   - [*UpsertSharedSchoolExecutiveDefault*](#upsertsharedschoolexecutivedefault)
   - [*UpsertSharedOrderSchoolExecutive*](#upsertsharedorderschoolexecutive)
+  - [*UpsertSharedBooksellerExecutive*](#upsertsharedbooksellerexecutive)
 
 # TanStack Query Firebase & TanStack React Query
 This SDK provides [React](https://react.dev/) hooks generated specific to your application, for the operations found in the connector `example`. These hooks are generated using [TanStack Query Firebase](https://react-query-firebase.invertase.dev/) by our partners at Invertase, a library built on top of [TanStack React Query v5](https://tanstack.com/query/v5/docs/framework/react/overview).
@@ -3281,6 +3282,122 @@ export default function UpsertSharedOrderSchoolExecutiveComponent() {
   // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
   if (mutation.isSuccess) {
     console.log(mutation.data.sharedOrderSchoolExecutive_upsert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## UpsertSharedBooksellerExecutive
+You can execute the `UpsertSharedBooksellerExecutive` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts)):
+```javascript
+useUpsertSharedBooksellerExecutive(options?: useDataConnectMutationOptions<UpsertSharedBooksellerExecutiveData, FirebaseError, UpsertSharedBooksellerExecutiveVariables>): UseDataConnectMutationResult<UpsertSharedBooksellerExecutiveData, UpsertSharedBooksellerExecutiveVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useUpsertSharedBooksellerExecutive(dc: DataConnect, options?: useDataConnectMutationOptions<UpsertSharedBooksellerExecutiveData, FirebaseError, UpsertSharedBooksellerExecutiveVariables>): UseDataConnectMutationResult<UpsertSharedBooksellerExecutiveData, UpsertSharedBooksellerExecutiveVariables>;
+```
+
+### Variables
+The `UpsertSharedBooksellerExecutive` Mutation requires an argument of type `UpsertSharedBooksellerExecutiveVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface UpsertSharedBooksellerExecutiveVariables {
+  pbsCode: string;
+  incumbentCode: string;
+  name: string;
+  designation?: string | null;
+  contact1?: string | null;
+  contact2?: string | null;
+  email?: string | null;
+  aadhaarCardNo?: string | null;
+  sourceSpreadsheetId: string;
+  sourceSheetId: number;
+  sourceSheetRow: number;
+  sourceValues: unknown;
+}
+```
+### Return Type
+Recall that calling the `UpsertSharedBooksellerExecutive` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpsertSharedBooksellerExecutive` Mutation is of type `UpsertSharedBooksellerExecutiveData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface UpsertSharedBooksellerExecutiveData {
+  sharedBooksellerExecutive_upsert: SharedBooksellerExecutive_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `UpsertSharedBooksellerExecutive`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, UpsertSharedBooksellerExecutiveVariables } from '@dataconnect/generated';
+import { useUpsertSharedBooksellerExecutive } from '@dataconnect/generated/react'
+
+export default function UpsertSharedBooksellerExecutiveComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useUpsertSharedBooksellerExecutive();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useUpsertSharedBooksellerExecutive(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpsertSharedBooksellerExecutive(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpsertSharedBooksellerExecutive(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useUpsertSharedBooksellerExecutive` Mutation requires an argument of type `UpsertSharedBooksellerExecutiveVariables`:
+  const upsertSharedBooksellerExecutiveVars: UpsertSharedBooksellerExecutiveVariables = {
+    pbsCode: ..., 
+    incumbentCode: ..., 
+    name: ..., 
+    designation: ..., // optional
+    contact1: ..., // optional
+    contact2: ..., // optional
+    email: ..., // optional
+    aadhaarCardNo: ..., // optional
+    sourceSpreadsheetId: ..., 
+    sourceSheetId: ..., 
+    sourceSheetRow: ..., 
+    sourceValues: ..., 
+  };
+  mutation.mutate(upsertSharedBooksellerExecutiveVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ pbsCode: ..., incumbentCode: ..., name: ..., designation: ..., contact1: ..., contact2: ..., email: ..., aadhaarCardNo: ..., sourceSpreadsheetId: ..., sourceSheetId: ..., sourceSheetRow: ..., sourceValues: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(upsertSharedBooksellerExecutiveVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.sharedBooksellerExecutive_upsert);
   }
   return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
 }

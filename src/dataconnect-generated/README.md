@@ -41,6 +41,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*UpsertSharedExecutive*](#upsertsharedexecutive)
   - [*UpsertSharedSchoolExecutiveDefault*](#upsertsharedschoolexecutivedefault)
   - [*UpsertSharedOrderSchoolExecutive*](#upsertsharedorderschoolexecutive)
+  - [*UpsertSharedBooksellerExecutive*](#upsertsharedbooksellerexecutive)
 
 # Accessing the connector
 A connector is a collection of Queries and Mutations. One SDK is generated for each connector - this SDK is generated for the connector `example`. You can find more information about connectors in the [Data Connect documentation](https://firebase.google.com/docs/data-connect#how-does).
@@ -3955,6 +3956,148 @@ console.log(data.sharedOrderSchoolExecutive_upsert);
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.sharedOrderSchoolExecutive_upsert);
+});
+```
+
+## UpsertSharedBooksellerExecutive
+You can execute the `UpsertSharedBooksellerExecutive` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+upsertSharedBooksellerExecutive(vars: UpsertSharedBooksellerExecutiveVariables): MutationPromise<UpsertSharedBooksellerExecutiveData, UpsertSharedBooksellerExecutiveVariables>;
+
+interface UpsertSharedBooksellerExecutiveRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertSharedBooksellerExecutiveVariables): MutationRef<UpsertSharedBooksellerExecutiveData, UpsertSharedBooksellerExecutiveVariables>;
+}
+export const upsertSharedBooksellerExecutiveRef: UpsertSharedBooksellerExecutiveRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+upsertSharedBooksellerExecutive(dc: DataConnect, vars: UpsertSharedBooksellerExecutiveVariables): MutationPromise<UpsertSharedBooksellerExecutiveData, UpsertSharedBooksellerExecutiveVariables>;
+
+interface UpsertSharedBooksellerExecutiveRef {
+  ...
+  (dc: DataConnect, vars: UpsertSharedBooksellerExecutiveVariables): MutationRef<UpsertSharedBooksellerExecutiveData, UpsertSharedBooksellerExecutiveVariables>;
+}
+export const upsertSharedBooksellerExecutiveRef: UpsertSharedBooksellerExecutiveRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the upsertSharedBooksellerExecutiveRef:
+```typescript
+const name = upsertSharedBooksellerExecutiveRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `UpsertSharedBooksellerExecutive` mutation requires an argument of type `UpsertSharedBooksellerExecutiveVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface UpsertSharedBooksellerExecutiveVariables {
+  pbsCode: string;
+  incumbentCode: string;
+  name: string;
+  designation?: string | null;
+  contact1?: string | null;
+  contact2?: string | null;
+  email?: string | null;
+  aadhaarCardNo?: string | null;
+  sourceSpreadsheetId: string;
+  sourceSheetId: number;
+  sourceSheetRow: number;
+  sourceValues: unknown;
+}
+```
+### Return Type
+Recall that executing the `UpsertSharedBooksellerExecutive` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `UpsertSharedBooksellerExecutiveData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface UpsertSharedBooksellerExecutiveData {
+  sharedBooksellerExecutive_upsert: SharedBooksellerExecutive_Key;
+}
+```
+### Using `UpsertSharedBooksellerExecutive`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, upsertSharedBooksellerExecutive, UpsertSharedBooksellerExecutiveVariables } from '@dataconnect/generated';
+
+// The `UpsertSharedBooksellerExecutive` mutation requires an argument of type `UpsertSharedBooksellerExecutiveVariables`:
+const upsertSharedBooksellerExecutiveVars: UpsertSharedBooksellerExecutiveVariables = {
+  pbsCode: ..., 
+  incumbentCode: ..., 
+  name: ..., 
+  designation: ..., // optional
+  contact1: ..., // optional
+  contact2: ..., // optional
+  email: ..., // optional
+  aadhaarCardNo: ..., // optional
+  sourceSpreadsheetId: ..., 
+  sourceSheetId: ..., 
+  sourceSheetRow: ..., 
+  sourceValues: ..., 
+};
+
+// Call the `upsertSharedBooksellerExecutive()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await upsertSharedBooksellerExecutive(upsertSharedBooksellerExecutiveVars);
+// Variables can be defined inline as well.
+const { data } = await upsertSharedBooksellerExecutive({ pbsCode: ..., incumbentCode: ..., name: ..., designation: ..., contact1: ..., contact2: ..., email: ..., aadhaarCardNo: ..., sourceSpreadsheetId: ..., sourceSheetId: ..., sourceSheetRow: ..., sourceValues: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await upsertSharedBooksellerExecutive(dataConnect, upsertSharedBooksellerExecutiveVars);
+
+console.log(data.sharedBooksellerExecutive_upsert);
+
+// Or, you can use the `Promise` API.
+upsertSharedBooksellerExecutive(upsertSharedBooksellerExecutiveVars).then((response) => {
+  const data = response.data;
+  console.log(data.sharedBooksellerExecutive_upsert);
+});
+```
+
+### Using `UpsertSharedBooksellerExecutive`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, upsertSharedBooksellerExecutiveRef, UpsertSharedBooksellerExecutiveVariables } from '@dataconnect/generated';
+
+// The `UpsertSharedBooksellerExecutive` mutation requires an argument of type `UpsertSharedBooksellerExecutiveVariables`:
+const upsertSharedBooksellerExecutiveVars: UpsertSharedBooksellerExecutiveVariables = {
+  pbsCode: ..., 
+  incumbentCode: ..., 
+  name: ..., 
+  designation: ..., // optional
+  contact1: ..., // optional
+  contact2: ..., // optional
+  email: ..., // optional
+  aadhaarCardNo: ..., // optional
+  sourceSpreadsheetId: ..., 
+  sourceSheetId: ..., 
+  sourceSheetRow: ..., 
+  sourceValues: ..., 
+};
+
+// Call the `upsertSharedBooksellerExecutiveRef()` function to get a reference to the mutation.
+const ref = upsertSharedBooksellerExecutiveRef(upsertSharedBooksellerExecutiveVars);
+// Variables can be defined inline as well.
+const ref = upsertSharedBooksellerExecutiveRef({ pbsCode: ..., incumbentCode: ..., name: ..., designation: ..., contact1: ..., contact2: ..., email: ..., aadhaarCardNo: ..., sourceSpreadsheetId: ..., sourceSheetId: ..., sourceSheetRow: ..., sourceValues: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = upsertSharedBooksellerExecutiveRef(dataConnect, upsertSharedBooksellerExecutiveVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.sharedBooksellerExecutive_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.sharedBooksellerExecutive_upsert);
 });
 ```
 

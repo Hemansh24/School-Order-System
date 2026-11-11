@@ -260,3 +260,20 @@ type SharedOrderSchoolExecutive
   name: String!
   syncedAt: Timestamp! @col(name: "synced_at")
 }
+
+type SharedBooksellerExecutive
+@table(name: "shared_bookseller_executives", key: ["sourceSpreadsheetId", "sourceSheetId", "sourceSheetRow"]) {
+  pbsCode: String! @col(name: "pbs_code")
+  incumbentCode: String! @col(name: "incumbent_code")
+  name: String!
+  designation: String
+  contact1: String @col(name: "contact_1")
+  contact2: String @col(name: "contact_2")
+  email: String
+  aadhaarCardNo: String @col(name: "aadhaar_card_no")
+  sourceSpreadsheetId: String! @col(name: "source_spreadsheet_id")
+  sourceSheetId: Int! @col(name: "source_sheet_id")
+  sourceSheetRow: Int! @col(name: "source_sheet_row")
+  sourceValues: Any! @col(name: "source_values")
+  syncedAt: Timestamp! @col(name: "synced_at")
+}

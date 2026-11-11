@@ -443,6 +443,13 @@ export interface SetChristianGroupActiveVariables {
   active: boolean;
 }
 
+export interface SharedBooksellerExecutive_Key {
+  sourceSpreadsheetId: string;
+  sourceSheetId: number;
+  sourceSheetRow: number;
+  __typename?: 'SharedBooksellerExecutive_Key';
+}
+
 export interface SharedChristianGroup_Key {
   groupCode: string;
   __typename?: 'SharedChristianGroup_Key';
@@ -548,6 +555,25 @@ export interface UpsertPreBooksellerVariables {
   conversionStatus: string;
   assignedBsCode?: string | null;
   convertedAt?: TimestampString | null;
+}
+
+export interface UpsertSharedBooksellerExecutiveData {
+  sharedBooksellerExecutive_upsert: SharedBooksellerExecutive_Key;
+}
+
+export interface UpsertSharedBooksellerExecutiveVariables {
+  pbsCode: string;
+  incumbentCode: string;
+  name: string;
+  designation?: string | null;
+  contact1?: string | null;
+  contact2?: string | null;
+  email?: string | null;
+  aadhaarCardNo?: string | null;
+  sourceSpreadsheetId: string;
+  sourceSheetId: number;
+  sourceSheetRow: number;
+  sourceValues: unknown;
 }
 
 export interface UpsertSharedExecutiveData {
@@ -710,6 +736,11 @@ export function upsertSharedSchoolExecutiveDefault(vars: UpsertSharedSchoolExecu
 export function upsertSharedOrderSchoolExecutive(dc: DataConnect, vars: UpsertSharedOrderSchoolExecutiveVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertSharedOrderSchoolExecutiveData>>;
 /** Generated Node Admin SDK operation action function for the 'UpsertSharedOrderSchoolExecutive' Mutation. Allow users to pass in custom DataConnect instances. */
 export function upsertSharedOrderSchoolExecutive(vars: UpsertSharedOrderSchoolExecutiveVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertSharedOrderSchoolExecutiveData>>;
+
+/** Generated Node Admin SDK operation action function for the 'UpsertSharedBooksellerExecutive' Mutation. Allow users to execute without passing in DataConnect. */
+export function upsertSharedBooksellerExecutive(dc: DataConnect, vars: UpsertSharedBooksellerExecutiveVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertSharedBooksellerExecutiveData>>;
+/** Generated Node Admin SDK operation action function for the 'UpsertSharedBooksellerExecutive' Mutation. Allow users to pass in custom DataConnect instances. */
+export function upsertSharedBooksellerExecutive(vars: UpsertSharedBooksellerExecutiveVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertSharedBooksellerExecutiveData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListOrganisations' Query. Allow users to execute without passing in DataConnect. */
 export function listOrganisations(dc: DataConnect, vars?: ListOrganisationsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListOrganisationsData>>;

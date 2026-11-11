@@ -49,7 +49,7 @@ export const sheet1Schema = z
     )).optional(),
     pendingPayment: z.boolean().default(false),
     commissionEnabled: z.boolean().optional(),
-    commissionPartyType: z.enum(["school", "vendor", "group", "individual"]).optional(),
+    commissionPartyType: z.enum(["school", "vendor", "group", "individual", "executive"]).optional(),
     commissionPartyCode: z.string().trim().optional(),
     commissionPercentage: z.preprocess(
       value => value === null || (typeof value === "string" && !value.trim()) ? undefined : value,

@@ -247,3 +247,34 @@ mutation UpsertSharedOrderSchoolExecutive(
     syncedAt_expr: "request.time"
   })
 }
+
+mutation UpsertSharedBooksellerExecutive(
+  $pbsCode: String!
+  $incumbentCode: String!
+  $name: String!
+  $designation: String
+  $contact1: String
+  $contact2: String
+  $email: String
+  $aadhaarCardNo: String
+  $sourceSpreadsheetId: String!
+  $sourceSheetId: Int!
+  $sourceSheetRow: Int!
+  $sourceValues: Any!
+) @auth(level: NO_ACCESS) {
+  sharedBooksellerExecutive_upsert(data: {
+    pbsCode: $pbsCode
+    incumbentCode: $incumbentCode
+    name: $name
+    designation: $designation
+    contact1: $contact1
+    contact2: $contact2
+    email: $email
+    aadhaarCardNo: $aadhaarCardNo
+    sourceSpreadsheetId: $sourceSpreadsheetId
+    sourceSheetId: $sourceSheetId
+    sourceSheetRow: $sourceSheetRow
+    sourceValues: $sourceValues
+    syncedAt_expr: "request.time"
+  })
+}

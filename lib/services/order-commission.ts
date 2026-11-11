@@ -28,6 +28,8 @@ export async function resolveCommissionData(
       exists = await findSchoolByCode(tx, code);
     } else if (type === "vendor") {
       exists = await tx.vendor.findFirst({ where: { vendorCode: code }, select: { vendorId: true } });
+    } else if (type === "executive") {
+      exists = await tx.executive.findUnique({ where: { incumbentCode: code }, select: { incumbentCode: true } });
     } else {
       exists = await tx.schoolGroup.findUnique({ where: { groupCode: code }, select: { schoolGroupId: true } });
       const location = code.match(/^(GS\d+)-(\d+)$/i);

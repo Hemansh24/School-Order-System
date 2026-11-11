@@ -14,6 +14,14 @@ enum BillingToType {
   individual
 }
 
+enum CommissionPartyType {
+  school
+  vendor
+  group
+  individual
+  executive
+}
+
 enum OrderType {
   descriptive
   ambiguous
@@ -291,7 +299,7 @@ model OrderSheet1 {
   booksellerRating     String?       @map("bookseller_rating")
   booksellerDiscount   String?       @map("bookseller_discount")
   pendingPayment       Boolean       @default(false) @map("pending_payment")
-  commissionPartyType  BillingToType? @map("commission_party_type")
+  commissionPartyType  CommissionPartyType? @map("commission_party_type")
   commissionPartyCode  String?       @map("commission_party_code")
   commissionPercentage Decimal?     @map("commission_percentage")
   contactNumbers       String[]      @default([]) @map("contact_numbers")
@@ -329,6 +337,30 @@ model A2DConversion {
   @@index([sourceOrderId])
   @@index([resultOrderId])
   @@map("a2d_conversions")
+}
+
+// Preserve individual source rows: incumbent codes repeat, including across people.
+// PBS codes remain readable even when the matching pre-bookseller is not imported.
+model BooksellerExecutive {
+  booksellerExecutiveId Int @id @default(autoincrement()) @map("bookseller_executive_id")
+  pbsCode String @map("pbs_code")
+  incumbentCode String @map("incumbent_code")
+  name String
+  designation String?
+  contact1 String? @map("contact_1")
+  contact2 String? @map("contact_2")
+  email String?
+  aadhaarCardNo String? @map("aadhaar_card_no")
+  sourceSpreadsheetId String @map("source_spreadsheet_id")
+  sourceSheetId Int @map("source_sheet_id")
+  sourceSheetRow Int @map("source_sheet_row")
+  sourceValues Json @map("source_values")
+  syncedAt DateTime @default(now()) @map("synced_at")
+
+  @@unique([sourceSpreadsheetId, sourceSheetId, sourceSheetRow], map: "bookseller_executives_source_key")
+  @@index([pbsCode])
+  @@index([incumbentCode])
+  @@map("bookseller_executives")
 }
 
 model Executive {

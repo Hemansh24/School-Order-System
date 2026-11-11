@@ -446,6 +446,13 @@ export interface SetChristianGroupActiveVariables {
   active: boolean;
 }
 
+export interface SharedBooksellerExecutive_Key {
+  sourceSpreadsheetId: string;
+  sourceSheetId: number;
+  sourceSheetRow: number;
+  __typename?: 'SharedBooksellerExecutive_Key';
+}
+
 export interface SharedChristianGroup_Key {
   groupCode: string;
   __typename?: 'SharedChristianGroup_Key';
@@ -551,6 +558,25 @@ export interface UpsertPreBooksellerVariables {
   conversionStatus: string;
   assignedBsCode?: string | null;
   convertedAt?: TimestampString | null;
+}
+
+export interface UpsertSharedBooksellerExecutiveData {
+  sharedBooksellerExecutive_upsert: SharedBooksellerExecutive_Key;
+}
+
+export interface UpsertSharedBooksellerExecutiveVariables {
+  pbsCode: string;
+  incumbentCode: string;
+  name: string;
+  designation?: string | null;
+  contact1?: string | null;
+  contact2?: string | null;
+  email?: string | null;
+  aadhaarCardNo?: string | null;
+  sourceSpreadsheetId: string;
+  sourceSheetId: number;
+  sourceSheetRow: number;
+  sourceValues: unknown;
 }
 
 export interface UpsertSharedExecutiveData {
@@ -797,6 +823,18 @@ export const upsertSharedOrderSchoolExecutiveRef: UpsertSharedOrderSchoolExecuti
 
 export function upsertSharedOrderSchoolExecutive(vars: UpsertSharedOrderSchoolExecutiveVariables): MutationPromise<UpsertSharedOrderSchoolExecutiveData, UpsertSharedOrderSchoolExecutiveVariables>;
 export function upsertSharedOrderSchoolExecutive(dc: DataConnect, vars: UpsertSharedOrderSchoolExecutiveVariables): MutationPromise<UpsertSharedOrderSchoolExecutiveData, UpsertSharedOrderSchoolExecutiveVariables>;
+
+interface UpsertSharedBooksellerExecutiveRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertSharedBooksellerExecutiveVariables): MutationRef<UpsertSharedBooksellerExecutiveData, UpsertSharedBooksellerExecutiveVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpsertSharedBooksellerExecutiveVariables): MutationRef<UpsertSharedBooksellerExecutiveData, UpsertSharedBooksellerExecutiveVariables>;
+  operationName: string;
+}
+export const upsertSharedBooksellerExecutiveRef: UpsertSharedBooksellerExecutiveRef;
+
+export function upsertSharedBooksellerExecutive(vars: UpsertSharedBooksellerExecutiveVariables): MutationPromise<UpsertSharedBooksellerExecutiveData, UpsertSharedBooksellerExecutiveVariables>;
+export function upsertSharedBooksellerExecutive(dc: DataConnect, vars: UpsertSharedBooksellerExecutiveVariables): MutationPromise<UpsertSharedBooksellerExecutiveData, UpsertSharedBooksellerExecutiveVariables>;
 
 interface ListOrganisationsRef {
   /* Allow users to create refs without passing in DataConnect */

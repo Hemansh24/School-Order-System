@@ -8,6 +8,8 @@ import { getReferenceData } from "@/lib/services/reference";
 import { formatSchoolAddress, formatVendorAddress } from "@/lib/shipping";
 import { extractContactNumbers } from "@/lib/contact-numbers";
 import { getExecutiveReferenceData } from "@/lib/services/executives";
+import { getReorderReminder } from "@/lib/services/reorder-search";
+import { ReorderReminderGate } from "@/components/orders/reorder-reminder-gate";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +67,7 @@ export default async function ReorderPage({
   const fromCreateOrder = (await searchParams).matched === "1";
   const matchedSession = fromCreateOrder ? order.sessionYear ?? undefined : undefined;
   if (matchedSession) initialValues.sheet1.sessionYear = matchedSession;
+  const reminder = await getReorderReminder(order);
 
   return (
     <>
@@ -72,6 +75,7 @@ export default async function ReorderPage({
         title={`Reorder of Order ${order.orderNo}`}
         description="Choose new items and quantities, and update shipping if needed. Billing and end users stay the same. Saving creates a new draft with a new order number."
       />
+      <ReorderReminderGate key={order.orderSheet1Id} reminder={reminder}>
       <CreateOrderForm
         reorderSchools={[...new Map(order.descriptiveRows.map(row => [row.schoolCode, { schoolCode: row.schoolCode, schoolName: row.schoolName }])).values()]}
         {...executiveReference}
@@ -112,6 +116,7 @@ export default async function ReorderPage({
         reorderSchool={individualSchool}
         submitLabel="Place Reorder"
       />
+      </ReorderReminderGate>
     </>
   );
 }
