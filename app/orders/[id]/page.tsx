@@ -9,6 +9,7 @@ import { getOrderEnteredDate } from "@/lib/order-dates";
 import { savedOrderEndUsers, type EndUserClassification } from "@/lib/end-user-type";
 import { getEndUserTypes } from "@/lib/services/end-user-types";
 import { EndUserTypes } from "@/components/orders/end-user-types";
+import { A2DHistory } from "@/components/orders/a2d-history";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,7 @@ export default async function OrderDetailsPage({
           <OrderActionButtons
             orderSheet1Id={order.orderSheet1Id}
             status={order.orderStatus}
+            orderType={order.orderType}
             classification={order.classification}
             hasFinalRows={order.finalRows.length > 0}
             fulfillmentStatus={fulfillmentStatus}
@@ -54,6 +56,7 @@ export default async function OrderDetailsPage({
         }
       />
 
+      <A2DHistory orderId={order.orderSheet1Id} />
       <div className="mb-6 grid gap-4 lg:grid-cols-3">
         <Card className="p-5 lg:col-span-2">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -97,7 +100,7 @@ export default async function OrderDetailsPage({
             <Info label="Session Year">{order.sessionYear ?? "Not set"}</Info>
             <Info label="Order Placed">{order.orderPlacedDate.toLocaleDateString()}</Info>
             <Info label="Order Received">{order.orderReceivedDate?.toLocaleDateString() ?? "Not set"}</Info>
-            <Info label="Order Expected Date">{order.expectedDeliveryDate?.toLocaleDateString() ?? "Not set"}</Info>
+            <Info label="Order Expected Date">{order.expectedDeliveryDate?.toLocaleDateString() ?? "ASAP"}</Info>
             <Info label="Order Entered Date">{getOrderEnteredDate(order.createdAt)}</Info>
           </div>
         </Card>

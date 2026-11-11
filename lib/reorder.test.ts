@@ -118,6 +118,17 @@ test("ambiguous orders start empty and accept fresh grouped quantities", () => {
   assert.equal(values.ambiguousItems[0].groupedQuantity, 5);
 });
 
+test("A2D school-wise reorders preserve each end user's quantities and executives", () => {
+  const original = source({ descriptiveMode: "allocated_schools" });
+  const second = { ...original.descriptiveRows[0], schoolCode: "PT2", schoolName: "Second school" };
+  original.descriptiveRows.push(second);
+  original.schoolExecutives.push({ ...original.schoolExecutives[0], schoolCode: "PT2", name: "Second executive" });
+  const values = buildReorderInput(original, { ...request, allocatedRows: original.descriptiveRows.map((row, index) => ({ schoolCode: row.schoolCode, schoolName: row.schoolName, itemCode: "NEW", itemName: "New book", quantity: index + 2 })) }, now);
+  assert.deepEqual(values.descriptiveRows.map(row => [row.schoolCode, row.quantity]), [["PT1", 2], ["PT2", 3]]);
+  assert.equal(values.schoolExecutives?.length, 2);
+  assert.throws(() => buildReorderInput(original, { ...request, allocatedRows: [{ schoolCode: "PT999", schoolName: "Other", ...item }] }, now), /original order/);
+});
+
 test("all source statuses are allowed but special classifications are rejected", () => {
   for (const orderStatus of ["draft", "pending_confirmation", "locked", "finalized", "cancelled"] as const) {
     assert.doesNotThrow(() => buildReorderInput(source({ orderStatus }), request, now));

@@ -15,6 +15,7 @@ export const reorderSchema = z.object({
     expectedDeliveryDate: z.string().default("")
   }),
   descriptiveItems: z.array(sheet2ARowSchema.omit({ schoolCode: true, schoolName: true })).default([]),
+  allocatedRows: z.array(sheet2ARowSchema).optional(),
   ambiguousItems: z.array(sheet2B2RowSchema).default([]),
   combinedItems: z.array(sheet2C2RowSchema).default([])
 });
@@ -41,11 +42,14 @@ export function reorderDefaults(source: SavedOrderInput, now = new Date()) {
 export function buildReorderInput(source: SavedOrderInput, input: ReorderInput, now = new Date()) {
   const { values, individualSchool } = reorderDefaults(source, now);
   const parsed = reorderSchema.parse(input);
+  const allocated = values.sheet1.descriptiveMode === "allocated_schools" || values.sheet1.descriptiveMode === "allocated_group";
+  const sourceSchools = new Map(source.descriptiveRows.map(row => [row.schoolCode, row.schoolName]));
+  if (allocated && parsed.allocatedRows?.some(row => !sourceSchools.has(row.schoolCode))) throw new Error("Reorder end users must belong to the original order.");
   if (parsed.matchedSession && parsed.matchedSession !== source.sessionYear) throw new Error("The matched session no longer matches the original order.");
   return createOrderSchema.parse({
     ...values,
     sheet1: { ...values.sheet1, ...parsed.shipping, sessionYear: parsed.matchedSession || values.sheet1.sessionYear },
-    descriptiveRows: parsed.descriptiveItems.map(item => ({ ...item, ...individualSchool })),
+    descriptiveRows: allocated ? (parsed.allocatedRows ?? []).map(row => ({ ...row, schoolName: sourceSchools.get(row.schoolCode)! })) : parsed.descriptiveItems.map(item => ({ ...item, ...individualSchool })),
     ambiguousItems: parsed.ambiguousItems,
     combinedItems: parsed.combinedItems
   });

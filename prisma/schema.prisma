@@ -260,6 +260,8 @@ model Item {
 }
 
 model OrderSheet1 {
+  a2dSourceConversions A2DConversion[] @relation("A2DSource")
+  a2dResultConversions A2DConversion[] @relation("A2DResult")
   reorderOfOrderId Int? @map("reorder_of_order_id")
   reorderOfOrder OrderSheet1? @relation("OrderReorders", fields: [reorderOfOrderId], references: [orderSheet1Id], onDelete: SetNull)
   reorders OrderSheet1[] @relation("OrderReorders")
@@ -311,6 +313,22 @@ model OrderSheet1 {
   @@index([sessionYear, orderType, orderStatus, classification, createdAt(sort: Desc), orderSheet1Id(sort: Desc)], map: "order_match_lookup_idx")
   @@index([reorderOfOrderId])
   @@map("order_sheet_1")
+}
+
+model A2DConversion {
+  id String @id
+  sourceOrderId Int @map("source_order_id")
+  resultOrderId Int @map("result_order_id")
+  fullConversion Boolean @map("full_conversion")
+  allocations Json
+  balances Json
+  createdAt DateTime @default(now()) @map("created_at")
+  sourceOrder OrderSheet1 @relation("A2DSource", fields: [sourceOrderId], references: [orderSheet1Id], onDelete: Restrict)
+  resultOrder OrderSheet1 @relation("A2DResult", fields: [resultOrderId], references: [orderSheet1Id], onDelete: Restrict)
+
+  @@index([sourceOrderId])
+  @@index([resultOrderId])
+  @@map("a2d_conversions")
 }
 
 model Executive {

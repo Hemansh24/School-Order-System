@@ -117,12 +117,13 @@ export function AddVendorForm({
   return (
     <ReferenceForm ref={formRef} action={action} title="Add Vendor" state={state}>
       <TextField
+        key={nextCode}
         name="vendorCode"
-        label="Code"
+        label="BS Code"
         required
         defaultValue={nextCode}
-        placeholder="VEN-001"
-        helpText="Auto-generated from the latest vendor code."
+        placeholder="BS00001"
+        helpText="The next available BS code is assigned when you save."
         readOnly
       />
       <TextField name="vendorName" label="Name" required placeholder="North Booksellers" />
@@ -168,7 +169,7 @@ export function EditVendorForm({
         label="Code"
         required
         defaultValue={vendor.vendorCode}
-        placeholder="VEN-001"
+        placeholder="BS00001"
         helpText="Code is locked after creation."
         readOnly
       />

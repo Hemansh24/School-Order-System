@@ -45,6 +45,16 @@ test("GS preparation remaps executive assignments alongside selected schools", a
   assert.equal(result.schoolExecutives?.[0].updateDefault, true);
 });
 
+test("school-wise GS allocations retain item quantities and remap the executive to PT", async () => {
+  const { tx } = fixture();
+  const original = input(["PR1"]);
+  const result = await prepareGsOrder(tx, { ...original, sheet1: { ...original.sheet1, descriptiveMode: "allocated_group" }, combinedSchools: [], combinedItems: [], descriptiveRows: [{ schoolCode: "PR1", schoolName: "School", itemCode: "ITEM1", itemName: "Book", quantity: 9 }], schoolExecutives: [{ schoolCode: "PR1", incumbentCode: "IN01", name: "Executive" }] });
+  assert.equal(result.descriptiveRows[0].schoolCode, "PT0001");
+  assert.equal(result.descriptiveRows[0].quantity, 9);
+  assert.equal(result.schoolExecutives?.[0].schoolCode, "PT0001");
+  assert.deepEqual(result.combinedSchools, []);
+});
+
 test("GS edits honor deselection and allow current members to be reselected", async () => {
   const { tx } = fixture();
   const result = await prepareGsOrder(tx, input(["PT0001"]), saved);

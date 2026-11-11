@@ -163,6 +163,35 @@ test("rejects invalid quantities, mixed modes and the retired combined input", (
   assert.equal(createOrderSchema.safeParse({ ...ambiguous, sheet1: { ...sheet1, orderType: "combined" } }).success, false);
 });
 
+test("received date cannot precede placed date and reports the error on received date", () => {
+  const result = createOrderSchema.safeParse({
+    ...ambiguous,
+    sheet1: { ...sheet1, orderReceivedDate: "2026-10-19" }
+  });
+  assert.equal(result.success, false);
+  if (!result.success) {
+    assert.deepEqual(result.error.issues, [{
+      code: "custom",
+      message: "Order received date cannot be before order placed date",
+      path: ["sheet1", "orderReceivedDate"]
+    }]);
+  }
+
+  for (const orderReceivedDate of ["", "2026-10-20", "2026-10-21"]) {
+    assert.equal(createOrderSchema.safeParse({
+      ...ambiguous, sheet1: { ...sheet1, orderReceivedDate }
+    }).success, true, orderReceivedDate);
+  }
+});
+
+test("changing placed date rechecks the received date", () => {
+  const input = { ...sheet1, orderReceivedDate: "2026-10-21" };
+  assert.equal(sheet1Schema.safeParse(input).success, true);
+  const result = sheet1Schema.safeParse({ ...input, orderPlacedDate: "2026-10-22" });
+  assert.equal(result.success, false);
+  if (!result.success) assert.deepEqual(result.error.issues[0].path, ["orderReceivedDate"]);
+});
+
 test("validates optional dates only when supplied", () => {
   assert.equal(sheet1Schema.safeParse({ ...sheet1, expectedDeliveryDate: "2026-10-21" }).success, true);
   assert.equal(sheet1Schema.safeParse({ ...sheet1, orderReceivedDate: "2026-10-19" }).success, false);

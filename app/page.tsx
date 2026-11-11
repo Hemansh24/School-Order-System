@@ -87,7 +87,7 @@ export default async function DashboardPage() {
                     <StatusPill value={order.orderStatus} />
                   </td>
                   <td className="px-4 py-3 text-muted">
-                    {order.expectedDeliveryDate?.toLocaleDateString() ?? "Not set"}
+                    {order.expectedDeliveryDate?.toLocaleDateString() ?? "ASAP"}
                   </td>
                   <td className="px-4 py-3">
                     <Link

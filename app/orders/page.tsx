@@ -17,6 +17,7 @@ export default async function OrdersPage() {
         description="Order Sheet 1 records retain the same order number until finalization."
         action={<div className="flex flex-wrap items-start gap-2 sm:justify-end">
           <ButtonLink href="/orders/new">Create order</ButtonLink>
+          <ButtonLink href="/orders/a2d">A2D</ButtonLink>
           <ReorderSearch />
         </div>}
       />

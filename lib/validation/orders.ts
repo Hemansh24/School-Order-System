@@ -36,7 +36,7 @@ export const sheet1Schema = z
     shippingToName: z.string().trim().min(1, "Shipping name is required"),
     shippingToSummary: z.string().trim().min(1, "Shipping address is required"),
     orderType: orderTypeSchema,
-    descriptiveMode: z.enum(["individual", "multiple_schools", "multiple_group"]).optional(),
+    descriptiveMode: z.enum(["individual", "multiple_schools", "multiple_group", "allocated_schools", "allocated_group"]).optional(),
     endUserGroupCode: z.string().trim().optional(),
     schoolGroupId: z.number().int().positive().optional(),
     schoolGroupLocationId: z.number().int().positive().optional(),
@@ -60,8 +60,8 @@ export const sheet1Schema = z
   .refine(
     (data) => !data.orderReceivedDate || new Date(data.orderPlacedDate) <= new Date(data.orderReceivedDate),
     {
-      message: "Order placed date cannot be after order received date",
-      path: ["orderPlacedDate"]
+      message: "Order received date cannot be before order placed date",
+      path: ["orderReceivedDate"]
     }
   )
   .refine(
@@ -147,7 +147,8 @@ export const createOrderSchema = z
       }
     }
     if (school && !data.descriptiveRows.length) issue(["descriptiveRows"], "Add at least one school item quantity");
-    if (school && new Set(data.descriptiveRows.map(row => row.schoolCode)).size > 1) issue(["descriptiveRows"], "Individual orders must contain exactly one school");
+    if (school && !["allocated_schools", "allocated_group"].includes(descriptiveMode ?? "") && new Set(data.descriptiveRows.map(row => row.schoolCode)).size > 1) issue(["descriptiveRows"], "Individual orders must contain exactly one school");
+    if (group && !data.sheet1.endUserGroupCode) issue(["sheet1", "endUserGroupCode"], "Select an end-school group");
     if (pooled) {
       if (group && !data.sheet1.endUserGroupCode) issue(["sheet1", "endUserGroupCode"], "Select an end-school group");
       if (data.combinedSchools.length < (group ? 1 : 2)) issue(["combinedSchools"], group ? "Group orders require participating schools" : "Multiple school orders require at least two schools");

@@ -16,12 +16,14 @@ const initialState: OrderMutationState = { ok: false };
 export function OrderActionButtons({
   orderSheet1Id,
   status,
+  orderType,
   classification = "normal",
   hasFinalRows,
   fulfillmentStatus
 }: {
   orderSheet1Id: number;
   status: string;
+  orderType?: string;
   classification?: string;
   hasFinalRows: boolean;
   fulfillmentStatus?: "active" | "on_hold" | "cancelled";
@@ -34,6 +36,7 @@ export function OrderActionButtons({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
+        {orderType === "ambiguous" && status !== "cancelled" && classification === "normal" && !isFulfillmentCancelled ? <ButtonLink href={`/orders/${orderSheet1Id}/a2d`} className="border border-line bg-white">A2D — Add end users</ButtonLink> : null}
         {canEdit ? (
           <ButtonLink href={`/orders/${orderSheet1Id}/edit`} className="border border-line bg-white">
             Edit Draft

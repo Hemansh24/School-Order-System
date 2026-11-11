@@ -10,6 +10,7 @@ type Existing = {
   schoolGroupLocationId: number | null;
   endUserGroupCode: string | null;
   combinedSchools: { schoolCode: string; schoolName: string; notes: string | null }[];
+  descriptiveRows?: { schoolCode: string; schoolName: string; notes: string | null }[];
 };
 
 // Call inside a transaction so allocation and school mappings commit together.
@@ -39,6 +40,14 @@ export async function convertGsMemberTx(tx: Prisma.TransactionClient, groupCode:
 }
 
 export async function prepareGsOrder(tx: Prisma.TransactionClient, input: CreateOrderInput, existing?: Existing): Promise<CreateOrderInput> {
+  // Reuse group membership validation and PT allocation, retaining Sheet 2A quantities.
+  if (input.sheet1.descriptiveMode === 'allocated_group') {
+    const schools = [...new Map(input.descriptiveRows.map(row => [row.schoolCode, { schoolCode: row.schoolCode, schoolName: row.schoolName, notes: '' }])).values()];
+    const snapshot = existing ? { ...existing, combinedSchools: existing.descriptiveRows?.length ? [...new Map(existing.descriptiveRows.map(row => [row.schoolCode, row])).values()] : existing.combinedSchools } : undefined;
+    const prepared = await prepareGsOrder(tx, { ...input, sheet1: { ...input.sheet1, descriptiveMode: 'multiple_group' }, descriptiveRows: [], combinedSchools: schools }, snapshot);
+    const mappings = new Map(schools.map((row, index) => [row.schoolCode, prepared.combinedSchools[index]]));
+    return { ...prepared, sheet1: { ...prepared.sheet1, descriptiveMode: 'allocated_group' }, combinedSchools: [], descriptiveRows: input.descriptiveRows.map(row => ({ ...row, schoolCode: mappings.get(row.schoolCode)?.schoolCode ?? row.schoolCode, schoolName: mappings.get(row.schoolCode)?.schoolName ?? row.schoolName })) };
+  }
   const code = normalizeGroupCode(input.sheet1.endUserGroupCode ?? '');
   const sheet1 = { ...input.sheet1, schoolGroupId: undefined as number | undefined, schoolGroupLocationId: undefined as number | undefined };
   if (!isGroupOrder(sheet1)) return { ...input, sheet1: { ...sheet1, endUserGroupCode: '' } };

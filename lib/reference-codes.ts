@@ -1,3 +1,5 @@
+import type { Prisma } from "@prisma/client";
+import { nextBsCode } from "@/lib/bs-codes";
 import { prisma } from "@/lib/prisma";
 import { reservedPtCodes } from "@/lib/pt-codes";
 
@@ -45,12 +47,15 @@ export function nextSequentialCompactCode(prefix: string, existingCodes: string[
   return `${prefix}${String(highestNumber + 1).padStart(width, "0")}`;
 }
 
-export async function nextVendorCode() {
-  const vendors = await prisma.vendor.findMany({ select: { vendorCode: true } });
-  return nextCode(
-    "VEN",
-    vendors.map((vendor) => vendor.vendorCode)
-  );
+export async function nextVendorCode(db: Pick<Prisma.TransactionClient, "vendor" | "preBookseller"> = prisma) {
+  const [vendors, preBooksellers] = await Promise.all([
+    db.vendor.findMany({ select: { vendorCode: true, booksellerCode: true } }),
+    db.preBookseller.findMany({ select: { sourceBsCode: true, assignedBsCode: true } })
+  ]);
+  return nextBsCode([
+    ...vendors.flatMap(vendor => [vendor.vendorCode, vendor.booksellerCode ?? ""]),
+    ...preBooksellers.flatMap(record => [record.sourceBsCode ?? "", record.assignedBsCode ?? ""])
+  ]);
 }
 
 export async function nextOrganisationPrCode() {

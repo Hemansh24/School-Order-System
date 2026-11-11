@@ -73,6 +73,7 @@ export default async function ReorderPage({
         description="Choose new items and quantities, and update shipping if needed. Billing and end users stay the same. Saving creates a new draft with a new order number."
       />
       <CreateOrderForm
+        reorderSchools={[...new Map(order.descriptiveRows.map(row => [row.schoolCode, { schoolCode: row.schoolCode, schoolName: row.schoolName }])).values()]}
         {...executiveReference}
         schools={toSchoolOptions(reference.schools)}
         groups={[

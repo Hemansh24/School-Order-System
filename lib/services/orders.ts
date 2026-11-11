@@ -47,7 +47,7 @@ function toDate(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
 }
 
-async function nextParentOrderNo(tx: Tx): Promise<number> {
+export async function nextParentOrderNo(tx: Tx): Promise<number> {
   await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(741026)`;
   const current = await tx.orderSheet1.aggregate({ _max: { orderNo: true } });
   return (current._max.orderNo ?? 0) + 1;
@@ -119,7 +119,7 @@ function schoolCodesTouchedByOrder(input: CreateOrderInput) {
   return Array.from(schoolCodes);
 }
 
-function applyPtCodesToOrder(
+export function applyPtCodesToOrder(
   input: CreateOrderInput,
   ptCodeByOriginalCode: Map<string, string>
 ): CreateOrderInput {

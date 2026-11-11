@@ -47,30 +47,35 @@ export async function createVendorAction(
   formData: FormData
 ): Promise<ReferenceActionState> {
   try {
-    const vendorCode = await nextVendorCode();
-    const parsed = createVendorSchema.parse({
-      vendorCode,
-      vendorName: formData.get("vendorName"),
-      vendorType: formData.get("vendorType"),
-      vendorRating: formData.get("vendorRating"),
-      address: formData.get("address"),
-      contactPerson: formData.get("contactPerson"),
-      phone: formData.get("phone"),
-      email: formData.get("email"),
-      organisationIds: formData.getAll("organisationIds")
-    });
+    await prisma.$transaction(async (tx) => {
+      // Share the allocation lock with PBS conversions.
+      await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(741025)`;
+      const vendorCode = await nextVendorCode(tx);
+      const parsed = createVendorSchema.parse({
+        vendorCode,
+        vendorName: formData.get("vendorName"),
+        vendorType: formData.get("vendorType"),
+        vendorRating: formData.get("vendorRating"),
+        address: formData.get("address"),
+        contactPerson: formData.get("contactPerson"),
+        phone: formData.get("phone"),
+        email: formData.get("email"),
+        organisationIds: formData.getAll("organisationIds")
+      });
 
-    const { organisationIds, ...vendorData } = parsed;
+      const { organisationIds, ...vendorData } = parsed;
 
-    await prisma.vendor.create({
-      data: {
-        ...vendorData,
-        vendorSchools: {
-          create: organisationIds.map((organisationId) => ({
-            organisation: { connect: { id: organisationId } }
-          }))
+      await tx.vendor.create({
+        data: {
+          ...vendorData,
+          booksellerCode: vendorCode,
+          vendorSchools: {
+            create: organisationIds.map((organisationId) => ({
+              organisation: { connect: { id: organisationId } }
+            }))
+          }
         }
-      }
+      });
     });
 
     revalidatePath("/vendors");
