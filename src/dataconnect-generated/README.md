@@ -4000,7 +4000,6 @@ export interface UpsertSharedBooksellerExecutiveVariables {
   contact1?: string | null;
   contact2?: string | null;
   email?: string | null;
-  aadhaarCardNo?: string | null;
   sourceSpreadsheetId: string;
   sourceSheetId: number;
   sourceSheetRow: number;
@@ -4031,7 +4030,6 @@ const upsertSharedBooksellerExecutiveVars: UpsertSharedBooksellerExecutiveVariab
   contact1: ..., // optional
   contact2: ..., // optional
   email: ..., // optional
-  aadhaarCardNo: ..., // optional
   sourceSpreadsheetId: ..., 
   sourceSheetId: ..., 
   sourceSheetRow: ..., 
@@ -4042,7 +4040,7 @@ const upsertSharedBooksellerExecutiveVars: UpsertSharedBooksellerExecutiveVariab
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await upsertSharedBooksellerExecutive(upsertSharedBooksellerExecutiveVars);
 // Variables can be defined inline as well.
-const { data } = await upsertSharedBooksellerExecutive({ pbsCode: ..., incumbentCode: ..., name: ..., designation: ..., contact1: ..., contact2: ..., email: ..., aadhaarCardNo: ..., sourceSpreadsheetId: ..., sourceSheetId: ..., sourceSheetRow: ..., sourceValues: ..., });
+const { data } = await upsertSharedBooksellerExecutive({ pbsCode: ..., incumbentCode: ..., name: ..., designation: ..., contact1: ..., contact2: ..., email: ..., sourceSpreadsheetId: ..., sourceSheetId: ..., sourceSheetRow: ..., sourceValues: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -4072,7 +4070,6 @@ const upsertSharedBooksellerExecutiveVars: UpsertSharedBooksellerExecutiveVariab
   contact1: ..., // optional
   contact2: ..., // optional
   email: ..., // optional
-  aadhaarCardNo: ..., // optional
   sourceSpreadsheetId: ..., 
   sourceSheetId: ..., 
   sourceSheetRow: ..., 
@@ -4082,7 +4079,7 @@ const upsertSharedBooksellerExecutiveVars: UpsertSharedBooksellerExecutiveVariab
 // Call the `upsertSharedBooksellerExecutiveRef()` function to get a reference to the mutation.
 const ref = upsertSharedBooksellerExecutiveRef(upsertSharedBooksellerExecutiveVars);
 // Variables can be defined inline as well.
-const ref = upsertSharedBooksellerExecutiveRef({ pbsCode: ..., incumbentCode: ..., name: ..., designation: ..., contact1: ..., contact2: ..., email: ..., aadhaarCardNo: ..., sourceSpreadsheetId: ..., sourceSheetId: ..., sourceSheetRow: ..., sourceValues: ..., });
+const ref = upsertSharedBooksellerExecutiveRef({ pbsCode: ..., incumbentCode: ..., name: ..., designation: ..., contact1: ..., contact2: ..., email: ..., sourceSpreadsheetId: ..., sourceSheetId: ..., sourceSheetRow: ..., sourceValues: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);

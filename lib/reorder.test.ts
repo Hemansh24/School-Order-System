@@ -14,6 +14,7 @@ function source(overrides: Partial<SavedOrderInput> = {}): SavedOrderInput {
     classification: "normal", schoolGroupId: null, schoolGroupLocationId: null, orderStatus: "finalized",
     booksellerType: "Saved type", booksellerRating: "A", booksellerDiscount: null, pendingPayment: true,
     commissionPartyType: "individual", commissionPartyCode: "Saved commission", commissionPercentage: new Prisma.Decimal("7.5"),
+    commissionBooksellerExecutiveId: null, commissionPartyName: null, commissionPbsCode: null,
     contactNumbers: ["9876543210"], notes: "Saved order notes", createdAt: new Date("2025-01-01"), updatedAt: new Date("2025-01-01"),
     schoolExecutives: [{ orderSheet1Id: 1, schoolCode: "PT1", incumbentCode: "IN1", name: "Historical executive" }],
     descriptiveRows: [{ orderSheet2AId: 1, orderSheet1Id: 1, orderNo: 71, orderModificationNo: null,
@@ -26,6 +27,17 @@ const now = new Date("2026-10-27T19:00:00Z");
 const shipping = { shippingToType: "individual" as const, shippingToCode: "", shippingToName: "New recipient", shippingToSummary: "New address", expectedDeliveryDate: "" };
 const item = { itemCode: "NEW", itemName: "New book", quantity: 3 };
 const request: ReorderInput = { shipping, descriptiveItems: [item], ambiguousItems: [], combinedItems: [] };
+
+test("bookseller executive identity snapshots survive edit defaults and reorder browser overrides", () => {
+  const original = source({ commissionPartyType: "bookseller_executive", commissionPartyCode: "BI000009",
+    commissionBooksellerExecutiveId: 9, commissionPartyName: "Saved name", commissionPbsCode: "PBS00008" });
+  const values = buildReorderInput(original, { ...request, commissionPartyName: "Forged" } as ReorderInput, now);
+  assert.equal(values.sheet1.commissionBooksellerExecutiveId, 9);
+  assert.equal(values.sheet1.commissionPartyName, "Saved name");
+  assert.equal(values.sheet1.commissionPbsCode, "PBS00008");
+  assert.equal(values.sheet1.commissionPartyCode, "BI000009");
+  assert.equal(values.sheet1.commissionPercentage, 7.5);
+});
 
 test("matched reorders retain the source session and reject a different session", () => {
   const original = source();

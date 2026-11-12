@@ -1,5 +1,6 @@
 import { hasLegacySchoolAllocations, isGroupOrder, isPooledOrder, orderTypeLabel } from "@/lib/order-model";
 import Link from "next/link";
+import { commissionLabel } from "@/lib/commission-label";
 import { notFound } from "next/navigation";
 import { Card, EmptyState, OrderNumber, PageHeader, StatusPill } from "@/components/ui";
 import { OrderActionButtons } from "@/components/orders/order-action-buttons";
@@ -94,7 +95,7 @@ export default async function OrderDetailsPage({
             </Info>
             {isGroupOrder(order) ? <Info label="End-school group">{order.endUserGroupCode ?? "Saved group"}</Info> : null}
             <Info label="Contact numbers">{order.contactNumbers.join(", ") || "—"}</Info>
-            <Info label="Commission">{order.commissionPartyCode ?? "—"}</Info>
+            <Info label="Commission">{commissionLabel(order)}</Info>
             <Info label="Percentage">{order.commissionPercentage !== null ? `${order.commissionPercentage.toString()}%` : "—"}</Info>
             <Info label="Classification"><span className="capitalize">{order.classification.replaceAll("_", " ")}</span></Info>
             <Info label="Session Year">{order.sessionYear ?? "Not set"}</Info>

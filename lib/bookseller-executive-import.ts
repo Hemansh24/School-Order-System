@@ -17,8 +17,9 @@ export function parseBooksellerExecutiveRows(input: unknown) {
     pbsCode: column("pre_bs_code"), incumbentCode: column("incumbent code"),
     name: column("name"), designation: column("designation"),
     contact1: column("contact 1"), contact2: column("contact 2"),
-    email: column("mail id"), aadhaarCardNo: column("aadhaar card no.")
+    email: column("mail id")
   };
+  const seenCodes = new Set<string>();
   const records = rows.slice(1).flatMap((row, offset) => {
     if (!row.some(cell => text(cell))) return [];
     const sourceSheetRow = offset + 2;
@@ -28,10 +29,12 @@ export function parseBooksellerExecutiveRows(input: unknown) {
     if (!pbsCode || !incumbentCode || !name) {
       throw new Error(`Row ${sourceSheetRow}: PBS code, incumbent code and name are required.`);
     }
+    if (seenCodes.has(incumbentCode)) return [];
+    seenCodes.add(incumbentCode);
     return [{ pbsCode, incumbentCode, name, designation: text(row[columns.designation]) || null,
       contact1: text(row[columns.contact1]) || null, contact2: text(row[columns.contact2]) || null,
-      email: text(row[columns.email]) || null, aadhaarCardNo: text(row[columns.aadhaarCardNo]) || null,
-      sourceSheetRow, sourceValues: row }];
+      email: text(row[columns.email]) || null,
+      sourceSheetRow, sourceValues: row.filter((_, index) => !["aadhaar card no.", "aadhar card no."].includes(labels[index])) }];
   });
   if (!records.length) throw new Error("No bookseller executive records found; import cancelled.");
   return records;

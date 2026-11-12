@@ -3309,7 +3309,6 @@ export interface UpsertSharedBooksellerExecutiveVariables {
   contact1?: string | null;
   contact2?: string | null;
   email?: string | null;
-  aadhaarCardNo?: string | null;
   sourceSpreadsheetId: string;
   sourceSheetId: number;
   sourceSheetRow: number;
@@ -3370,7 +3369,6 @@ export default function UpsertSharedBooksellerExecutiveComponent() {
     contact1: ..., // optional
     contact2: ..., // optional
     email: ..., // optional
-    aadhaarCardNo: ..., // optional
     sourceSpreadsheetId: ..., 
     sourceSheetId: ..., 
     sourceSheetRow: ..., 
@@ -3378,7 +3376,7 @@ export default function UpsertSharedBooksellerExecutiveComponent() {
   };
   mutation.mutate(upsertSharedBooksellerExecutiveVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ pbsCode: ..., incumbentCode: ..., name: ..., designation: ..., contact1: ..., contact2: ..., email: ..., aadhaarCardNo: ..., sourceSpreadsheetId: ..., sourceSheetId: ..., sourceSheetRow: ..., sourceValues: ..., });
+  mutation.mutate({ pbsCode: ..., incumbentCode: ..., name: ..., designation: ..., contact1: ..., contact2: ..., email: ..., sourceSpreadsheetId: ..., sourceSheetId: ..., sourceSheetRow: ..., sourceValues: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {

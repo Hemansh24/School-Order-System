@@ -1,4 +1,5 @@
 import { orderTypeLabel } from "@/lib/order-model";
+import { commissionLabel } from "@/lib/commission-label";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { ButtonLink, Card, OrderNumber, PageHeader, StatusPill } from "@/components/ui";
@@ -63,7 +64,7 @@ export default async function OrdersPage() {
                       <StatusPill value="received" />
                     )}
                   </td>
-                  <td className="px-4 py-3">{order.commissionPartyCode ?? "—"}</td>
+                  <td className="px-4 py-3">{commissionLabel(order)}</td>
                   <td className="px-4 py-3">{order.commissionPercentage !== null ? `${order.commissionPercentage.toString()}%` : "—"}</td>
                   <td className="px-4 py-3">
                     <Link

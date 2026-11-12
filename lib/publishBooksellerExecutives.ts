@@ -30,7 +30,6 @@ export async function publishBooksellerExecutives() {
       contact1: record.contact1,
       contact2: record.contact2,
       email: record.email,
-      aadhaarCardNo: record.aadhaarCardNo,
       sourceSpreadsheetId: record.sourceSpreadsheetId,
       sourceSheetId: record.sourceSheetId,
       sourceSheetRow: record.sourceSheetRow,

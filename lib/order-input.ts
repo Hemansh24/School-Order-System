@@ -38,6 +38,9 @@ export function savedOrderToInput(order: SavedOrderInput): CreateOrderInput {
       commissionEnabled: order.commissionPartyCode !== null,
       commissionPartyType: order.commissionPartyType ?? undefined,
       commissionPartyCode: order.commissionPartyCode ?? "",
+      commissionBooksellerExecutiveId: order.commissionBooksellerExecutiveId ?? undefined,
+      commissionPartyName: order.commissionPartyName ?? undefined,
+      commissionPbsCode: order.commissionPbsCode ?? undefined,
       commissionPercentage: order.commissionPercentage?.toNumber(),
       contactNumbers: order.contactNumbers,
       notes: order.notes ?? ""

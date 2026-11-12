@@ -49,7 +49,10 @@ export const sheet1Schema = z
     )).optional(),
     pendingPayment: z.boolean().default(false),
     commissionEnabled: z.boolean().optional(),
-    commissionPartyType: z.enum(["school", "vendor", "group", "individual", "executive"]).optional(),
+    commissionPartyType: z.enum(["school", "vendor", "group", "individual", "executive", "bookseller_executive"]).optional(),
+    commissionBooksellerExecutiveId: z.number().int().positive().optional(),
+    commissionPartyName: z.string().optional(),
+    commissionPbsCode: z.string().optional(),
     commissionPartyCode: z.string().trim().optional(),
     commissionPercentage: z.preprocess(
       value => value === null || (typeof value === "string" && !value.trim()) ? undefined : value,
@@ -76,12 +79,16 @@ export const sheet1Schema = z
     if (!data.commissionPartyCode) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["commissionPartyCode"], message: "Enter a commissioned party name or code" });
     }
+    if (data.commissionPartyType === "bookseller_executive" && !data.commissionBooksellerExecutiveId) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["commissionPartyCode"], message: "Select a bookseller executive from the existing records" });
+    }
     if (data.commissionPercentage === undefined) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["commissionPercentage"], message: "Percentage is required" });
     }
   })
   .transform(data => data.commissionEnabled ? data : {
-    ...data, commissionPartyType: undefined, commissionPartyCode: undefined, commissionPercentage: undefined
+    ...data, commissionPartyType: undefined, commissionPartyCode: undefined, commissionPercentage: undefined,
+    commissionBooksellerExecutiveId: undefined, commissionPartyName: undefined, commissionPbsCode: undefined
   });
 
 export const sheet2ARowSchema = z.object({

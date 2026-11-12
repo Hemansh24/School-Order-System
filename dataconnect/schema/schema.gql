@@ -270,7 +270,6 @@ type SharedBooksellerExecutive
   contact1: String @col(name: "contact_1")
   contact2: String @col(name: "contact_2")
   email: String
-  aadhaarCardNo: String @col(name: "aadhaar_card_no")
   sourceSpreadsheetId: String! @col(name: "source_spreadsheet_id")
   sourceSheetId: Int! @col(name: "source_sheet_id")
   sourceSheetRow: Int! @col(name: "source_sheet_row")

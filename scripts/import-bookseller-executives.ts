@@ -16,16 +16,27 @@ async function main() {
   const source = JSON.parse(await readFile(process.argv[fileIndex + 1], "utf8"));
   if (source.spreadsheetId !== "1BZjfQ7JeK72Fc7aU3TZ8h6ZMmCNtTYT7JyWWM4x6hRE"
     || source.sheetId !== 485086527 || source.sheetName !== "Bookseller Incumbent"
-    || source.range !== "A1:AA1000") {
+    || !["A1:AA1000", "A1:Z1000"].includes(source.range)) {
     throw new Error("Expected the verified Bookseller Incumbent tab snapshot starting at row 1.");
   }
   const scope = { sourceSpreadsheetId: source.spreadsheetId as string, sourceSheetId: source.sheetId as number };
   const records = parseBooksellerExecutiveRows(source.values).map(row => ({ ...row, ...scope }));
+  const replaceSource = process.argv.includes("--replace-source");
   const [existing, preBooksellers] = await Promise.all([
     prisma.booksellerExecutive.findMany({ where: scope }),
     prisma.preBookseller.findMany({ select: { pbsCode: true } })
   ]);
   const sourceRows = new Set(existing.map(row => row.sourceSheetRow));
+  const incomingRows = new Set(records.map(row => row.sourceSheetRow));
+  const incomingCodes = new Set(records.map(row => row.incumbentCode));
+  const removedRows = existing.filter(row => !incomingRows.has(row.sourceSheetRow)
+    && (replaceSource || incomingCodes.has(row.incumbentCode)));
+  const existingByRow = new Map(existing.map(row => [row.sourceSheetRow, row]));
+  const changed = records.filter(expected => {
+    const actual = existingByRow.get(expected.sourceSheetRow);
+    return actual && (Object.keys(expected) as Array<keyof typeof expected>)
+      .some(key => !isDeepStrictEqual(actual[key], expected[key]));
+  });
   const pbsCodes = new Set(preBooksellers.map(row => row.pbsCode));
   const unmatched = records.filter(row => !pbsCodes.has(row.pbsCode));
   const codeCounts = new Map<string, number>();
@@ -33,6 +44,8 @@ async function main() {
   const summary = { mode: process.argv.includes("--apply") ? "apply" : "preview",
     host: target.hostname, database: target.pathname.slice(1), records: records.length,
     distinctIncumbentCodes: codeCounts.size, repeatedIncumbentCodes: [...codeCounts.values()].filter(count => count > 1).length,
+    replaceSource, updated: changed.length,
+    removed: removedRows.length,
     inserted: records.filter(row => !sourceRows.has(row.sourceSheetRow)).length,
     existing: records.filter(row => sourceRows.has(row.sourceSheetRow)).length,
     matchedPbsRows: records.length - unmatched.length, unmatchedPbsRows: unmatched.length,
@@ -47,7 +60,16 @@ async function main() {
   await writeFile(`${backupDir}/report.json`, JSON.stringify(summary, null, 2));
 
   const verified = await prisma.$transaction(async tx => {
-    // Keep each row independently addressable; a repeated incumbent code is not a safe person identity.
+    if (replaceSource) {
+      await tx.booksellerExecutive.deleteMany({
+        where: { ...scope, sourceSheetRow: { notIn: records.map(row => row.sourceSheetRow) } }
+      });
+    } else if (removedRows.length) {
+      await tx.booksellerExecutive.deleteMany({
+        where: { ...scope, booksellerExecutiveId: { in: removedRows.map(row => row.booksellerExecutiveId) } }
+      });
+    }
+    // The parser keeps the first spreadsheet row per incumbent code.
     for (const record of records) {
       const { sourceSpreadsheetId, sourceSheetId, sourceSheetRow } = record;
       await tx.booksellerExecutive.upsert({
@@ -56,6 +78,9 @@ async function main() {
       });
     }
     const saved = await tx.booksellerExecutive.findMany({ where: scope });
+    if (replaceSource && saved.length !== records.length) {
+      throw new Error("Source row count differs after replacement; rolling back.");
+    }
     const byRow = new Map(saved.map(row => [row.sourceSheetRow, row]));
     for (const expected of records) {
       const actual = byRow.get(expected.sourceSheetRow);

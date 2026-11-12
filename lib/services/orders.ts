@@ -359,6 +359,8 @@ export async function createReorder(sourceOrderId: number, input: ReorderInput) 
       booksellerType: source.booksellerType, booksellerRating: source.booksellerRating, booksellerDiscount: source.booksellerDiscount,
       pendingPayment: source.pendingPayment, contactNumbers: source.contactNumbers, notes: source.notes,
       commissionPartyType: source.commissionPartyType, commissionPartyCode: source.commissionPartyCode,
+      commissionBooksellerExecutiveId: source.commissionBooksellerExecutiveId,
+      commissionPartyName: source.commissionPartyName, commissionPbsCode: source.commissionPbsCode,
       commissionPercentage: source.commissionPercentage
     } });
     const identity = { orderSheet1Id: order.orderSheet1Id, orderNo };

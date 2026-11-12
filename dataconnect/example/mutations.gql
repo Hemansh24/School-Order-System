@@ -256,7 +256,6 @@ mutation UpsertSharedBooksellerExecutive(
   $contact1: String
   $contact2: String
   $email: String
-  $aadhaarCardNo: String
   $sourceSpreadsheetId: String!
   $sourceSheetId: Int!
   $sourceSheetRow: Int!
@@ -270,7 +269,6 @@ mutation UpsertSharedBooksellerExecutive(
     contact1: $contact1
     contact2: $contact2
     email: $email
-    aadhaarCardNo: $aadhaarCardNo
     sourceSpreadsheetId: $sourceSpreadsheetId
     sourceSheetId: $sourceSheetId
     sourceSheetRow: $sourceSheetRow

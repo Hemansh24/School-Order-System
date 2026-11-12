@@ -15,6 +15,20 @@ const item = { itemCode: "ITEM1", itemName: "Book" };
 const school = { schoolCode: "PT1", schoolName: "End school" };
 const ambiguous = { sheet1, ambiguousItems: [{ ...item, groupedQuantity: 10 }] };
 
+test("bookseller commission requires a selected record and disabling clears its snapshot", () => {
+  const selected = { ...sheet1, commissionEnabled: true, commissionPartyType: "bookseller_executive", commissionPartyCode: "BI000009",
+    commissionBooksellerExecutiveId: 9, commissionPartyName: "Deepak", commissionPbsCode: "PBS00008", commissionPercentage: 7.5 };
+  assert.equal(sheet1Schema.safeParse(selected).success, true);
+  for (const commissionBooksellerExecutiveId of [undefined, 0, -1, 1.5]) {
+    assert.equal(sheet1Schema.safeParse({ ...selected, commissionBooksellerExecutiveId }).success, false);
+  }
+  const disabled = sheet1Schema.parse({ ...selected, commissionEnabled: false });
+  assert.equal(disabled.commissionBooksellerExecutiveId, undefined);
+  assert.equal(disabled.commissionPartyName, undefined);
+  assert.equal(disabled.commissionPbsCode, undefined);
+  assert.equal(sheet1Schema.safeParse({ ...selected, billingToType: "bookseller_executive" }).success, false);
+});
+
 test("executives are optional and restricted to one assignment per descriptive end school", () => {
   const input = { sheet1: { ...sheet1, orderType: "descriptive", descriptiveMode: "individual" }, descriptiveRows: [{ ...school, ...item, quantity: 2 }] };
   for (const assignment of [{ schoolCode: "PT1", name: "Custom executive" }, { schoolCode: "PT1", name: "", incumbentCode: null }, { schoolCode: "PT1", name: "Executive", incumbentCode: "in01" }]) {

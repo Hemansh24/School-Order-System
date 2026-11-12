@@ -569,7 +569,6 @@ export interface UpsertSharedBooksellerExecutiveVariables {
   contact1?: string | null;
   contact2?: string | null;
   email?: string | null;
-  aadhaarCardNo?: string | null;
   sourceSpreadsheetId: string;
   sourceSheetId: number;
   sourceSheetRow: number;

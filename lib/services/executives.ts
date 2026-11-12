@@ -3,13 +3,17 @@ import { prisma } from "@/lib/prisma";
 import type { CreateOrderInput } from "@/lib/validation/orders";
 
 export async function getExecutiveReferenceData() {
-  const [executives, defaults, organisations] = await Promise.all([
+  const [executives, defaults, organisations, booksellerExecutives] = await Promise.all([
     prisma.executive.findMany({ select: { incumbentCode: true, name: true }, orderBy: { name: "asc" } }),
     prisma.schoolExecutiveDefault.findMany(),
-    prisma.organisation.findMany({ select: { prCode: true, ptCode: true } })
+    prisma.organisation.findMany({ select: { prCode: true, ptCode: true } }),
+    prisma.booksellerExecutive.findMany({
+      select: { booksellerExecutiveId: true, incumbentCode: true, name: true, pbsCode: true, contact1: true, contact2: true },
+      orderBy: [{ name: "asc" }, { sourceSheetRow: "asc" }]
+    })
   ]);
   const byPr = new Map(defaults.map(row => [row.prCode, row]));
-  return { executives, executiveDefaults: organisations.flatMap(org => {
+  return { executives, booksellerExecutives, executiveDefaults: organisations.flatMap(org => {
     const value = byPr.get(org.prCode);
     return value ? [org.prCode, org.ptCode].filter((code): code is string => !!code)
       .map(schoolCode => ({ schoolCode, incumbentCode: value.incumbentCode, name: value.name })) : [];

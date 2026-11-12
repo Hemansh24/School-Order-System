@@ -19,6 +19,10 @@ import { createOrderSchema, type CreateOrderInput } from "@/lib/validation/order
 import { distinctEndUsers } from "@/lib/end-user-type";
 import { EndUserTypesPreview } from "@/components/orders/end-user-types-preview";
 import { ExecutivePicker, type ExecutiveOption } from "@/components/orders/executive-picker";
+import { commissionLabel } from "@/lib/commission-label";
+
+type BooksellerExecutiveOption = { booksellerExecutiveId: number; incumbentCode: string; name: string; pbsCode: string; contact1: string | null; contact2: string | null };
+type CommissionOption = { type: NonNullable<CreateOrderInput["sheet1"]["commissionPartyType"]>; code: string; name: string; pbsCode?: string; booksellerExecutiveId?: number; contact?: string };
 
 type SchoolRef = {
   referenceCodes?: string[];
@@ -55,6 +59,7 @@ type ItemRef = {
 };
 
 type Props = {
+  booksellerExecutives?: BooksellerExecutiveOption[];
   executives?: ExecutiveOption[];
   executiveDefaults?: { schoolCode: string; incumbentCode: string | null; name: string }[];
   schools: SchoolRef[];
@@ -103,6 +108,7 @@ export function CreateOrderForm({
   vendors,
   items,
   executives = [],
+  booksellerExecutives = [],
   executiveDefaults = [],
   initialValues,
   reorderSourceId,
@@ -147,6 +153,7 @@ export function CreateOrderForm({
   const [initialComplete, setInitialComplete] = useState(!isNewOrder);
   const [isDraftReady, setIsDraftReady] = useState(!isNewOrder);
   const draftSubmitted = useRef(false);
+  const shippingManuallyEdited = useRef(false);
   const [currentEntryDate, setCurrentEntryDate] = useState("");
   const orderEnteredDate = orderCreatedAt
     ? getOrderEnteredDate(new Date(orderCreatedAt))
@@ -246,18 +253,28 @@ export function CreateOrderForm({
   const commissionEnabled = form.watch("sheet1.commissionEnabled") ?? false;
   const commissionPartyCode = form.watch("sheet1.commissionPartyCode") ?? "";
   const commissionPartyType = form.watch("sheet1.commissionPartyType");
+  const commissionBooksellerExecutiveId = form.watch("sheet1.commissionBooksellerExecutiveId");
   const commissionPercentage = form.watch("sheet1.commissionPercentage");
   const [isCommissionDropdownOpen, setIsCommissionDropdownOpen] = useState(false);
-  const commissionOptions = useMemo(() => [...new Map([
+  const commissionOptions = useMemo<CommissionOption[]>(() => {
+    const options: CommissionOption[] = [
     ...schools.map(school => ({ type: "school" as const, code: school.schoolCode, name: school.schoolName })),
     ...vendors.map(vendor => ({ type: "vendor" as const, code: vendor.vendorCode, name: vendor.vendorName })),
     ...groups.map(group => ({ type: "group" as const, code: group.schoolCode, name: group.schoolName })),
-    ...executives.map(executive => ({ type: "executive" as const, code: executive.incumbentCode, name: executive.name }))
-  ].map(option => [`${option.type}:${option.code}`, option])).values()], [schools, vendors, groups, executives]);
-  const selectedCommissionOption = commissionOptions.find(option => option.type === commissionPartyType && option.code === commissionPartyCode);
+    ...executives.map(executive => ({ type: "executive" as const, code: executive.incumbentCode, name: executive.name })),
+    ...booksellerExecutives.map(executive => ({ type: "bookseller_executive" as const, code: executive.incumbentCode, name: executive.name,
+      pbsCode: executive.pbsCode, booksellerExecutiveId: executive.booksellerExecutiveId,
+      contact: [executive.contact1, executive.contact2].filter(Boolean).join(" / ") }))
+    ];
+    return [...new Map(options.map(option => [`${option.type}:${option.booksellerExecutiveId ?? option.code}`, option])).values()];
+  }, [schools, vendors, groups, executives, booksellerExecutives]);
+  const selectedCommissionOption = commissionOptions.find(option => option.type === commissionPartyType && option.code === commissionPartyCode
+    && (option.type !== "bookseller_executive" || option.booksellerExecutiveId === commissionBooksellerExecutiveId));
+  const commissionName = form.watch("sheet1.commissionPartyName");
+  const commissionPbsCode = form.watch("sheet1.commissionPbsCode");
   const filteredCommissionOptions = commissionOptions.filter(option => {
     const query = commissionPartyCode.trim().toLowerCase();
-    return !query || option.code.toLowerCase().includes(query) || option.name.toLowerCase().includes(query);
+    return !query || option.code.toLowerCase().includes(query) || option.name.toLowerCase().includes(query) || option.pbsCode?.toLowerCase().includes(query);
   }).slice(0, 50);
   const billingToType = form.watch("sheet1.billingToType");
   const billingToCode = form.watch("sheet1.billingToCode");
@@ -330,6 +347,11 @@ export function CreateOrderForm({
       if (savedDraft) {
         const parsedDraft: unknown = JSON.parse(savedDraft);
         if (isSavedOrderDraft(parsedDraft)) {
+          const savedShippingEdited = (parsedDraft as CreateOrderInput & { shippingManuallyEdited?: unknown }).shippingManuallyEdited;
+          // Older drafts have no tracking flag: preserve any shipping already entered.
+          shippingManuallyEdited.current = typeof savedShippingEdited === "boolean"
+            ? savedShippingEdited
+            : !!(parsedDraft.sheet1.shippingToCode || parsedDraft.sheet1.shippingToName || parsedDraft.sheet1.shippingToSummary || parsedDraft.sheet1.shippingToType !== "school");
           setLegacySchoolConversion(hasLegacySchoolAllocations({ ...parsedDraft.sheet1, descriptiveRows: parsedDraft.descriptiveRows }) || !!(parsedDraft as CreateOrderInput & { legacySchoolConversion?: boolean }).legacySchoolConversion);
           executiveSeenSchools.current = new Set([...parsedDraft.descriptiveRows, ...parsedDraft.combinedSchools].map(row => row.schoolCode));
           const savedSchoolKey = (parsedDraft as CreateOrderInput & { selectedDescriptiveSchoolKey?: unknown }).selectedDescriptiveSchoolKey;
@@ -355,7 +377,7 @@ export function CreateOrderForm({
     const subscription = form.watch((values) => {
       // Resetting a submitted form must not save its values as a new draft.
       if (draftSubmitted.current) return;
-      window.sessionStorage.setItem(ORDER_DRAFT_STORAGE_KEY, JSON.stringify({ ...values, legacySchoolConversion, selectedDescriptiveSchoolKey }));
+      window.sessionStorage.setItem(ORDER_DRAFT_STORAGE_KEY, JSON.stringify({ ...values, legacySchoolConversion, selectedDescriptiveSchoolKey, shippingManuallyEdited: shippingManuallyEdited.current }));
     });
 
     return () => subscription.unsubscribe();
@@ -607,6 +629,7 @@ export function CreateOrderForm({
     if (selected) setBilling(selected.value);
   }
   function setShipping(value: string) {
+    shippingManuallyEdited.current = true;
     const selected = shippingOptions.find(option => option.value === value);
     form.setValue("sheet1.shippingToCode", selected?.code ?? "");
     form.setValue("sheet1.shippingToName", selected?.name ?? "");
@@ -614,6 +637,7 @@ export function CreateOrderForm({
     setIsShippingDropdownOpen(false);
   }
   function setShippingCode(rawCode: string) {
+    shippingManuallyEdited.current = true;
     form.setValue("sheet1.shippingToCode", rawCode);
     form.setValue("sheet1.shippingToName", "");
     form.setValue("sheet1.shippingToSummary", "");
@@ -771,6 +795,20 @@ export function CreateOrderForm({
     });
   }
 
+  function goBack() {
+    if (step > 1) {
+      setStep((current) => current - 1);
+      return;
+    }
+
+    if (isReorder) {
+      router.push("/orders/new");
+    } else if (isNewOrder) {
+      setServerError(null);
+      setInitialComplete(false);
+    }
+  }
+
   async function goNext() {
     if (step === 1) {
       const isValid = await form.trigger("sheet1");
@@ -802,12 +840,25 @@ export function CreateOrderForm({
       const result = await findMatchingOrderAction({ sessionYear: sheet.sessionYear, billingCode: sheet.billingToCode, orderType: sheet.orderType, endUsers: users });
       if (!result.ok) { setServerError(result.message); return; }
       if (result.orderId) { router.push(`/orders/${result.orderId}/reorder?matched=1`); return; }
+      if (isNewOrder && !isReorder && !shippingManuallyEdited.current) {
+        const endUser = users.length === 1
+          ? findSchoolOptionByStoredValue(schools, users[0], activeDescriptiveSchool?.schoolName)
+          : undefined;
+        const billingSchool = sheet.billingToType === "school" && selectedBillingOption && !selectedBillingOption.isGroup
+          ? selectedBillingOption
+          : undefined;
+        form.setValue("sheet1.shippingToType", "school", { shouldValidate: true });
+        form.setValue("sheet1.shippingToCode", endUser?.schoolCode ?? billingSchool?.code ?? "", { shouldValidate: true });
+        form.setValue("sheet1.shippingToName", endUser?.schoolName ?? billingSchool?.name ?? "", { shouldValidate: true });
+        form.setValue("sheet1.shippingToSummary", endUser?.addressSummary ?? billingSchool?.addressSummary ?? "", { shouldValidate: true });
+      }
       setStep(1);
       setInitialComplete(true);
     });
   }
 
   function clearOrder() {
+    shippingManuallyEdited.current = false;
     form.reset(newOrderDefaults);
     setIsChoosingExpectedDate(false);
     setInitialComplete(false);
@@ -974,6 +1025,7 @@ export function CreateOrderForm({
             </Field>
             <Field label="Shipping To Type">
               <select className={inputClass} value={shippingPartyType} onChange={event => {
+                shippingManuallyEdited.current = true;
                 form.setValue("sheet1.shippingToType", event.target.value as "school" | "vendor" | "group" | "individual");
                 form.setValue("sheet1.shippingToCode", "");
                 form.setValue("sheet1.shippingToName", "");
@@ -990,7 +1042,11 @@ export function CreateOrderForm({
                 <input
                   className={inputClass}
                   value={shippingToType === "individual" ? form.watch("sheet1.shippingToName") : form.watch("sheet1.shippingToCode")}
-                  onChange={event => shippingToType === "individual" ? form.setValue("sheet1.shippingToName", event.target.value) : setShippingCode(event.target.value)}
+                  onChange={event => {
+                    shippingManuallyEdited.current = true;
+                    if (shippingToType === "individual") form.setValue("sheet1.shippingToName", event.target.value);
+                    else setShippingCode(event.target.value);
+                  }}
                   onFocus={() => setIsShippingDropdownOpen(true)}
 
                   onBlur={() => {
@@ -1078,6 +1134,9 @@ export function CreateOrderForm({
                 if (!event.target.checked) {
                   form.setValue("sheet1.commissionPartyType", undefined);
                   form.setValue("sheet1.commissionPartyCode", "");
+                  form.setValue("sheet1.commissionBooksellerExecutiveId", undefined);
+                  form.setValue("sheet1.commissionPartyName", undefined);
+                  form.setValue("sheet1.commissionPbsCode", undefined);
                   form.setValue("sheet1.commissionPercentage", undefined);
                   form.clearErrors(["sheet1.commissionPartyCode", "sheet1.commissionPartyType", "sheet1.commissionPercentage"]);
                   setIsCommissionDropdownOpen(false);
@@ -1094,20 +1153,28 @@ export function CreateOrderForm({
                     onBlur={() => window.setTimeout(() => setIsCommissionDropdownOpen(false), 150)}
                     onChange={event => {
                       form.setValue("sheet1.commissionPartyType", "individual", { shouldDirty: true });
+                      form.setValue("sheet1.commissionBooksellerExecutiveId", undefined);
+                      form.setValue("sheet1.commissionPartyName", undefined);
+                      form.setValue("sheet1.commissionPbsCode", undefined);
                       form.setValue("sheet1.commissionPartyCode", event.target.value, { shouldDirty: true, shouldValidate: true });
                       setIsCommissionDropdownOpen(true);
                     }} />
-                  {selectedCommissionOption ? <p className="mt-1 text-sm text-muted">{selectedCommissionOption.name}</p> : null}
+                  {commissionPartyType === "bookseller_executive" && commissionName ? <p className="mt-1 text-sm text-muted">{commissionName} · {commissionPbsCode}</p>
+                    : selectedCommissionOption ? <p className="mt-1 text-sm text-muted">{selectedCommissionOption.name}</p> : null}
                   <p className="mt-1 text-xs text-muted">Select an existing party or enter any other commissioned party’s name or code.</p>
                   {isCommissionDropdownOpen ? <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-white shadow-lg">
                     {filteredCommissionOptions.length ? filteredCommissionOptions.map(option => <button
-                      key={`${option.type}:${option.code}`} type="button" className="block w-full px-3 py-2 text-left text-sm hover:bg-canvas focus:bg-canvas"
+                      key={`${option.type}:${option.booksellerExecutiveId ?? option.code}`} type="button" className="block w-full px-3 py-2 text-left text-sm hover:bg-canvas focus:bg-canvas"
                       onClick={() => {
                         form.setValue("sheet1.commissionPartyType", option.type, { shouldDirty: true });
+                        form.setValue("sheet1.commissionBooksellerExecutiveId", option.booksellerExecutiveId, { shouldDirty: true });
+                        form.setValue("sheet1.commissionPartyName", option.type === "bookseller_executive" ? option.name : undefined, { shouldDirty: true });
+                        form.setValue("sheet1.commissionPbsCode", option.pbsCode, { shouldDirty: true });
                         form.setValue("sheet1.commissionPartyCode", option.code, { shouldDirty: true, shouldValidate: true });
                         setIsCommissionDropdownOpen(false);
                       }}>
-                      <span className="font-semibold">{option.code}</span> <span className="text-muted">{option.name} ({option.type === "vendor" ? "Bookseller" : option.type})</span>
+                      <span className="font-semibold">{option.code}</span> <span className="text-muted">{option.name} {option.pbsCode ? `· ${option.pbsCode}` : ""} ({option.type === "bookseller_executive" ? "Bookseller executive" : option.type === "vendor" ? "Bookseller" : option.type})</span>
+                      {option.contact ? <span className="block text-xs text-muted">{option.contact}</span> : null}
                     </button>) : <p className="px-3 py-2 text-sm text-muted">No matching parties. You can save the text entered above.</p>}
                   </div> : null}
                 </div>
@@ -1122,7 +1189,7 @@ export function CreateOrderForm({
           </fieldset>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <Field label="Shipping Address" error={errors.sheet1?.shippingToSummary?.message}>
-              <textarea className={textAreaClass} {...form.register("sheet1.shippingToSummary")} />
+              <textarea className={textAreaClass} onChangeCapture={() => { shippingManuallyEdited.current = true; }} {...form.register("sheet1.shippingToSummary")} />
             </Field>
             <Field label="Notes">
               <textarea readOnly={isReorder} className={textAreaClass} {...form.register("sheet1.notes")} />
@@ -1309,8 +1376,8 @@ export function CreateOrderForm({
           <SubmitButton
             type="button"
             variant="secondary"
-            onClick={() => setStep((current) => Math.max(1, current - 1))}
-            disabled={step === 1}
+            onClick={goBack}
+            disabled={step === 1 && !isNewOrder && !isReorder}
           >
             Back
           </SubmitButton>
@@ -1619,7 +1686,7 @@ function ReviewBlock({ values, orderEnteredDate }: { values: CreateOrderInput; o
         <BooksellerDiscount value={values.sheet1.booksellerDiscount} />
         <p className="text-muted">Shipping: {values.sheet1.shippingToName}</p>
         <p className="text-muted">Contact numbers: {values.sheet1.contactNumbers?.filter(number => number.trim()).join(", ") || "—"}</p>
-        {values.sheet1.commissionEnabled ? <p className="text-muted">Commission: {values.sheet1.commissionPartyCode} · {values.sheet1.commissionPercentage}%</p> : null}
+        {values.sheet1.commissionEnabled ? <p className="text-muted">Commission: {commissionLabel(values.sheet1)} · {values.sheet1.commissionPercentage}%</p> : null}
         <p className="text-muted">Placed: {values.sheet1.orderPlacedDate}</p>
         <p className="text-muted">Received: {values.sheet1.orderReceivedDate}</p>
         <p className="text-muted">Expected: {values.sheet1.expectedDeliveryDate || "ASAP"}</p>
