@@ -38,11 +38,11 @@ test("unchanged and omitted saved discounts never query or rewrite the bookselle
   }
 });
 
-test("explicit changes update the default, including an explicit blank", async () => {
+test("explicit changes apply only to this order, including an explicit blank", async () => {
   for (const submitted of ["Y", ""]) {
     const { tx, writes } = database("Z");
     assert.equal(await resolveOrderDiscount(tx, sheet(submitted)), submitted);
-    assert.deepEqual(writes, [submitted]);
+    assert.deepEqual(writes, []);
   }
 });
 
@@ -73,5 +73,26 @@ test("switching bookseller on an older caller resolves the newly selected bookse
   const { tx, writes } = database("New vendor default");
   const current = { billingToType: "vendor", billingToCode: "BS0", booksellerDiscount: "Old vendor discount" };
   assert.equal(await resolveOrderDiscount(tx, sheet(), current), "New vendor default");
+  assert.deepEqual(writes, []);
+});
+
+test("automatic saves recompute school matches through current PT/PR aliases without writing defaults", async () => {
+  const { tx, writes } = database("Vendor default");
+  Object.assign(tx, {
+    organisation: { findMany: async () => [
+      { prCode: "PR1", ptCode: "PT1", legacySchoolCodes: [] },
+      { prCode: "PR2", ptCode: "PT2", legacySchoolCodes: [] },
+      { prCode: "PR3", ptCode: "PT3", legacySchoolCodes: [] }
+    ] },
+    schoolWiseDiscount: { findMany: async () => [
+      { prCode: "PR1", ptCode: "OLDPT1", billingToWhom: "BS1", discount: "35%", sourceRow: 2 },
+      { prCode: "PR2", ptCode: null, billingToWhom: "BS1", discount: "40%", sourceRow: 3 },
+      { prCode: "PR3", ptCode: null, billingToWhom: "BS1", discount: "40%", sourceRow: 4 }
+    ] }
+  });
+  assert.equal(await resolveOrderDiscount(tx, { ...sheet("Stale client suggestion"), discountMode: "auto" }, undefined, ["PT1", "PT2", "PT3"]), "40%");
+  assert.equal(await resolveOrderDiscount(tx, { ...sheet(), discountMode: "auto" }, undefined, ["PR1", "PT2"]), "35%");
+  assert.equal(await resolveOrderDiscount(tx, { ...sheet(), discountMode: "auto" }, undefined, ["PR99"]), "Vendor default");
+  assert.equal(await resolveOrderDiscount(tx, { ...sheet(""), discountMode: "manual" }, undefined, ["PR1"]), "");
   assert.deepEqual(writes, []);
 });

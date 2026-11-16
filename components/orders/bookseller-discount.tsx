@@ -18,12 +18,12 @@ export function BooksellerDiscount({ value, onChange, error, vendor = true }: {
     {visible ? <div className="mt-2 space-y-2">
       {onChange ? <>
         <label htmlFor={inputId} className="block text-xs font-semibold uppercase">Discount for this order</label>
-        <input id={inputId} name="sheet1.booksellerDiscount" className="focus-ring h-10 w-full rounded-md border border-line bg-white px-3 text-sm"
+        <input id={inputId} name="sheet1.booksellerDiscount" className="focus-ring h-10 w-full rounded-md border border-line bg-surface px-3 text-sm"
           value={value ?? ""} maxLength={500} placeholder={value == null ? "Discount not recorded" : "Enter discount"}
           onChange={event => onChange(event.target.value)} onKeyDown={event => { if (event.key === "Enter") event.preventDefault(); }} />
-        <p className="text-xs">{vendor ? "Saved with this order. Changes also update the bookseller’s default for future new orders." : "Saved with this order."}</p>
+        <p className="text-xs">Saved with this order. You can edit the suggested discount.</p>
       </> : <p className="whitespace-pre-wrap">{value == null ? "Discount not recorded" : value || "No discount"}</p>}
-      {error ? <p role="alert" className="text-xs text-red-700">{error}</p> : null}
+      {error ? <p role="alert" className="text-xs text-danger-strong">{error}</p> : null}
     </div> : null}
   </div>;
 }

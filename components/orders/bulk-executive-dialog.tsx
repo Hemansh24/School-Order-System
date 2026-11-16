@@ -41,13 +41,13 @@ export function BulkExecutiveDialog({ executives, selectedSchoolCount, disabled,
     }}>Apply executive to all</SubmitButton>
     <span role="status" className="sr-only">{announcement}</span>
     {isOpen ? <dialog ref={dialog} aria-labelledby={`${id}-title`} aria-describedby={`${id}-description`} onClose={() => setIsOpen(false)}
-      className="max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-lg border border-line bg-white p-6 text-ink shadow-lg backdrop:bg-black/40">
+      className="max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-lg border border-line bg-surface p-6 text-ink shadow-lg backdrop:bg-black/40">
       <h2 id={`${id}-title`} className="text-lg font-semibold">Apply executive to all</h2>
       <p id={`${id}-description`} className="mt-2 text-sm text-muted">Choose an executive for all {selectedSchoolCount} selected schools, including schools hidden by your search. This replaces their current assignments. Saved changes become each school's default.</p>
       <label className="mt-4 block">
         <span className="mb-1 block text-sm font-semibold">Incumbent code or executive name</span>
         <input autoFocus value={query} placeholder="Search incumbent code or name" autoComplete="off"
-          className="focus-ring h-10 w-full min-w-0 rounded-md border border-line bg-white px-3 text-sm"
+          className="focus-ring h-10 w-full min-w-0 rounded-md border border-line bg-surface px-3 text-sm"
           onChange={event => { setQuery(event.target.value); setSelected(null); }}
           onKeyDown={event => { if (event.key === "Enter") event.preventDefault(); }} />
       </label>

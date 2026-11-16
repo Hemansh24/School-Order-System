@@ -32,6 +32,7 @@
     "schools:sync": "npm run organisations:import",
     "booksellers:sync": "tsx -e \"import { replaceVendorsWithImportedBooksellers } from './lib/syncBooksellers'; replaceVendorsWithImportedBooksellers().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",
     "booksellers:discounts": "tsx scripts/import-bookseller-discounts.ts",
+    "schools:discounts:import": "tsx scripts/import-school-wise-discounts.ts",
     "items:sync": "tsx -e \"import { replaceItemsWithImportedItems } from './lib/syncItems'; replaceItemsWithImportedItems().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",
     "master-data:sync": "npm run pt-usage:sync && npm run organisations:import && npm run executives:sync && npm run booksellers:sync && npm run pbs:sync && npm run items:sync && npm run groups:sync",
     "organisations:import": "tsx -e \"import { replaceSchoolsWithImportedOrganisations } from './lib/syncSchoolsFromOrganisations'; replaceSchoolsWithImportedOrganisations().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",

@@ -18,6 +18,17 @@ import { convertGsMemberTx } from "@/lib/services/gs-orders";
 import type { ReorderInput } from "@/lib/reorder";
 import { findMatchingFinalizedOrder, searchReorderOrders } from "@/lib/services/reorder-search";
 import type { ReorderSearchResponse } from "@/lib/reorder-search";
+import { suggestOrderDiscount } from "@/lib/services/order-discount";
+
+export async function suggestOrderDiscountAction(input: { billingToType: CreateOrderInput["sheet1"]["billingToType"]; billingToCode: string; endUserCodes: string[] }) {
+  try {
+    const parsed = z.object({ billingToType: z.enum(["school", "vendor", "group", "individual"]),
+      billingToCode: z.string().trim().max(200), endUserCodes: z.array(z.string().trim().min(1).max(200)).max(1000) }).parse(input);
+    return { ok: true as const, ...await suggestOrderDiscount(prisma, parsed, parsed.endUserCodes) };
+  } catch {
+    return { ok: false as const, message: "Could not fetch the discount. Retry or enter it manually." };
+  }
+}
 
 export async function findMatchingOrderAction(input: { sessionYear: string; billingCode: string; orderType: "descriptive" | "ambiguous"; endUsers: string[] }) {
   try {

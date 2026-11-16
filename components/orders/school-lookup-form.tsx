@@ -5,7 +5,7 @@ import { lookupSchoolAction, type ReferenceActionState } from "@/app/schools/act
 import { Card, SubmitButton } from "@/components/ui";
 
 const inputClass =
-  "focus-ring h-10 w-full rounded-md border border-line bg-white px-3 text-sm";
+  "focus-ring h-10 w-full rounded-md border border-line bg-surface px-3 text-sm";
 const labelClass = "mb-1 block text-xs font-semibold uppercase text-muted";
 const initialState = { ok: false } satisfies ReferenceActionState;
 
@@ -24,7 +24,7 @@ export function SchoolLookupForm() {
             Partial entries show matching schools. A new school is created only when school name, address, district, state, and pincode are all entered and no exact match exists.
           </p>
           {state.message ? (
-            <p className={`mt-2 text-sm ${state.ok ? "text-green-800" : "text-red-700"}`}>
+            <p className={`mt-2 text-sm ${state.ok ? "text-ok-strong" : "text-danger-strong"}`}>
               {state.message}
             </p>
           ) : null}
@@ -38,7 +38,7 @@ export function SchoolLookupForm() {
           <div className="rounded-md border border-line bg-canvas p-3 md:col-span-2 xl:col-span-3">
             <span className={labelClass}>{state.created ? "New PT/PR Code" : "Existing PT/PR Code"}</span>
             <div className="mt-2 flex flex-wrap items-center gap-3">
-              <code className="rounded bg-white px-3 py-2 text-sm font-semibold text-ink">
+              <code className="rounded bg-surface px-3 py-2 text-sm font-semibold text-ink">
                 {state.school.schoolCode}
               </code>
               <CopyCodeButton code={state.school.schoolCode} />
@@ -46,7 +46,7 @@ export function SchoolLookupForm() {
           </div>
         ) : null}
         {state.matches?.length ? (
-          <div className="overflow-hidden rounded-md border border-line bg-white md:col-span-2 xl:col-span-3">
+          <div className="overflow-hidden rounded-md border border-line bg-surface md:col-span-2 xl:col-span-3">
             <div className="border-b border-line bg-canvas px-3 py-2">
               <h3 className="text-sm font-semibold text-ink">Matched Schools</h3>
             </div>

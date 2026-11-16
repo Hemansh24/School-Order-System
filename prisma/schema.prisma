@@ -106,6 +106,28 @@ model Organisation {
   @@map("organisations")
 }
 
+// Raw source data only; discount interpretation is intentionally deferred.
+model SchoolWiseDiscount {
+  id                  Int      @id @default(autoincrement())
+  sourceSpreadsheetId String   @map("source_spreadsheet_id")
+  sourceSheetId       Int      @map("source_sheet_id")
+  sourceRow           Int      @map("source_row")
+  prCode              String?  @map("pr_code")
+  ptCode              String?  @map("pt_code")
+  schoolName          String?  @map("school_name")
+  district            String?
+  state               String?
+  billingToWhom       String?  @map("billing_to_whom")
+  bookseller          String?
+  discount            String?
+  groupCode           String?  @map("group_code")
+  groupName           String?  @map("group_name")
+  importedAt          DateTime @default(now()) @map("imported_at") @db.Timestamptz(6)
+
+  @@unique([sourceSpreadsheetId, sourceSheetId, sourceRow], map: "school_wise_discounts_source_key")
+  @@map("school_wise_discounts")
+}
+
 model GroupReconciliation {
   id Int @id @default(autoincrement())
   groupCode String

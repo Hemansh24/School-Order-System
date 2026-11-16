@@ -10,6 +10,8 @@ import { extractContactNumbers } from "@/lib/contact-numbers";
 import { getExecutiveReferenceData } from "@/lib/services/executives";
 import { getReorderReminder } from "@/lib/services/reorder-search";
 import { ReorderReminderGate } from "@/components/orders/reorder-reminder-gate";
+import { getReorderCustomisation } from "@/lib/services/reorder-customisation";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +62,12 @@ export default async function ReorderPage({
     redirect(`/orders/${order.orderSheet1Id}`);
   }
 
+  let restriction;
+  try {
+    restriction = await getReorderCustomisation(prisma, order);
+  } catch (error) {
+    return <><PageHeader title={`Reorder of Order ${order.orderNo}`} description="This order cannot be reordered yet." /><p role="alert" className="rounded-md border border-line p-4 text-danger-strong">{error instanceof Error ? error.message : "Could not determine the original customisation. Please try again."}</p></>;
+  }
   const reference = await getReferenceData();
   const executiveReference = await getExecutiveReferenceData();
   const gsOptions = await getGsOrderOptions();
@@ -73,10 +81,11 @@ export default async function ReorderPage({
     <>
       <PageHeader
         title={`Reorder of Order ${order.orderNo}`}
-        description="Choose new items and quantities, and update shipping if needed. Billing and end users stay the same. Saving creates a new pending order with a new order number."
+        description="Choose new items and quantities, and update shipping if needed. The session, billing, and end users stay the same. Saving creates a new pending order with a new order number."
       />
       <ReorderReminderGate key={order.orderSheet1Id} reminder={reminder}>
       <CreateOrderForm
+        reorderCustomisation={restriction ?? undefined}
         reorderSchools={[...new Map(order.descriptiveRows.map(row => [row.schoolCode, { schoolCode: row.schoolCode, schoolName: row.schoolName }])).values()]}
         {...executiveReference}
         schools={toSchoolOptions(reference.schools)}
@@ -96,7 +105,7 @@ export default async function ReorderPage({
           addressSummary: formatVendorAddress(vendor.address),
           schools: toSchoolOptions(vendor.vendorSchools.map((row) => row.school))
         }))}
-        items={reference.items.map((item) => ({
+        items={reference.items.filter(item => !restriction || (item.customisationCode === restriction.customisationCode && restriction.categoryCodes.includes(item.categoryCode))).map((item) => ({
           itemCode: item.itemCode,
           itemName: item.itemName,
           categoryCode: item.categoryCode,

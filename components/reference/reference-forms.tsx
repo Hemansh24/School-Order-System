@@ -48,7 +48,7 @@ type ItemFormValues = {
 };
 
 const inputClass =
-  "focus-ring h-10 w-full rounded-md border border-line bg-white px-3 text-sm";
+  "focus-ring h-10 w-full rounded-md border border-line bg-surface px-3 text-sm";
 const labelClass = "mb-1 block text-xs font-semibold uppercase text-muted";
 const initialState = { ok: false } satisfies SchoolActionState;
 
@@ -330,7 +330,7 @@ function ReferenceForm({
         <div className="md:col-span-2 xl:col-span-3">
           <h2 className="font-semibold text-ink">{title}</h2>
           {state.message ? (
-            <p className={`mt-1 text-sm ${state.ok ? "text-green-800" : "text-red-700"}`}>
+            <p className={`mt-1 text-sm ${state.ok ? "text-ok-strong" : "text-danger-strong"}`}>
               {state.message}
             </p>
           ) : null}
@@ -442,7 +442,7 @@ function SchoolCheckboxes({
           onClick={() => setIsOpen((open) => !open)}
           aria-expanded={isOpen}
           aria-controls="linked-school-options"
-          className="focus-ring flex h-10 w-full items-center justify-between gap-3 rounded-md border border-line bg-white px-3 text-left text-ink"
+          className="focus-ring flex h-10 w-full items-center justify-between gap-3 rounded-md border border-line bg-surface px-3 text-left text-ink"
         >
           <span className="truncate">
             {selectedOrganisationIds.length === 0
@@ -456,7 +456,7 @@ function SchoolCheckboxes({
         {isOpen ? (
           <div
             id="linked-school-options"
-            className="absolute z-20 mt-1 w-full rounded-md border border-line bg-white p-3 shadow-lg"
+            className="absolute z-20 mt-1 w-full rounded-md border border-line bg-surface p-3 shadow-lg"
           >
           <input
             type="search"
@@ -504,7 +504,7 @@ function SchoolCodeResult({ state }: { state: SchoolActionState }) {
     <div className="rounded-md border border-line bg-canvas p-3 md:col-span-2 xl:col-span-3">
       <span className={labelClass}>{state.created ? "Created PT/PR Code" : "Reused PT/PR Code"}</span>
       <div className="mt-2 flex flex-wrap items-center gap-3">
-        <code className="rounded bg-white px-3 py-2 text-sm font-semibold text-ink">
+        <code className="rounded bg-surface px-3 py-2 text-sm font-semibold text-ink">
           {state.school.schoolCode}
         </code>
         <CopyCodeButton code={state.school.schoolCode} />

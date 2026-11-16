@@ -63,7 +63,7 @@ test("empty defaults retain individual identity and protected snapshots, refresh
   assert.equal(values.sheet1.orderPlacedDate, "2026-10-28");
   assert.equal(values.sheet1.orderReceivedDate, "2026-10-28");
   assert.equal(values.sheet1.expectedDeliveryDate, "");
-  assert.equal(values.sheet1.sessionYear, "2027-2028");
+  assert.equal(values.sheet1.sessionYear, original.sessionYear);
   assert.equal(values.schoolExecutives?.[0].name, "Historical executive");
   assert.equal(JSON.stringify(original), before);
 });
@@ -155,6 +155,6 @@ test("server dates advance at Indian midnight and expected delivery is validated
   const after = buildReorderInput(source(), request, new Date("2026-12-31T18:30:00Z"));
   assert.equal(before.sheet1.orderPlacedDate, "2026-12-31");
   assert.equal(after.sheet1.orderPlacedDate, "2027-01-01");
-  assert.equal(after.sheet1.sessionYear, "2028-2029");
+  assert.equal(after.sheet1.sessionYear, source().sessionYear);
   assert.throws(() => buildReorderInput(source(), { ...request, shipping: { ...shipping, expectedDeliveryDate: "invalid" } }, now));
 });

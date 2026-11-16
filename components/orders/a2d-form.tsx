@@ -8,7 +8,7 @@ import { ExecutivePicker, type ExecutiveOption, type ExecutiveValue } from "./ex
 import { Card } from "@/components/ui";
 
 type School = { schoolCode: string; schoolName: string; groupCode: string | null; referenceCodes: string[] };
-const inputClass = "rounded-md border border-line bg-white px-3 py-2 text-sm";
+const inputClass = "rounded-md border border-line bg-surface px-3 py-2 text-sm";
 const keyFor = (school: string, item: string) => JSON.stringify([school, item]);
 
 export function A2DForm({ sourceId, orderNo, updatedAt, items, schools, groups, executives, executiveDefaults }: {
@@ -100,7 +100,7 @@ export function A2DForm({ sourceId, orderNo, updatedAt, items, schools, groups, 
     return <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr><th className="p-2">Locked item</th><th className="p-2">Available</th><th className="p-2">Allocate</th></tr></thead><tbody>{items.map(item => <tr key={item.itemCode} className="border-t border-line"><td className="p-2">{item.itemCode} — {item.itemName}</td><td className="p-2">{item.groupedQuantity}</td><td className="p-2"><input className={`${inputClass} w-28`} type="number" min={0} max={item.groupedQuantity} step={1} aria-label={`${schoolCode || "Pooled"} ${item.itemCode} quantity`} value={quantities[keyFor(schoolCode, item.itemCode)] ?? ""} onChange={event => setQuantities(previous => ({ ...previous, [keyFor(schoolCode, item.itemCode)]: event.target.value }))} /></td></tr>)}</tbody></table></div>;
   }
   return <div className="space-y-4">
-    {error ? <p role="alert" className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800">{error}</p> : null}
+    {error ? <p role="alert" className="rounded border border-danger bg-danger-soft p-3 text-sm text-danger-strong">{error}</p> : null}
     {review && summary ? <Card className="space-y-4 p-5">
       <h2 className="text-lg font-semibold">Review A2D conversion — Order {orderNo}</h2>
       <p>{summary.full ? `All remaining quantities match. Order ${orderNo} will become descriptive and retain its number.` : `One new descriptive order will be created. Order ${orderNo} will retain the remaining ambiguous quantities.`}</p>
@@ -117,7 +117,7 @@ export function A2DForm({ sourceId, orderNo, updatedAt, items, schools, groups, 
           <label className="block text-sm" htmlFor="a2d-group-search">End-school group</label>
           <input id="a2d-group-search" className={`${inputClass} w-full`} aria-label="Search end-school groups" aria-controls="a2d-group-results" placeholder="Search groups by name or code" value={groupSearch} onChange={event => setGroupSearch(event.target.value)} />
           <div id="a2d-group-results" className="max-h-60 overflow-y-auto rounded-md border border-line" aria-label="Matching end-school groups">
-            {matchingGroups.slice(0, 50).map(row => <button key={row.groupCode} type="button" aria-pressed={row.groupCode === groupCode} className={`block w-full border-b border-line px-3 py-2 text-left text-sm last:border-b-0 hover:bg-brand-soft ${row.groupCode === groupCode ? "bg-brand-soft font-semibold" : "bg-white"}`} onClick={() => { if (row.groupCode !== groupCode) changeGroup(row.groupCode); }}><span className="font-semibold">{row.groupCode}</span> — {row.groupName}</button>)}
+            {matchingGroups.slice(0, 50).map(row => <button key={row.groupCode} type="button" aria-pressed={row.groupCode === groupCode} className={`block w-full border-b border-line px-3 py-2 text-left text-sm last:border-b-0 hover:bg-brand-soft ${row.groupCode === groupCode ? "bg-brand-soft font-semibold" : "bg-surface"}`} onClick={() => { if (row.groupCode !== groupCode) changeGroup(row.groupCode); }}><span className="font-semibold">{row.groupCode}</span> — {row.groupName}</button>)}
             {!matchingGroups.length ? <p role="status" className="p-3 text-sm text-muted">No groups match this search.</p> : null}
           </div>
           {matchingGroups.length > 50 ? <p className="text-xs text-muted">Showing the first 50 matches. Search by group name or code to narrow the results.</p> : null}
@@ -129,7 +129,7 @@ export function A2DForm({ sourceId, orderNo, updatedAt, items, schools, groups, 
         {(!group || selectedGroup) && !candidates.length ? <p role="status" className="text-sm text-muted">{search.trim() ? "No schools match this search. Clear the search to see available schools." : selectedGroup?.sourceType === "GS" ? "This GS group has no member schools. Update its membership before converting an order." : "No schools are available."}</p> : null}
         <p className="text-sm font-semibold">{selected.length} end users selected</p>
       </Card>
-      {selectedSchools.map(school => <Card key={school.schoolCode} className="space-y-4 p-5"><div className="flex justify-between gap-3"><h3 className="font-semibold">{school.schoolCode} — {school.schoolName}</h3><button type="button" className="text-sm text-red-700" onClick={() => toggleSchool(school, false)}>Remove school</button></div><ExecutivePicker options={executives} value={assignments[school.schoolCode] ?? { name: "" }} onChange={value => setAssignments(previous => ({ ...previous, [school.schoolCode]: { ...value, updateDefault: true } }))} />{!pooled ? quantityTable(school.schoolCode) : null}</Card>)}
+      {selectedSchools.map(school => <Card key={school.schoolCode} className="space-y-4 p-5"><div className="flex justify-between gap-3"><h3 className="font-semibold">{school.schoolCode} — {school.schoolName}</h3><button type="button" className="text-sm text-danger-strong" onClick={() => toggleSchool(school, false)}>Remove school</button></div><ExecutivePicker options={executives} value={assignments[school.schoolCode] ?? { name: "" }} onChange={value => setAssignments(previous => ({ ...previous, [school.schoolCode]: { ...value, updateDefault: true } }))} />{!pooled ? quantityTable(school.schoolCode) : null}</Card>)}
       {pooled && selected.length ? <Card className="p-5"><h3 className="mb-3 font-semibold">Pooled item quantities</h3>{quantityTable("")}</Card> : null}
       <button className="rounded-md bg-brand px-4 py-2 font-semibold text-ink disabled:opacity-50" disabled={!selected.length} onClick={prepareReview}>Review conversion</button>
     </fieldset>}

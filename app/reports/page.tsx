@@ -187,7 +187,7 @@ function Input({
         type={type}
         name={name}
         defaultValue={defaultValue}
-        className="focus-ring h-10 w-full rounded-md border border-line bg-white px-3 text-sm"
+        className="focus-ring h-10 w-full rounded-md border border-line bg-surface px-3 text-sm"
       />
     </label>
   );
@@ -210,7 +210,7 @@ function Select({
       <select
         name={name}
         defaultValue={defaultValue}
-        className="focus-ring h-10 w-full rounded-md border border-line bg-white px-3 text-sm"
+        className="focus-ring h-10 w-full rounded-md border border-line bg-surface px-3 text-sm"
       >
         {children}
       </select>

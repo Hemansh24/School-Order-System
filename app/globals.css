@@ -3,8 +3,47 @@
 @tailwind utilities;
 
 :root {
-  --background: #FAF7FB;
-  --foreground: #2B2230;
+  color-scheme: light;
+  --brand: 222 191 227;
+  --brand-soft: 244 232 246;
+  --brand-dark: 125 75 136;
+  --ink: 43 34 48;
+  --muted: 111 97 117;
+  --canvas: 250 247 251;
+  --surface: 255 255 255;
+  --line: 232 221 236;
+  --ok: 221 244 228;
+  --ok-strong: 22 101 52;
+  --warn: 248 229 175;
+  --warn-strong: 113 63 18;
+  --danger: 241 198 204;
+  --danger-soft: 254 242 242;
+  --danger-strong: 185 28 28;
+  --info: 239 246 255;
+  --info-strong: 30 64 175;
+  --shadow-soft: rgba(43, 34, 48, 0.08);
+}
+
+:root.dark {
+  color-scheme: dark;
+  --brand: 126 78 142;
+  --brand-soft: 52 35 63;
+  --brand-dark: 219 177 235;
+  --ink: 243 234 247;
+  --muted: 187 170 197;
+  --canvas: 23 17 29;
+  --surface: 35 27 43;
+  --line: 70 53 80;
+  --ok: 27 62 45;
+  --ok-strong: 159 224 183;
+  --warn: 70 53 27;
+  --warn-strong: 250 218 148;
+  --danger: 75 35 49;
+  --danger-soft: 55 28 40;
+  --danger-strong: 255 181 192;
+  --info: 30 42 71;
+  --info-strong: 180 202 255;
+  --shadow-soft: rgba(0, 0, 0, 0.24);
 }
 
 * {
@@ -17,14 +56,24 @@ body {
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: rgb(var(--canvas));
+  color: rgb(var(--ink));
 }
 
-input,
-select,
-textarea {
-  color: #2B2230;
+@layer base {
+  input,
+  select,
+  textarea {
+    background-color: rgb(var(--surface));
+    color: rgb(var(--ink));
+    accent-color: rgb(var(--brand-dark));
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: rgb(var(--muted));
+    opacity: 1;
+  }
 }
 
 .focus-ring {

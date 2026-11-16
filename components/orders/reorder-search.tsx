@@ -79,10 +79,10 @@ export function ReorderSearch() {
     }}>
       <button ref={trigger} type="button" aria-expanded={open} aria-controls={`${id}-panel`}
         onClick={() => { if (open) close(); else setOpen(true); }}
-        className="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-md border border-line bg-white px-4 text-sm font-semibold text-ink hover:bg-brand-soft">
+        className="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-md border border-line bg-surface px-4 text-sm font-semibold text-ink hover:bg-brand-soft">
         <Search className="h-4 w-4" aria-hidden="true" /> Create reorder
       </button>
-      {open ? <div id={`${id}-panel`} className="absolute right-0 z-30 mt-2 w-[min(30rem,calc(100vw-3rem))] rounded-lg border border-line bg-white shadow-lg">
+      {open ? <div id={`${id}-panel`} className="absolute right-0 z-30 mt-2 w-[min(30rem,calc(100vw-3rem))] rounded-lg border border-line bg-surface shadow-lg">
         <div className="flex items-center gap-2 border-b border-line p-3">
           <Search className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
           <input ref={input} value={query} maxLength={200} type="text" role="combobox"

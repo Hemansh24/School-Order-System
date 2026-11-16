@@ -35,9 +35,9 @@ export function OrderActionButtons({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
-        {orderType === "ambiguous" && status !== "cancelled" && classification === "normal" && !isFulfillmentCancelled ? <ButtonLink href={`/orders/${orderSheet1Id}/a2d`} className="border border-line bg-white">A2D — Add end users</ButtonLink> : null}
+        {orderType === "ambiguous" && status !== "cancelled" && classification === "normal" && !isFulfillmentCancelled ? <ButtonLink href={`/orders/${orderSheet1Id}/a2d`} className="border border-line bg-surface">A2D — Add end users</ButtonLink> : null}
         {canEdit ? (
-          <ButtonLink href={`/orders/${orderSheet1Id}/edit`} className="border border-line bg-white">
+          <ButtonLink href={`/orders/${orderSheet1Id}/edit`} className="border border-line bg-surface">
             Edit Order
           </ButtonLink>
         ) : null}
@@ -90,7 +90,7 @@ function OrderActionForm({
         {children}
       </SubmitButton>
       {state.message ? (
-        <p className={`max-w-64 text-xs ${state.ok ? "text-green-800" : "text-red-700"}`}>
+        <p className={`max-w-64 text-xs ${state.ok ? "text-ok-strong" : "text-danger-strong"}`}>
           {state.message}
         </p>
       ) : null}

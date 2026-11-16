@@ -42,6 +42,7 @@ export const sheet1Schema = z
     booksellerType: z.string().optional(),
     booksellerRating: z.string().optional(),
     booksellerDiscount: z.string().trim().max(500, "Discount is too long.").nullable().optional(),
+    discountMode: z.enum(["auto", "manual"]).optional(),
     contactNumbers: z.array(z.string().trim().refine(
       value => !value || (/^\+?[\d\s().-]+$/.test(value) && value.replace(/\D/g, "").length >= 7 && value.replace(/\D/g, "").length <= 15),
       "Enter a valid contact number (7–15 digits)"

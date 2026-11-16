@@ -35,9 +35,9 @@ type OrganisationFormValues = {
 };
 
 const inputClass =
-  "focus-ring h-10 w-full rounded-md border border-line bg-white px-3 text-sm";
+  "focus-ring h-10 w-full rounded-md border border-line bg-surface px-3 text-sm";
 const textAreaClass =
-  "focus-ring min-h-24 w-full rounded-md border border-line bg-white px-3 py-2 text-sm";
+  "focus-ring min-h-24 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm";
 const labelClass = "mb-1 block text-xs font-semibold uppercase text-muted";
 const initialState = { ok: false } satisfies OrganisationActionState;
 
@@ -198,7 +198,7 @@ function OrganisationForm({
           <h2 className="font-semibold text-ink">{title}</h2>
           <p className="mt-1 text-sm text-muted">{description}</p>
           {state.message ? (
-            <p className={`mt-2 text-sm ${state.ok ? "text-green-800" : "text-red-700"}`}>
+            <p className={`mt-2 text-sm ${state.ok ? "text-ok-strong" : "text-danger-strong"}`}>
               {state.message}
             </p>
           ) : null}

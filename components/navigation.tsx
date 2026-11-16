@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   BarChart3,
   BookOpen,
@@ -23,15 +24,16 @@ const navItems = [
 
 export function Navigation() {
   return (
-    <aside className="border-b border-line bg-white lg:min-h-screen lg:w-72 lg:border-b-0 lg:border-r">
+    <aside className="border-b border-line bg-surface lg:min-h-screen lg:w-72 lg:border-b-0 lg:border-r">
       <div className="flex h-16 items-center gap-3 border-b border-line px-5">
         <div className="grid h-10 w-10 place-items-center rounded-md bg-brand text-sm font-bold text-ink">
           OS
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="font-semibold text-ink">Order Sheets</p>
           <p className="text-xs text-muted">School book operations</p>
         </div>
+        <ThemeToggle />
       </div>
       <nav className="flex gap-1 overflow-x-auto p-3 lg:block lg:space-y-1">
         {navItems.map((item) => {

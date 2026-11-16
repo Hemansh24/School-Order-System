@@ -44,7 +44,7 @@ function createGoogleSheetsClient(): sheets_v4.Sheets {
   });
 }
 
-export async function readGoogleSheetRows(options?: { spreadsheetId?: string; range?: string }): Promise<GoogleSheetRow[]> {
+export async function readGoogleSheetRows(options?: { spreadsheetId?: string; range?: string; valueRenderOption?: "FORMATTED_VALUE" | "UNFORMATTED_VALUE" }): Promise<GoogleSheetRow[]> {
   const spreadsheetId = options?.spreadsheetId ?? getRequiredEnv("GOOGLE_SHEETS_ID");
   const range = options?.range ?? getRequiredEnv("GOOGLE_SHEETS_RANGE");
 
@@ -52,7 +52,7 @@ export async function readGoogleSheetRows(options?: { spreadsheetId?: string; ra
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId,
     range,
-    valueRenderOption: "UNFORMATTED_VALUE"
+    valueRenderOption: options?.valueRenderOption ?? "UNFORMATTED_VALUE"
   });
 
   const values = response.data.values ?? [];

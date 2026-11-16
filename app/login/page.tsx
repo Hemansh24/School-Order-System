@@ -11,13 +11,13 @@ export default function LoginPage() {
         <form className="space-y-4">
           <label>
             <span className="mb-1 block text-xs font-semibold uppercase text-muted">Email</span>
-            <input className="focus-ring h-10 w-full rounded-md border border-line bg-white px-3 text-sm" />
+            <input className="focus-ring h-10 w-full rounded-md border border-line bg-surface px-3 text-sm" />
           </label>
           <label>
             <span className="mb-1 block text-xs font-semibold uppercase text-muted">Password</span>
             <input
               type="password"
-              className="focus-ring h-10 w-full rounded-md border border-line bg-white px-3 text-sm"
+              className="focus-ring h-10 w-full rounded-md border border-line bg-surface px-3 text-sm"
             />
           </label>
           <SubmitButton type="button">Continue</SubmitButton>

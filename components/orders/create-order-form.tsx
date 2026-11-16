@@ -5,15 +5,16 @@ import { Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
-import { convertGsMemberAction, createOrderAction, createReorderAction, findMatchingOrderAction, updateOrderAction } from "@/app/orders/actions";
+import { convertGsMemberAction, createOrderAction, createReorderAction, findMatchingOrderAction, suggestOrderDiscountAction, updateOrderAction } from "@/app/orders/actions";
 import { BooksellerDiscount } from "@/components/orders/bookseller-discount";
 import { defaultBooksellerDiscount } from "@/lib/bookseller-discount";
+import { discountEndUserCodes } from "@/lib/order-discount-selection";
 import { createPartySearchMatcher } from "@/lib/party-search";
 import { Card, SubmitButton } from "@/components/ui";
 import { compareEditionCodes, DEFAULT_LANGUAGE_CODE } from "@/lib/item-code";
 import { hasLegacySchoolAllocations, isPooledOrder, orderTypeLabel, type DescriptiveMode } from "@/lib/order-model";
 import { normalizeOrderEntry } from "@/lib/order-entry";
-import { getAcademicSessionOptions, getCurrentSessionYear } from "@/lib/session-year";
+import { getAcademicSessionOptions } from "@/lib/session-year";
 import { getOrderEnteredDate } from "@/lib/order-dates";
 import { createOrderSchema, type CreateOrderInput } from "@/lib/validation/orders";
 import { distinctEndUsers } from "@/lib/end-user-type";
@@ -22,6 +23,7 @@ import { ExecutivePicker, type ExecutiveOption } from "@/components/orders/execu
 import { BulkExecutiveDialog } from "@/components/orders/bulk-executive-dialog";
 import { applyExecutiveToSelectedSchools } from "@/lib/school-executives";
 import { commissionLabel } from "@/lib/commission-label";
+import type { ReorderCustomisation } from "@/lib/services/reorder-customisation";
 
 type BooksellerExecutiveOption = { booksellerExecutiveId: number; incumbentCode: string; name: string; pbsCode: string; contact1: string | null; contact2: string | null };
 type CommissionOption = { type: NonNullable<CreateOrderInput["sheet1"]["commissionPartyType"]>; code: string; name: string; pbsCode?: string; booksellerExecutiveId?: number; contact?: string };
@@ -71,6 +73,7 @@ type Props = {
   initialValues?: CreateOrderInput;
   reorderSourceId?: number;
   reorderSourceNo?: number;
+  reorderCustomisation?: ReorderCustomisation;
   matchedSession?: string;
   clearCreateOrderDraftOnSuccess?: boolean;
   reorderSchool?: { schoolCode: string; schoolName: string };
@@ -82,9 +85,9 @@ type Props = {
 };
 
 const inputClass =
-  "focus-ring h-10 w-full rounded-md border border-line bg-white px-3 text-sm";
+  "focus-ring h-10 w-full rounded-md border border-line bg-surface px-3 text-sm";
 const textAreaClass =
-  "focus-ring min-h-24 w-full rounded-md border border-line bg-white px-3 py-2 text-sm";
+  "focus-ring min-h-24 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm";
 const labelClass = "mb-1 block text-xs font-semibold uppercase text-muted";
 const ORDER_DRAFT_STORAGE_KEY = "school-book-order:create-order-draft";
 
@@ -115,6 +118,7 @@ export function CreateOrderForm({
   initialValues,
   reorderSourceId,
   reorderSourceNo,
+  reorderCustomisation,
   matchedSession,
   clearCreateOrderDraftOnSuccess = false,
   reorderSchool,
@@ -249,8 +253,8 @@ export function CreateOrderForm({
     if (!isReorder || !currentEntryDate) return;
     form.setValue("sheet1.orderPlacedDate", currentEntryDate);
     form.setValue("sheet1.orderReceivedDate", currentEntryDate);
-    form.setValue("sheet1.sessionYear", matchedSession ?? getCurrentSessionYear(new Date(`${currentEntryDate}T12:00:00+05:30`)));
-  }, [form, isReorder, currentEntryDate, matchedSession]);
+    form.setValue("sheet1.sessionYear", initialValues?.sheet1.sessionYear ?? "");
+  }, [form, isReorder, currentEntryDate, initialValues?.sheet1.sessionYear]);
 
   const orderType = form.watch("sheet1.orderType");
   const expectedDeliveryDate = form.watch("sheet1.expectedDeliveryDate");
@@ -427,15 +431,46 @@ export function CreateOrderForm({
     [billingOptions, billingToCode]
   );
   const appliedDiscountBilling = useRef<string | null>(null);
+  const preservedDiscountKey = useRef<string | null>(null);
+  const discountRequest = useRef(0);
+  const [discountLoading, setDiscountLoading] = useState(false);
+  const [discountError, setDiscountError] = useState<string>();
+  const [discountRetry, setDiscountRetry] = useState(0);
+  const discountSelectedSchool = schools.find(school => school.optionKey === selectedDescriptiveSchoolKey);
+  const discountEndUsers = JSON.stringify(discountEndUserCodes({
+    sheet1: { orderType, descriptiveMode },
+    descriptiveRows: !isMultiple && !isAllocated && discountSelectedSchool ? [discountSelectedSchool] : watchedDescriptiveRows,
+    combinedSchools: watchedCombinedSchools
+  }));
   useEffect(() => {
     if (!isDraftReady || isReorder) return;
-    const key = `${billingToType}:${billingToCode}`;
+    const key = JSON.stringify([billingToType, billingToCode, discountEndUsers, discountRetry]);
     const first = appliedDiscountBilling.current === null;
-    if (appliedDiscountBilling.current === key) return;
     appliedDiscountBilling.current = key;
-    if (first && (initialValues !== undefined || form.getValues("sheet1.booksellerDiscount") !== undefined)) return;
-    form.setValue("sheet1.booksellerDiscount", billingToType === "vendor" && selectedBillingOption ? selectedBillingOption.discount ?? "" : null);
-  }, [billingToType, billingToCode, selectedBillingOption, isDraftReady, isReorder, initialValues, form]);
+    if (first && (initialValues !== undefined || form.getValues("sheet1.booksellerDiscount") !== undefined)) preservedDiscountKey.current = key;
+    if (preservedDiscountKey.current === key) return;
+    preservedDiscountKey.current = null;
+    const request = ++discountRequest.current;
+    form.setValue("sheet1.discountMode", "auto");
+    form.setValue("sheet1.booksellerDiscount", null);
+    setDiscountError(undefined);
+    setDiscountLoading(!!billingToCode);
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      if (!billingToCode) return;
+      void suggestOrderDiscountAction({ billingToType, billingToCode, endUserCodes: JSON.parse(discountEndUsers) }).then(result => {
+        if (cancelled || request !== discountRequest.current) return;
+        setDiscountLoading(false);
+        if (result.ok) form.setValue("sheet1.booksellerDiscount", result.discount);
+        else setDiscountError(result.message);
+      }).catch(() => {
+        if (cancelled || request !== discountRequest.current) return;
+        setDiscountLoading(false);
+        setDiscountError("Could not fetch the discount. Retry or enter it manually.");
+      });
+    }, 150);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [billingToType, billingToCode, discountEndUsers, discountRetry, isDraftReady, isReorder, initialValues, form]);
   const selectedGs = groups.find(group => group.groupType === "GS" && group.schoolCode.toLowerCase() === endUserGroupCode.toLowerCase() && group.schoolGroupId);
   const contactNumbers = form.watch("sheet1.contactNumbers") ?? [""];
   const appliedContactCode = useRef<string | null>(null);
@@ -630,7 +665,6 @@ export function CreateOrderForm({
 
   function setBilling(value: string) {
     const selected = billingOptions.find(option => option.value === value);
-    if (selected?.code !== form.getValues("sheet1.billingToCode")) form.setValue("sheet1.booksellerDiscount", billingToType === "vendor" ? selected?.discount ?? "" : null, { shouldDirty: true });
     form.setValue("sheet1.billingToCode", selected?.code ?? "");
     form.setValue("sheet1.billingToName", selected?.name ?? "");
     form.setValue("sheet1.billingAddress", selected?.addressSummary ?? "", { shouldDirty: true });
@@ -639,7 +673,6 @@ export function CreateOrderForm({
     setIsBillingDropdownOpen(false);
   }
   function setBillingCode(rawCode: string) {
-    if (rawCode !== form.getValues("sheet1.billingToCode")) form.setValue("sheet1.booksellerDiscount", null, { shouldDirty: true });
     form.setValue("sheet1.billingToCode", rawCode);
     form.setValue("sheet1.billingToName", "");
     form.setValue("sheet1.billingAddress", "", { shouldDirty: true });
@@ -921,7 +954,7 @@ export function CreateOrderForm({
         onChange={value => {
           const rows = form.getValues("schoolExecutives") ?? [];
           form.setValue("schoolExecutives", [...rows.filter(row => row.schoolCode !== schoolCode), { ...value, schoolCode, updateDefault: true }], { shouldDirty: true, shouldValidate: true });
-        }} /> : <Field label="Executive"><input disabled className={`${inputClass} bg-slate-50`} placeholder="Choose a school first" /></Field>}
+        }} /> : <Field label="Executive"><input disabled className={`${inputClass} bg-canvas`} placeholder="Choose a school first" /></Field>}
       <p className="mt-1 text-xs text-muted">Optional. Saved changes become this school's default.</p>
     </div>;
   }
@@ -939,7 +972,7 @@ export function CreateOrderForm({
               <input className={inputClass} value={billingToCode} placeholder="Search by code, name, or address" onChange={event => setBillingCode(event.target.value)} onFocus={() => setIsBillingDropdownOpen(true)} onBlur={() => window.setTimeout(() => setIsBillingDropdownOpen(false), 150)} />
               {form.watch("sheet1.billingToName") ? <p className="mt-1 text-sm text-muted">{form.watch("sheet1.billingToName")}</p> : null}
               {isBillingDropdownOpen ? (
-                <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-white shadow-lg">
+                <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-surface shadow-lg">
                   {filteredBillingOptions.length ? filteredBillingOptions.map(option => (
                     <button
                       key={option.value}
@@ -959,7 +992,15 @@ export function CreateOrderForm({
             </div>
           </Field>
           <Field label="Billing address"><textarea className={textAreaClass} {...form.register("sheet1.billingAddress")} /></Field>
-          <BooksellerDiscount vendor={billingToType === "vendor"} value={booksellerDiscount} onChange={value => form.setValue("sheet1.booksellerDiscount", value, { shouldDirty: true, shouldValidate: true })} />
+          <BooksellerDiscount vendor={billingToType === "vendor"} value={booksellerDiscount} onChange={value => {
+            discountRequest.current++;
+            setDiscountLoading(false);
+            setDiscountError(undefined);
+            form.setValue("sheet1.discountMode", "manual");
+            form.setValue("sheet1.booksellerDiscount", value, { shouldDirty: true, shouldValidate: true });
+          }} />
+          {discountLoading ? <p className="mt-1 text-xs text-muted" role="status">Fetching discount…</p> : null}
+          {discountError ? <p className="mt-1 text-xs text-danger-strong" role="alert">{discountError} <button type="button" className="underline" onClick={() => setDiscountRetry(value => value + 1)}>Retry</button></p> : null}
           {orderType === "descriptive" ? <Field label="Descriptive entry"><select className={inputClass} value={descriptiveMode} onChange={event => changeEntry("descriptive", event.target.value as DescriptiveMode)}><option value="individual">Individual</option><option value="multiple_schools">Multiple schools</option><option value="multiple_group">Group</option>{isAllocated ? <option value={descriptiveMode}>{descriptiveMode === "allocated_group" ? "Group" : "Multiple schools"} — school quantities</option> : null}</select></Field> : null}
           {orderType === "descriptive" && isAllocated ? <Field label="End user"><ReferencePicker schools={schools} selectedKey={activeDescriptiveSchoolKey} onChange={setSelectedDescriptiveSchoolKey} /></Field> : null}
           {isGroup ? <Field label="End-school group"><ReferencePicker kind="group" schools={groups} selectedKey={groups.find(group => group.schoolCode === endUserGroupCode)?.optionKey ?? ""} onChange={key => { setSchoolSearch(""); form.setValue("combinedSchools", []); form.setValue("sheet1.endUserGroupCode", groups.find(group => group.optionKey === key)?.schoolCode ?? ""); }} /></Field> : null}
@@ -967,7 +1008,7 @@ export function CreateOrderForm({
         {orderType === "descriptive" && !isMultiple && !isAllocated ? <section className="space-y-4">
           <h3 className="font-semibold">End user</h3>
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="min-w-0 space-y-3 rounded-lg border border-line bg-white p-4">
+            <div className="min-w-0 space-y-3 rounded-lg border border-line bg-surface p-4">
               <p className="text-sm font-semibold">School 1</p>
               <ReferencePicker schools={schools} selectedKey={activeDescriptiveSchoolKey} onChange={setSelectedDescriptiveSchoolKey} />
               {activeDescriptiveSchool ? <p className="break-words text-sm">
@@ -1009,7 +1050,7 @@ export function CreateOrderForm({
               if (!matchesParticipatingSchool(school)) return null;
               const reference = schoolByReferenceCode.get(school.schoolCode);
               const isSelected = watchedCombinedSchools.some(row => row.schoolCode === school.schoolCode);
-              return <div key={school.schoolCode} className="min-w-0 space-y-3 rounded-lg border border-line bg-white p-4">
+              return <div key={school.schoolCode} className="min-w-0 space-y-3 rounded-lg border border-line bg-surface p-4">
                 <label className="flex items-center gap-2 text-sm font-semibold">
                   <input type="checkbox" checked={isSelected} aria-label={`Include ${school.schoolCode} ${school.schoolName}`} onChange={event => {
                     const rows = form.getValues("combinedSchools");
@@ -1030,7 +1071,7 @@ export function CreateOrderForm({
               const school = watchedCombinedSchools[index];
               if (school && !matchesParticipatingSchool(school)) return null;
               const selectedSchool = findSchoolOptionByStoredValue(schools, school?.schoolCode);
-              return <div key={row.id} className="min-w-0 space-y-3 rounded-lg border border-line bg-white p-4">
+              return <div key={row.id} className="min-w-0 space-y-3 rounded-lg border border-line bg-surface p-4">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-semibold">School {index + 1}</p>
                   <SubmitButton type="button" variant="secondary" className="h-8 px-3" aria-label={`Remove school ${index + 1}`} onClick={() => combinedSchools.remove(index)}>Remove</SubmitButton>
@@ -1053,7 +1094,7 @@ export function CreateOrderForm({
           </div>
         </div> : null}
         {orderType === "descriptive" && isAllocated && executiveSchools.length ? <section className="space-y-3"><h3 className="font-semibold">Executives</h3>{executiveSchools.map(school => <div key={school.schoolCode}><p className="mb-1 text-sm">{school.schoolCode} — {school.schoolName}</p>{renderExecutivePicker(school.schoolCode)}</div>)}</section> : null}
-        {serverError ? <p role="alert" className="text-red-700">{serverError}</p> : null}
+        {serverError ? <p role="alert" className="text-danger-strong">{serverError}</p> : null}
         <div className="flex flex-wrap gap-2">
           <SubmitButton type="button" disabled={isPending} onClick={checkInitialDetails}>Continue</SubmitButton>
           <SubmitButton type="button" variant="secondary" disabled={isPending || !!convertingPrCode} onClick={clearOrder}>Clear all</SubmitButton>
@@ -1061,6 +1102,7 @@ export function CreateOrderForm({
       </Card> : null}
       {initialComplete ? <>
       {isReorder ? <p className="rounded-md border border-line bg-canvas p-3 text-sm">Reorder of Order {reorderSourceNo}. Billing, end users, and other saved details are fixed. Choose new items and quantities; shipping and expected delivery can change. Placed and received dates are set to today when saved.</p> : null}
+      {reorderCustomisation ? <p className="rounded-md border border-line bg-canvas p-3 text-sm">Session {initialValues?.sheet1.sessionYear || "unspecified"}: customisation is fixed to {reorderCustomisation.customisationName ?? reorderCustomisation.customisationCode} for all end users. Choose items from the original categories. A different customisation requires a separate order.{items.length === 0 ? " No available items match these restrictions." : ""}</p> : null}
       <div className="grid gap-3 sm:grid-cols-4">
         {["Order Sheet 1", orderType === "ambiguous" ? "Order Sheet 2B2 - Item quantities" : isMultiple ? "Order Sheet 2C1 + 2C2" : "Order Sheet 2A", "Review", "Finalise"].map(
           (label, index) => (
@@ -1071,10 +1113,10 @@ export function CreateOrderForm({
               className={`focus-ring rounded-md border px-3 py-2 text-left text-sm font-semibold ${
                 step === index + 1
                   ? "border-brand bg-brand-soft text-ink"
-                  : "border-line bg-white text-muted"
+                  : "border-line bg-surface text-muted"
               }`}
             >
-              <span className="mr-2 inline-grid h-6 w-6 place-items-center rounded-full bg-white text-xs">
+              <span className="mr-2 inline-grid h-6 w-6 place-items-center rounded-full bg-surface text-xs">
                 {index + 1}
               </span>
               {label}
@@ -1088,7 +1130,7 @@ export function CreateOrderForm({
       </p> : null}
 
       {serverError ? (
-        <div className="rounded-md border border-danger bg-red-50 p-3 text-sm text-red-900">
+        <div className="rounded-md border border-danger bg-danger-soft p-3 text-sm text-danger-strong">
           {serverError}
         </div>
       ) : null}
@@ -1171,7 +1213,7 @@ export function CreateOrderForm({
                 />
                 {shippingToType !== "individual" && form.watch("sheet1.shippingToName") ? <p className="mt-1 text-sm text-muted">{form.watch("sheet1.shippingToName")}</p> : null}
                 {isShippingDropdownOpen && shippingToType !== "individual" ? (
-                  <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-white shadow-lg">
+                  <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-surface shadow-lg">
                     {filteredShippingOptions.length > 0 ? (
                       filteredShippingOptions.map((option) => (
                         <button
@@ -1216,9 +1258,9 @@ export function CreateOrderForm({
                           form.setValue("sheet1.contactNumbers", next, { shouldDirty: true, shouldValidate: true });
                         }}
                       />
-                      {errors.sheet1?.contactNumbers?.[index]?.message ? <p className="mt-1 text-xs text-red-700">{errors.sheet1.contactNumbers[index]?.message}</p> : null}
+                      {errors.sheet1?.contactNumbers?.[index]?.message ? <p className="mt-1 text-xs text-danger-strong">{errors.sheet1.contactNumbers[index]?.message}</p> : null}
                     </div>
-                    {contactNumbers.length > 1 ? <button type="button" className="focus-ring grid h-10 w-10 place-items-center rounded-md border border-line text-red-700" aria-label={`Remove contact number ${index + 1}`} onClick={() => form.setValue("sheet1.contactNumbers", contactNumbers.filter((_, position) => position !== index), { shouldDirty: true, shouldValidate: true })}><Trash2 className="h-4 w-4" /></button> : null}
+                    {contactNumbers.length > 1 ? <button type="button" className="focus-ring grid h-10 w-10 place-items-center rounded-md border border-line text-danger-strong" aria-label={`Remove contact number ${index + 1}`} onClick={() => form.setValue("sheet1.contactNumbers", contactNumbers.filter((_, position) => position !== index), { shouldDirty: true, shouldValidate: true })}><Trash2 className="h-4 w-4" /></button> : null}
                   </div>
                 ))}
               </div>
@@ -1277,7 +1319,7 @@ export function CreateOrderForm({
                   {commissionPartyType === "bookseller_executive" && commissionName ? <p className="mt-1 text-sm text-muted">{commissionName} · {commissionPbsCode}</p>
                     : selectedCommissionOption ? <p className="mt-1 text-sm text-muted">{selectedCommissionOption.name}</p> : null}
                   <p className="mt-1 text-xs text-muted">Select an existing party or enter any other commissioned party’s name or code.</p>
-                  {isCommissionDropdownOpen ? <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-white shadow-lg">
+                  {isCommissionDropdownOpen ? <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-surface shadow-lg">
                     {filteredCommissionOptions.length ? filteredCommissionOptions.map(option => <button
                       key={`${option.type}:${option.booksellerExecutiveId ?? option.code}`} type="button" className="block w-full px-3 py-2 text-left text-sm hover:bg-canvas focus:bg-canvas"
                       onClick={() => {
@@ -1362,6 +1404,7 @@ export function CreateOrderForm({
             <ItemSelectionFilters
               categories={categoryOptions}
               customisations={customisationOptions}
+              fixedCustomisation={reorderCustomisation}
               categoryCode={selectedCategoryCode}
               customisationCode={selectedCustomisationCode}
               onCategoryChange={setSelectedCategoryCode}
@@ -1391,6 +1434,7 @@ export function CreateOrderForm({
             <ItemSelectionFilters
               categories={categoryOptions}
               customisations={customisationOptions}
+              fixedCustomisation={reorderCustomisation}
               categoryCode={selectedCategoryCode}
               customisationCode={selectedCustomisationCode}
               onCategoryChange={setSelectedCategoryCode}
@@ -1426,6 +1470,7 @@ export function CreateOrderForm({
               <ItemSelectionFilters
                 categories={categoryOptions}
                 customisations={customisationOptions}
+                fixedCustomisation={reorderCustomisation}
                 categoryCode={selectedCategoryCode}
                 customisationCode={selectedCustomisationCode}
                 onCategoryChange={setSelectedCategoryCode}
@@ -1443,7 +1488,7 @@ export function CreateOrderForm({
         </Card>
       ) : null}
 
-      {errors.schoolExecutives?.message ? <p role="alert" className="text-sm text-red-700">{errors.schoolExecutives.message}</p> : null}
+      {errors.schoolExecutives?.message ? <p role="alert" className="text-sm text-danger-strong">{errors.schoolExecutives.message}</p> : null}
 
       {step >= 2 && orderType === "descriptive" ? <EndUserTypesPreview
         schools={distinctEndUsers(isMultiple ? watchedCombinedSchools : isAllocated ? watchedDescriptiveRows : activeDescriptiveSchool ? [activeDescriptiveSchool] : watchedDescriptiveRows)}
@@ -1451,7 +1496,7 @@ export function CreateOrderForm({
         orderSheet1Id={orderSheet1Id}
       /> : null}
 
-      {step === 2 ? <div className="space-y-1 text-sm text-red-700">
+      {step === 2 ? <div className="space-y-1 text-sm text-danger-strong">
         {[errors.descriptiveRows, errors.ambiguousItems, errors.combinedSchools, errors.combinedItems].map((error, index) => error?.message || error?.root?.message ? <p key={index}>{error.message ?? error.root?.message}</p> : null)}
       </div> : null}
 
@@ -1475,7 +1520,7 @@ export function CreateOrderForm({
             order freely until it is finalised, while keeping the same order number.
           </p>
           {!form.formState.isValid ? (
-            <div className="mt-4 rounded-md border border-danger bg-red-50 p-3 text-sm text-red-900">
+            <div className="mt-4 rounded-md border border-danger bg-danger-soft p-3 text-sm text-danger-strong">
               Complete the required Sheet 1 and detail row fields before saving this order.
             </div>
           ) : null}
@@ -1519,6 +1564,7 @@ export function CreateOrderForm({
 function ItemSelectionFilters({
   categories,
   customisations,
+  fixedCustomisation,
   categoryCode,
   customisationCode,
   onCategoryChange,
@@ -1526,6 +1572,7 @@ function ItemSelectionFilters({
 }: {
   categories: { categoryCode: string; categoryType: string | null }[];
   customisations: { customisationCode: string; customisationName: string | null }[];
+  fixedCustomisation?: ReorderCustomisation;
   categoryCode: string;
   customisationCode: string;
   onCategoryChange: (value: string) => void;
@@ -1550,7 +1597,7 @@ function ItemSelectionFilters({
         </select>
       </Field>
       <Field label="Customization">
-        <select
+        {fixedCustomisation ? <p className="py-2 text-sm">{fixedCustomisation.customisationName ?? fixedCustomisation.customisationCode} (fixed)</p> : <select
           className={inputClass}
           value={customisationCode}
           disabled={customisations.length === 0}
@@ -1564,7 +1611,7 @@ function ItemSelectionFilters({
               {customisation.customisationName ?? customisation.customisationCode}
             </option>
           ))}
-        </select>
+        </select>}
       </Field>
     </div>
   );
@@ -1631,7 +1678,7 @@ function ReferencePicker({
         <div
           id={optionsId}
           role="listbox"
-          className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-white shadow-lg"
+          className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-surface shadow-lg"
         >
           {matches.length > 0 ? (
             matches.map((school) => (
@@ -1768,7 +1815,7 @@ function Field({
     <label className="block">
       <span className={labelClass}>{label}</span>
       {children}
-      {error ? <span className="mt-1 block text-xs text-red-700">{error}</span> : null}
+      {error ? <span className="mt-1 block text-xs text-danger-strong">{error}</span> : null}
     </label>
   );
 }
@@ -1786,7 +1833,7 @@ function LineRow({
       <button
         type="button"
         onClick={onRemove}
-        className="focus-ring grid h-10 w-10 place-items-center rounded-md border border-line bg-white text-red-700"
+        className="focus-ring grid h-10 w-10 place-items-center rounded-md border border-line bg-surface text-danger-strong"
         title="Remove row"
       >
         <Trash2 className="h-4 w-4" />
@@ -1849,7 +1896,7 @@ function ReviewBlock({ values, orderEnteredDate }: { values: CreateOrderInput; o
               {values.ambiguousItems.map((row, index) => (
                 <div
                   key={`${row.itemCode}-${index}`}
-                  className="flex items-center justify-between gap-3 rounded-md border border-line bg-white px-3 py-2"
+                  className="flex items-center justify-between gap-3 rounded-md border border-line bg-surface px-3 py-2"
                 >
                   <span>
                     <span className="font-medium text-ink">{row.itemCode}</span>
@@ -1866,7 +1913,7 @@ function ReviewBlock({ values, orderEnteredDate }: { values: CreateOrderInput; o
               <p className="text-xs font-semibold uppercase text-muted">Sheet 2C1 Participating Schools</p>
               <div className="mt-2 space-y-2">
                 {values.combinedSchools.map((row, index) => (
-                  <div key={`${row.schoolCode}-${index}`} className="rounded-md border border-line bg-white px-3 py-2">
+                  <div key={`${row.schoolCode}-${index}`} className="rounded-md border border-line bg-surface px-3 py-2">
                     <span className="font-medium text-ink">{row.schoolCode}</span>
                     <span className="ml-2 text-muted">{row.schoolName}</span>
                   </div>
@@ -1877,7 +1924,7 @@ function ReviewBlock({ values, orderEnteredDate }: { values: CreateOrderInput; o
               <p className="text-xs font-semibold uppercase text-muted">Sheet 2C2 Pooled Items</p>
               <div className="mt-2 space-y-2">
                 {values.combinedItems.map((row, index) => (
-                  <div key={`${row.itemCode}-${index}`} className="flex items-center justify-between gap-3 rounded-md border border-line bg-white px-3 py-2">
+                  <div key={`${row.itemCode}-${index}`} className="flex items-center justify-between gap-3 rounded-md border border-line bg-surface px-3 py-2">
                     <span><span className="font-medium text-ink">{row.itemCode}</span><span className="block text-muted">{row.itemName}</span></span>
                     <span className="font-semibold text-ink">{row.pooledQuantity}</span>
                   </div>

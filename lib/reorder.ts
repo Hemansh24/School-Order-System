@@ -2,7 +2,6 @@ import { z } from "zod";
 import { savedOrderToInput, type SavedOrderInput } from "./order-input";
 import { normalizeOrderEntry } from "./order-entry";
 import { getOrderEnteredDate } from "./order-dates";
-import { getCurrentSessionYear } from "./session-year";
 import { createOrderSchema, shippingToTypeSchema, sheet2ARowSchema, sheet2B2RowSchema, sheet2C2RowSchema } from "./validation/orders";
 
 export const reorderSchema = z.object({
@@ -32,7 +31,7 @@ export function reorderDefaults(source: SavedOrderInput, now = new Date()) {
     individualSchool,
     values: {
       ...values,
-      sheet1: { ...values.sheet1, sessionYear: getCurrentSessionYear(now), orderPlacedDate: today, orderReceivedDate: today, expectedDeliveryDate: "" },
+      sheet1: { ...values.sheet1, sessionYear: source.sessionYear ?? "", orderPlacedDate: today, orderReceivedDate: today, expectedDeliveryDate: "" },
       descriptiveRows: [], ambiguousItems: [], combinedItems: []
     }
   };

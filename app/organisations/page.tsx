@@ -14,7 +14,7 @@ import {
 export const dynamic = "force-dynamic";
 
 const inputClass =
-  "focus-ring h-10 w-full rounded-md border border-line bg-white px-3 text-sm";
+  "focus-ring h-10 w-full rounded-md border border-line bg-surface px-3 text-sm";
 const labelClass = "mb-1 block text-xs font-semibold uppercase text-muted";
 
 export default async function OrganisationsPage({
@@ -47,7 +47,7 @@ export default async function OrganisationsPage({
         description="Assign PR codes when schools are introduced. PT codes are issued automatically on the first order."
       />
       {organisationPermissionMessage ? (
-        <Card className="mb-6 border border-danger bg-red-50 p-4 text-sm text-red-900">
+        <Card className="mb-6 border border-danger bg-danger-soft p-4 text-sm text-danger-strong">
           {organisationPermissionMessage}
         </Card>
       ) : null}
@@ -104,7 +104,7 @@ export default async function OrganisationsPage({
           <div className="flex items-end">
             <Link
               href="/organisations"
-              className="focus-ring inline-flex h-10 w-full items-center justify-center rounded-md border border-line bg-white px-4 text-sm font-semibold text-ink transition hover:bg-brand-soft"
+              className="focus-ring inline-flex h-10 w-full items-center justify-center rounded-md border border-line bg-surface px-4 text-sm font-semibold text-ink transition hover:bg-brand-soft"
             >
               Clear
             </Link>
@@ -444,7 +444,7 @@ function PaginationLink({
   return (
     <Link
       href={href}
-      className="focus-ring inline-flex h-10 items-center justify-center rounded-md border border-line bg-white px-4 text-sm font-semibold text-ink transition hover:bg-brand-soft"
+      className="focus-ring inline-flex h-10 items-center justify-center rounded-md border border-line bg-surface px-4 text-sm font-semibold text-ink transition hover:bg-brand-soft"
     >
       {children}
     </Link>

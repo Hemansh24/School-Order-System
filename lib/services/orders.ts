@@ -15,8 +15,10 @@ import { orderSchoolCodes, reverseUnusedPtCodesTx, schoolReferenceSelect } from 
 import { createOrderSchema, type CreateOrderInput } from "@/lib/validation/orders";
 import { resolveCommissionData } from "@/lib/services/order-commission";
 import { resolveOrderDiscount } from "@/lib/services/order-discount";
+import { discountEndUserCodes } from "@/lib/order-discount-selection";
 import { saveOrderExecutives } from "@/lib/services/executives";
 import { buildReorderInput, type ReorderInput } from "@/lib/reorder";
+import { assertReorderCustomisation } from "@/lib/services/reorder-customisation";
 
 const orderInclude = {
   reorderOfOrder: { select: { orderSheet1Id: true, orderNo: true } },
@@ -233,7 +235,7 @@ export async function createOrder(input: CreateOrderInput) {
     const schoolCodeInput = applyPtCodesToOrder(prepared, ptCodeByOriginalCode);
     const orderInput = createOrderSchema.parse(schoolCodeInput);
     const commissionData = await resolveCommissionData(tx, orderInput.sheet1);
-    const booksellerDiscount = await resolveOrderDiscount(tx, orderInput.sheet1);
+    const booksellerDiscount = await resolveOrderDiscount(tx, orderInput.sheet1, undefined, discountEndUserCodes(orderInput));
     const orderNo = await nextParentOrderNo(tx);
     const shippingToSummary = orderInput.sheet1.shippingToSummary;
 
@@ -336,6 +338,7 @@ export async function createReorder(sourceOrderId: number, input: ReorderInput) 
     const source = await tx.orderSheet1.findUnique({ where: { orderSheet1Id: sourceOrderId }, include: orderInclude });
     if (!source) throw new Error("Original order not found.");
     const values = buildReorderInput(source, input);
+    await assertReorderCustomisation(tx, source, values);
     await assertShippingDestinationExists(tx, values);
     const orderNo = await nextParentOrderNo(tx);
     const order = await tx.orderSheet1.create({ data: {
@@ -392,7 +395,7 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
     const schoolCodeInput = applyPtCodesToOrder(prepared, ptCodeByOriginalCode);
     const orderInput = createOrderSchema.parse(schoolCodeInput);
     const commissionData = await resolveCommissionData(tx, orderInput.sheet1, current);
-    const booksellerDiscount = await resolveOrderDiscount(tx, orderInput.sheet1, current);
+    const booksellerDiscount = await resolveOrderDiscount(tx, orderInput.sheet1, current, discountEndUserCodes(orderInput));
 
     const existing = current;
 

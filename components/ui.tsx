@@ -29,7 +29,7 @@ export function Card({
   className?: string;
 }) {
   return (
-    <section className={`rounded-lg border border-line bg-white shadow-soft ${className}`}>
+    <section className={`rounded-lg border border-line bg-surface shadow-soft ${className}`}>
       {children}
     </section>
   );
@@ -51,8 +51,8 @@ export function SubmitButton({
 }: ComponentProps<"button"> & { variant?: "primary" | "secondary" | "danger" }) {
   const classes = {
     primary: "bg-brand text-ink hover:bg-brand-soft",
-    secondary: "border border-line bg-white text-ink hover:bg-brand-soft",
-    danger: "bg-danger text-ink hover:bg-red-100"
+    secondary: "border border-line bg-surface text-ink hover:bg-brand-soft",
+    danger: "bg-danger text-ink hover:bg-danger-soft"
   };
 
   return (
@@ -68,11 +68,11 @@ export function SubmitButton({
 export function StatusPill({ value }: { value: string }) {
   const tone =
     value === "finalized" || value === "dispatched"
-      ? "bg-ok text-green-900"
+      ? "bg-ok text-ok-strong"
       : value === "pending"
-        ? "bg-warn text-yellow-900"
+        ? "bg-warn text-warn-strong"
         : value === "cancelled" || value === "on_hold"
-          ? "bg-danger text-red-900"
+          ? "bg-danger text-danger-strong"
           : "bg-brand-soft text-brand-dark";
 
   return (
@@ -88,7 +88,7 @@ export function OrderNumber({ orderNo }: { orderNo: number }) {
 
 export function EmptyState({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-lg border border-dashed border-line bg-white p-8 text-center text-sm text-muted">
+    <div className="rounded-lg border border-dashed border-line bg-surface p-8 text-center text-sm text-muted">
       {children}
     </div>
   );

@@ -27,7 +27,7 @@ export function InlineActionForm({
         {children}
       </SubmitButton>
       {state.message ? (
-        <p className={`max-w-64 text-xs ${state.ok ? "text-green-800" : "text-red-700"}`}>
+        <p className={`max-w-64 text-xs ${state.ok ? "text-ok-strong" : "text-danger-strong"}`}>
           {state.message}
         </p>
       ) : null}
