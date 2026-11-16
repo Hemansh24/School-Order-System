@@ -276,3 +276,37 @@ mutation UpsertSharedBooksellerExecutive(
     syncedAt_expr: "request.time"
   })
 }
+
+mutation UpsertSharedSchoolWiseDiscount(
+  $sourceSpreadsheetId: String!
+  $sourceSheetId: Int!
+  $sourceRow: Int!
+  $prCode: String
+  $ptCode: String
+  $schoolName: String
+  $district: String
+  $state: String
+  $billingToWhom: String
+  $bookseller: String
+  $discount: String
+  $groupCode: String
+  $groupName: String
+  $importedAt: Timestamp!
+) @auth(level: NO_ACCESS) {
+  sharedSchoolWiseDiscount_upsert(data: {
+    sourceSpreadsheetId: $sourceSpreadsheetId
+    sourceSheetId: $sourceSheetId
+    sourceRow: $sourceRow
+    prCode: $prCode
+    ptCode: $ptCode
+    schoolName: $schoolName
+    district: $district
+    state: $state
+    billingToWhom: $billingToWhom
+    bookseller: $bookseller
+    discount: $discount
+    groupCode: $groupCode
+    groupName: $groupName
+    importedAt: $importedAt
+  })
+}

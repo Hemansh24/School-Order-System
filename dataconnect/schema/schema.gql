@@ -276,3 +276,21 @@ type SharedBooksellerExecutive
   sourceValues: Any! @col(name: "source_values")
   syncedAt: Timestamp! @col(name: "synced_at")
 }
+
+type SharedSchoolWiseDiscount
+@table(name: "shared_school_wise_discounts", key: ["sourceSpreadsheetId", "sourceSheetId", "sourceRow"]) {
+  sourceSpreadsheetId: String! @col(name: "source_spreadsheet_id")
+  sourceSheetId: Int! @col(name: "source_sheet_id")
+  sourceRow: Int! @col(name: "source_row")
+  prCode: String @col(name: "pr_code")
+  ptCode: String @col(name: "pt_code")
+  schoolName: String @col(name: "school_name")
+  district: String
+  state: String
+  billingToWhom: String @col(name: "billing_to_whom")
+  bookseller: String
+  discount: String
+  groupCode: String @col(name: "group_code")
+  groupName: String @col(name: "group_name")
+  importedAt: Timestamp! @col(name: "imported_at")
+}

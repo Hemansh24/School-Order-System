@@ -28,6 +28,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*ListSharedPtCodeUsageHistory*](#listsharedptcodeusagehistory)
   - [*ListSharedExecutives*](#listsharedexecutives)
   - [*ListSharedSchoolExecutiveDefaults*](#listsharedschoolexecutivedefaults)
+  - [*ListSharedSchoolWiseDiscounts*](#listsharedschoolwisediscounts)
 - [**Mutations**](#mutations)
   - [*SetBooksellerActualDiscount*](#setbookselleractualdiscount)
   - [*UpsertChristianGroup*](#upsertchristiangroup)
@@ -42,6 +43,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*UpsertSharedSchoolExecutiveDefault*](#upsertsharedschoolexecutivedefault)
   - [*UpsertSharedOrderSchoolExecutive*](#upsertsharedorderschoolexecutive)
   - [*UpsertSharedBooksellerExecutive*](#upsertsharedbooksellerexecutive)
+  - [*UpsertSharedSchoolWiseDiscount*](#upsertsharedschoolwisediscount)
 
 # Accessing the connector
 A connector is a collection of Queries and Mutations. One SDK is generated for each connector - this SDK is generated for the connector `example`. You can find more information about connectors in the [Data Connect documentation](https://firebase.google.com/docs/data-connect#how-does).
@@ -2405,6 +2407,137 @@ executeQuery(ref).then((response) => {
 });
 ```
 
+## ListSharedSchoolWiseDiscounts
+You can execute the `ListSharedSchoolWiseDiscounts` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+listSharedSchoolWiseDiscounts(vars?: ListSharedSchoolWiseDiscountsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedSchoolWiseDiscountsData, ListSharedSchoolWiseDiscountsVariables>;
+
+interface ListSharedSchoolWiseDiscountsRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: ListSharedSchoolWiseDiscountsVariables): QueryRef<ListSharedSchoolWiseDiscountsData, ListSharedSchoolWiseDiscountsVariables>;
+}
+export const listSharedSchoolWiseDiscountsRef: ListSharedSchoolWiseDiscountsRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+listSharedSchoolWiseDiscounts(dc: DataConnect, vars?: ListSharedSchoolWiseDiscountsVariables, options?: ExecuteQueryOptions): QueryPromise<ListSharedSchoolWiseDiscountsData, ListSharedSchoolWiseDiscountsVariables>;
+
+interface ListSharedSchoolWiseDiscountsRef {
+  ...
+  (dc: DataConnect, vars?: ListSharedSchoolWiseDiscountsVariables): QueryRef<ListSharedSchoolWiseDiscountsData, ListSharedSchoolWiseDiscountsVariables>;
+}
+export const listSharedSchoolWiseDiscountsRef: ListSharedSchoolWiseDiscountsRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listSharedSchoolWiseDiscountsRef:
+```typescript
+const name = listSharedSchoolWiseDiscountsRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ListSharedSchoolWiseDiscounts` query has an optional argument of type `ListSharedSchoolWiseDiscountsVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface ListSharedSchoolWiseDiscountsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+```
+### Return Type
+Recall that executing the `ListSharedSchoolWiseDiscounts` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ListSharedSchoolWiseDiscountsData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ListSharedSchoolWiseDiscountsData {
+  sharedSchoolWiseDiscounts: ({
+    sourceSpreadsheetId: string;
+    sourceSheetId: number;
+    sourceRow: number;
+    prCode?: string | null;
+    ptCode?: string | null;
+    schoolName?: string | null;
+    district?: string | null;
+    state?: string | null;
+    billingToWhom?: string | null;
+    bookseller?: string | null;
+    discount?: string | null;
+    groupCode?: string | null;
+    groupName?: string | null;
+    importedAt: TimestampString;
+  } & SharedSchoolWiseDiscount_Key)[];
+}
+```
+### Using `ListSharedSchoolWiseDiscounts`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, listSharedSchoolWiseDiscounts, ListSharedSchoolWiseDiscountsVariables } from '@dataconnect/generated';
+
+// The `ListSharedSchoolWiseDiscounts` query has an optional argument of type `ListSharedSchoolWiseDiscountsVariables`:
+const listSharedSchoolWiseDiscountsVars: ListSharedSchoolWiseDiscountsVariables = {
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listSharedSchoolWiseDiscounts()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await listSharedSchoolWiseDiscounts(listSharedSchoolWiseDiscountsVars);
+// Variables can be defined inline as well.
+const { data } = await listSharedSchoolWiseDiscounts({ limit: ..., offset: ..., });
+// Since all variables are optional for this query, you can omit the `ListSharedSchoolWiseDiscountsVariables` argument.
+const { data } = await listSharedSchoolWiseDiscounts();
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await listSharedSchoolWiseDiscounts(dataConnect, listSharedSchoolWiseDiscountsVars);
+
+console.log(data.sharedSchoolWiseDiscounts);
+
+// Or, you can use the `Promise` API.
+listSharedSchoolWiseDiscounts(listSharedSchoolWiseDiscountsVars).then((response) => {
+  const data = response.data;
+  console.log(data.sharedSchoolWiseDiscounts);
+});
+```
+
+### Using `ListSharedSchoolWiseDiscounts`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, listSharedSchoolWiseDiscountsRef, ListSharedSchoolWiseDiscountsVariables } from '@dataconnect/generated';
+
+// The `ListSharedSchoolWiseDiscounts` query has an optional argument of type `ListSharedSchoolWiseDiscountsVariables`:
+const listSharedSchoolWiseDiscountsVars: ListSharedSchoolWiseDiscountsVariables = {
+  limit: ..., // optional
+  offset: ..., // optional
+};
+
+// Call the `listSharedSchoolWiseDiscountsRef()` function to get a reference to the query.
+const ref = listSharedSchoolWiseDiscountsRef(listSharedSchoolWiseDiscountsVars);
+// Variables can be defined inline as well.
+const ref = listSharedSchoolWiseDiscountsRef({ limit: ..., offset: ..., });
+// Since all variables are optional for this query, you can omit the `ListSharedSchoolWiseDiscountsVariables` argument.
+const ref = listSharedSchoolWiseDiscountsRef();
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = listSharedSchoolWiseDiscountsRef(dataConnect, listSharedSchoolWiseDiscountsVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.sharedSchoolWiseDiscounts);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.sharedSchoolWiseDiscounts);
+});
+```
+
 # Mutations
 
 There are two ways to execute a Data Connect Mutation using the generated Web SDK:
@@ -4095,6 +4228,154 @@ console.log(data.sharedBooksellerExecutive_upsert);
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.sharedBooksellerExecutive_upsert);
+});
+```
+
+## UpsertSharedSchoolWiseDiscount
+You can execute the `UpsertSharedSchoolWiseDiscount` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
+```typescript
+upsertSharedSchoolWiseDiscount(vars: UpsertSharedSchoolWiseDiscountVariables): MutationPromise<UpsertSharedSchoolWiseDiscountData, UpsertSharedSchoolWiseDiscountVariables>;
+
+interface UpsertSharedSchoolWiseDiscountRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertSharedSchoolWiseDiscountVariables): MutationRef<UpsertSharedSchoolWiseDiscountData, UpsertSharedSchoolWiseDiscountVariables>;
+}
+export const upsertSharedSchoolWiseDiscountRef: UpsertSharedSchoolWiseDiscountRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+upsertSharedSchoolWiseDiscount(dc: DataConnect, vars: UpsertSharedSchoolWiseDiscountVariables): MutationPromise<UpsertSharedSchoolWiseDiscountData, UpsertSharedSchoolWiseDiscountVariables>;
+
+interface UpsertSharedSchoolWiseDiscountRef {
+  ...
+  (dc: DataConnect, vars: UpsertSharedSchoolWiseDiscountVariables): MutationRef<UpsertSharedSchoolWiseDiscountData, UpsertSharedSchoolWiseDiscountVariables>;
+}
+export const upsertSharedSchoolWiseDiscountRef: UpsertSharedSchoolWiseDiscountRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the upsertSharedSchoolWiseDiscountRef:
+```typescript
+const name = upsertSharedSchoolWiseDiscountRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `UpsertSharedSchoolWiseDiscount` mutation requires an argument of type `UpsertSharedSchoolWiseDiscountVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface UpsertSharedSchoolWiseDiscountVariables {
+  sourceSpreadsheetId: string;
+  sourceSheetId: number;
+  sourceRow: number;
+  prCode?: string | null;
+  ptCode?: string | null;
+  schoolName?: string | null;
+  district?: string | null;
+  state?: string | null;
+  billingToWhom?: string | null;
+  bookseller?: string | null;
+  discount?: string | null;
+  groupCode?: string | null;
+  groupName?: string | null;
+  importedAt: TimestampString;
+}
+```
+### Return Type
+Recall that executing the `UpsertSharedSchoolWiseDiscount` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `UpsertSharedSchoolWiseDiscountData`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface UpsertSharedSchoolWiseDiscountData {
+  sharedSchoolWiseDiscount_upsert: SharedSchoolWiseDiscount_Key;
+}
+```
+### Using `UpsertSharedSchoolWiseDiscount`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, upsertSharedSchoolWiseDiscount, UpsertSharedSchoolWiseDiscountVariables } from '@dataconnect/generated';
+
+// The `UpsertSharedSchoolWiseDiscount` mutation requires an argument of type `UpsertSharedSchoolWiseDiscountVariables`:
+const upsertSharedSchoolWiseDiscountVars: UpsertSharedSchoolWiseDiscountVariables = {
+  sourceSpreadsheetId: ..., 
+  sourceSheetId: ..., 
+  sourceRow: ..., 
+  prCode: ..., // optional
+  ptCode: ..., // optional
+  schoolName: ..., // optional
+  district: ..., // optional
+  state: ..., // optional
+  billingToWhom: ..., // optional
+  bookseller: ..., // optional
+  discount: ..., // optional
+  groupCode: ..., // optional
+  groupName: ..., // optional
+  importedAt: ..., 
+};
+
+// Call the `upsertSharedSchoolWiseDiscount()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await upsertSharedSchoolWiseDiscount(upsertSharedSchoolWiseDiscountVars);
+// Variables can be defined inline as well.
+const { data } = await upsertSharedSchoolWiseDiscount({ sourceSpreadsheetId: ..., sourceSheetId: ..., sourceRow: ..., prCode: ..., ptCode: ..., schoolName: ..., district: ..., state: ..., billingToWhom: ..., bookseller: ..., discount: ..., groupCode: ..., groupName: ..., importedAt: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await upsertSharedSchoolWiseDiscount(dataConnect, upsertSharedSchoolWiseDiscountVars);
+
+console.log(data.sharedSchoolWiseDiscount_upsert);
+
+// Or, you can use the `Promise` API.
+upsertSharedSchoolWiseDiscount(upsertSharedSchoolWiseDiscountVars).then((response) => {
+  const data = response.data;
+  console.log(data.sharedSchoolWiseDiscount_upsert);
+});
+```
+
+### Using `UpsertSharedSchoolWiseDiscount`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, upsertSharedSchoolWiseDiscountRef, UpsertSharedSchoolWiseDiscountVariables } from '@dataconnect/generated';
+
+// The `UpsertSharedSchoolWiseDiscount` mutation requires an argument of type `UpsertSharedSchoolWiseDiscountVariables`:
+const upsertSharedSchoolWiseDiscountVars: UpsertSharedSchoolWiseDiscountVariables = {
+  sourceSpreadsheetId: ..., 
+  sourceSheetId: ..., 
+  sourceRow: ..., 
+  prCode: ..., // optional
+  ptCode: ..., // optional
+  schoolName: ..., // optional
+  district: ..., // optional
+  state: ..., // optional
+  billingToWhom: ..., // optional
+  bookseller: ..., // optional
+  discount: ..., // optional
+  groupCode: ..., // optional
+  groupName: ..., // optional
+  importedAt: ..., 
+};
+
+// Call the `upsertSharedSchoolWiseDiscountRef()` function to get a reference to the mutation.
+const ref = upsertSharedSchoolWiseDiscountRef(upsertSharedSchoolWiseDiscountVars);
+// Variables can be defined inline as well.
+const ref = upsertSharedSchoolWiseDiscountRef({ sourceSpreadsheetId: ..., sourceSheetId: ..., sourceRow: ..., prCode: ..., ptCode: ..., schoolName: ..., district: ..., state: ..., billingToWhom: ..., bookseller: ..., discount: ..., groupCode: ..., groupName: ..., importedAt: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = upsertSharedSchoolWiseDiscountRef(dataConnect, upsertSharedSchoolWiseDiscountVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.sharedSchoolWiseDiscount_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.sharedSchoolWiseDiscount_upsert);
 });
 ```
 

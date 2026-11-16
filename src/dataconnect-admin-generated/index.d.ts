@@ -353,6 +353,30 @@ export interface ListSharedSchoolGroupsVariables {
   offset?: number | null;
 }
 
+export interface ListSharedSchoolWiseDiscountsData {
+  sharedSchoolWiseDiscounts: ({
+    sourceSpreadsheetId: string;
+    sourceSheetId: number;
+    sourceRow: number;
+    prCode?: string | null;
+    ptCode?: string | null;
+    schoolName?: string | null;
+    district?: string | null;
+    state?: string | null;
+    billingToWhom?: string | null;
+    bookseller?: string | null;
+    discount?: string | null;
+    groupCode?: string | null;
+    groupName?: string | null;
+    importedAt: TimestampString;
+  } & SharedSchoolWiseDiscount_Key)[];
+}
+
+export interface ListSharedSchoolWiseDiscountsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+
 export interface ListSharedVendorSchoolsData {
   sharedVendorSchools: ({
     vendorCode: string;
@@ -490,6 +514,13 @@ export interface SharedSchoolGroupLocation_Key {
 export interface SharedSchoolGroup_Key {
   id: Int64String;
   __typename?: 'SharedSchoolGroup_Key';
+}
+
+export interface SharedSchoolWiseDiscount_Key {
+  sourceSpreadsheetId: string;
+  sourceSheetId: number;
+  sourceRow: number;
+  __typename?: 'SharedSchoolWiseDiscount_Key';
 }
 
 export interface SharedVendorSchool_Key {
@@ -644,6 +675,27 @@ export interface UpsertSharedSchoolGroupVariables {
   active: boolean;
 }
 
+export interface UpsertSharedSchoolWiseDiscountData {
+  sharedSchoolWiseDiscount_upsert: SharedSchoolWiseDiscount_Key;
+}
+
+export interface UpsertSharedSchoolWiseDiscountVariables {
+  sourceSpreadsheetId: string;
+  sourceSheetId: number;
+  sourceRow: number;
+  prCode?: string | null;
+  ptCode?: string | null;
+  schoolName?: string | null;
+  district?: string | null;
+  state?: string | null;
+  billingToWhom?: string | null;
+  bookseller?: string | null;
+  discount?: string | null;
+  groupCode?: string | null;
+  groupName?: string | null;
+  importedAt: TimestampString;
+}
+
 export interface UpsertSharedVendorData {
   sharedVendor_upsert: SharedVendor_Key;
 }
@@ -741,6 +793,11 @@ export function upsertSharedBooksellerExecutive(dc: DataConnect, vars: UpsertSha
 /** Generated Node Admin SDK operation action function for the 'UpsertSharedBooksellerExecutive' Mutation. Allow users to pass in custom DataConnect instances. */
 export function upsertSharedBooksellerExecutive(vars: UpsertSharedBooksellerExecutiveVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertSharedBooksellerExecutiveData>>;
 
+/** Generated Node Admin SDK operation action function for the 'UpsertSharedSchoolWiseDiscount' Mutation. Allow users to execute without passing in DataConnect. */
+export function upsertSharedSchoolWiseDiscount(dc: DataConnect, vars: UpsertSharedSchoolWiseDiscountVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertSharedSchoolWiseDiscountData>>;
+/** Generated Node Admin SDK operation action function for the 'UpsertSharedSchoolWiseDiscount' Mutation. Allow users to pass in custom DataConnect instances. */
+export function upsertSharedSchoolWiseDiscount(vars: UpsertSharedSchoolWiseDiscountVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertSharedSchoolWiseDiscountData>>;
+
 /** Generated Node Admin SDK operation action function for the 'ListOrganisations' Query. Allow users to execute without passing in DataConnect. */
 export function listOrganisations(dc: DataConnect, vars?: ListOrganisationsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListOrganisationsData>>;
 /** Generated Node Admin SDK operation action function for the 'ListOrganisations' Query. Allow users to pass in custom DataConnect instances. */
@@ -830,4 +887,9 @@ export function listSharedExecutives(vars?: ListSharedExecutivesVariables, optio
 export function listSharedSchoolExecutiveDefaults(dc: DataConnect, vars?: ListSharedSchoolExecutiveDefaultsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSharedSchoolExecutiveDefaultsData>>;
 /** Generated Node Admin SDK operation action function for the 'ListSharedSchoolExecutiveDefaults' Query. Allow users to pass in custom DataConnect instances. */
 export function listSharedSchoolExecutiveDefaults(vars?: ListSharedSchoolExecutiveDefaultsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSharedSchoolExecutiveDefaultsData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ListSharedSchoolWiseDiscounts' Query. Allow users to execute without passing in DataConnect. */
+export function listSharedSchoolWiseDiscounts(dc: DataConnect, vars?: ListSharedSchoolWiseDiscountsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSharedSchoolWiseDiscountsData>>;
+/** Generated Node Admin SDK operation action function for the 'ListSharedSchoolWiseDiscounts' Query. Allow users to pass in custom DataConnect instances. */
+export function listSharedSchoolWiseDiscounts(vars?: ListSharedSchoolWiseDiscountsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListSharedSchoolWiseDiscountsData>>;
 

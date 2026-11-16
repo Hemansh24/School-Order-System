@@ -35,6 +35,7 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*ListSharedPtCodeUsageHistory*](#listsharedptcodeusagehistory)
   - [*ListSharedExecutives*](#listsharedexecutives)
   - [*ListSharedSchoolExecutiveDefaults*](#listsharedschoolexecutivedefaults)
+  - [*ListSharedSchoolWiseDiscounts*](#listsharedschoolwisediscounts)
 - [**Mutations**](#mutations)
   - [*SetBooksellerActualDiscount*](#setbookselleractualdiscount)
   - [*UpsertChristianGroup*](#upsertchristiangroup)
@@ -49,6 +50,7 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*UpsertSharedSchoolExecutiveDefault*](#upsertsharedschoolexecutivedefault)
   - [*UpsertSharedOrderSchoolExecutive*](#upsertsharedorderschoolexecutive)
   - [*UpsertSharedBooksellerExecutive*](#upsertsharedbooksellerexecutive)
+  - [*UpsertSharedSchoolWiseDiscount*](#upsertsharedschoolwisediscount)
 
 # TanStack Query Firebase & TanStack React Query
 This SDK provides [React](https://react.dev/) hooks generated specific to your application, for the operations found in the connector `example`. These hooks are generated using [TanStack Query Firebase](https://react-query-firebase.invertase.dev/) by our partners at Invertase, a library built on top of [TanStack React Query v5](https://tanstack.com/query/v5/docs/framework/react/overview).
@@ -1980,6 +1982,111 @@ export default function ListSharedSchoolExecutiveDefaultsComponent() {
 }
 ```
 
+## ListSharedSchoolWiseDiscounts
+You can execute the `ListSharedSchoolWiseDiscounts` Query using the following Query hook function, which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts):
+
+```javascript
+useListSharedSchoolWiseDiscounts(dc: DataConnect, vars?: ListSharedSchoolWiseDiscountsVariables, options?: useDataConnectQueryOptions<ListSharedSchoolWiseDiscountsData>): UseDataConnectQueryResult<ListSharedSchoolWiseDiscountsData, ListSharedSchoolWiseDiscountsVariables>;
+```
+You can also pass in a `DataConnect` instance to the Query hook function.
+```javascript
+useListSharedSchoolWiseDiscounts(vars?: ListSharedSchoolWiseDiscountsVariables, options?: useDataConnectQueryOptions<ListSharedSchoolWiseDiscountsData>): UseDataConnectQueryResult<ListSharedSchoolWiseDiscountsData, ListSharedSchoolWiseDiscountsVariables>;
+```
+
+### Variables
+The `ListSharedSchoolWiseDiscounts` Query has an optional argument of type `ListSharedSchoolWiseDiscountsVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface ListSharedSchoolWiseDiscountsVariables {
+  limit?: number | null;
+  offset?: number | null;
+}
+```
+### Return Type
+Recall that calling the `ListSharedSchoolWiseDiscounts` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
+
+To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
+
+To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListSharedSchoolWiseDiscounts` Query is of type `ListSharedSchoolWiseDiscountsData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface ListSharedSchoolWiseDiscountsData {
+  sharedSchoolWiseDiscounts: ({
+    sourceSpreadsheetId: string;
+    sourceSheetId: number;
+    sourceRow: number;
+    prCode?: string | null;
+    ptCode?: string | null;
+    schoolName?: string | null;
+    district?: string | null;
+    state?: string | null;
+    billingToWhom?: string | null;
+    bookseller?: string | null;
+    discount?: string | null;
+    groupCode?: string | null;
+    groupName?: string | null;
+    importedAt: TimestampString;
+  } & SharedSchoolWiseDiscount_Key)[];
+}
+```
+
+To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
+
+### Using `ListSharedSchoolWiseDiscounts`'s Query hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, ListSharedSchoolWiseDiscountsVariables } from '@dataconnect/generated';
+import { useListSharedSchoolWiseDiscounts } from '@dataconnect/generated/react'
+
+export default function ListSharedSchoolWiseDiscountsComponent() {
+  // The `useListSharedSchoolWiseDiscounts` Query hook has an optional argument of type `ListSharedSchoolWiseDiscountsVariables`:
+  const listSharedSchoolWiseDiscountsVars: ListSharedSchoolWiseDiscountsVariables = {
+    limit: ..., // optional
+    offset: ..., // optional
+  };
+
+  // You don't have to do anything to "execute" the Query.
+  // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
+  const query = useListSharedSchoolWiseDiscounts(listSharedSchoolWiseDiscountsVars);
+  // Variables can be defined inline as well.
+  const query = useListSharedSchoolWiseDiscounts({ limit: ..., offset: ..., });
+  // Since all variables are optional for this Query, you can omit the `ListSharedSchoolWiseDiscountsVariables` argument.
+  // (as long as you don't want to provide any `options`!)
+  const query = useListSharedSchoolWiseDiscounts();
+
+  // You can also pass in a `DataConnect` instance to the Query hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const query = useListSharedSchoolWiseDiscounts(dataConnect, listSharedSchoolWiseDiscountsVars);
+
+  // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
+  const options = { staleTime: 5 * 1000 };
+  const query = useListSharedSchoolWiseDiscounts(listSharedSchoolWiseDiscountsVars, options);
+  // If you'd like to provide options without providing any variables, you must
+  // pass `undefined` where you would normally pass the variables.
+  const query = useListSharedSchoolWiseDiscounts(undefined, options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = { staleTime: 5 * 1000 };
+  const query = useListSharedSchoolWiseDiscounts(dataConnect, listSharedSchoolWiseDiscountsVars /** or undefined */, options);
+
+  // Then, you can render your component dynamically based on the status of the Query.
+  if (query.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (query.isError) {
+    return <div>Error: {query.error.message}</div>;
+  }
+
+  // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
+  if (query.isSuccess) {
+    console.log(query.data.sharedSchoolWiseDiscounts);
+  }
+  return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
 # Mutations
 
 The React generated SDK provides Mutations hook functions that call and return [`useDataConnectMutation`](https://react-query-firebase.invertase.dev/react/data-connect/mutations) hooks from TanStack Query Firebase.
@@ -3396,6 +3503,126 @@ export default function UpsertSharedBooksellerExecutiveComponent() {
   // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
   if (mutation.isSuccess) {
     console.log(mutation.data.sharedBooksellerExecutive_upsert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## UpsertSharedSchoolWiseDiscount
+You can execute the `UpsertSharedSchoolWiseDiscount` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts)):
+```javascript
+useUpsertSharedSchoolWiseDiscount(options?: useDataConnectMutationOptions<UpsertSharedSchoolWiseDiscountData, FirebaseError, UpsertSharedSchoolWiseDiscountVariables>): UseDataConnectMutationResult<UpsertSharedSchoolWiseDiscountData, UpsertSharedSchoolWiseDiscountVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useUpsertSharedSchoolWiseDiscount(dc: DataConnect, options?: useDataConnectMutationOptions<UpsertSharedSchoolWiseDiscountData, FirebaseError, UpsertSharedSchoolWiseDiscountVariables>): UseDataConnectMutationResult<UpsertSharedSchoolWiseDiscountData, UpsertSharedSchoolWiseDiscountVariables>;
+```
+
+### Variables
+The `UpsertSharedSchoolWiseDiscount` Mutation requires an argument of type `UpsertSharedSchoolWiseDiscountVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface UpsertSharedSchoolWiseDiscountVariables {
+  sourceSpreadsheetId: string;
+  sourceSheetId: number;
+  sourceRow: number;
+  prCode?: string | null;
+  ptCode?: string | null;
+  schoolName?: string | null;
+  district?: string | null;
+  state?: string | null;
+  billingToWhom?: string | null;
+  bookseller?: string | null;
+  discount?: string | null;
+  groupCode?: string | null;
+  groupName?: string | null;
+  importedAt: TimestampString;
+}
+```
+### Return Type
+Recall that calling the `UpsertSharedSchoolWiseDiscount` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpsertSharedSchoolWiseDiscount` Mutation is of type `UpsertSharedSchoolWiseDiscountData`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface UpsertSharedSchoolWiseDiscountData {
+  sharedSchoolWiseDiscount_upsert: SharedSchoolWiseDiscount_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `UpsertSharedSchoolWiseDiscount`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, UpsertSharedSchoolWiseDiscountVariables } from '@dataconnect/generated';
+import { useUpsertSharedSchoolWiseDiscount } from '@dataconnect/generated/react'
+
+export default function UpsertSharedSchoolWiseDiscountComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useUpsertSharedSchoolWiseDiscount();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useUpsertSharedSchoolWiseDiscount(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpsertSharedSchoolWiseDiscount(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpsertSharedSchoolWiseDiscount(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useUpsertSharedSchoolWiseDiscount` Mutation requires an argument of type `UpsertSharedSchoolWiseDiscountVariables`:
+  const upsertSharedSchoolWiseDiscountVars: UpsertSharedSchoolWiseDiscountVariables = {
+    sourceSpreadsheetId: ..., 
+    sourceSheetId: ..., 
+    sourceRow: ..., 
+    prCode: ..., // optional
+    ptCode: ..., // optional
+    schoolName: ..., // optional
+    district: ..., // optional
+    state: ..., // optional
+    billingToWhom: ..., // optional
+    bookseller: ..., // optional
+    discount: ..., // optional
+    groupCode: ..., // optional
+    groupName: ..., // optional
+    importedAt: ..., 
+  };
+  mutation.mutate(upsertSharedSchoolWiseDiscountVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ sourceSpreadsheetId: ..., sourceSheetId: ..., sourceRow: ..., prCode: ..., ptCode: ..., schoolName: ..., district: ..., state: ..., billingToWhom: ..., bookseller: ..., discount: ..., groupCode: ..., groupName: ..., importedAt: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(upsertSharedSchoolWiseDiscountVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.sharedSchoolWiseDiscount_upsert);
   }
   return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
 }

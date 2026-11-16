@@ -84,6 +84,12 @@ export function upsertSharedBooksellerExecutive(dcOrVarsOrOptions, varsOrOptions
   return dcInstance.executeMutation('UpsertSharedBooksellerExecutive', inputVars, inputOpts);
 }
 
+export function upsertSharedSchoolWiseDiscount(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('UpsertSharedSchoolWiseDiscount', inputVars, inputOpts);
+}
+
 export function listOrganisations(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, false);
   dcInstance.useGen(true);
@@ -190,5 +196,11 @@ export function listSharedSchoolExecutiveDefaults(dcOrVarsOrOptions, varsOrOptio
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, false);
   dcInstance.useGen(true);
   return dcInstance.executeQuery('ListSharedSchoolExecutiveDefaults', inputVars, inputOpts);
+}
+
+export function listSharedSchoolWiseDiscounts(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, false);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('ListSharedSchoolWiseDiscounts', inputVars, inputOpts);
 }
 

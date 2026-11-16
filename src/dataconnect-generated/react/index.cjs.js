@@ -1,4 +1,4 @@
-const { setBooksellerActualDiscountRef, upsertChristianGroupRef, setChristianGroupActiveRef, upsertPreBooksellerRef, upsertSharedSchoolGroupRef, upsertSharedSchoolGroupLocationRef, upsertSharedVendorRef, upsertSharedVendorSchoolRef, upsertSharedPtCodeUsageHistoryRef, upsertSharedExecutiveRef, upsertSharedSchoolExecutiveDefaultRef, upsertSharedOrderSchoolExecutiveRef, upsertSharedBooksellerExecutiveRef, listOrganisationsRef, searchOrganisationsRef, getOrganisationByPrCodeRef, listBooksellerDiscountsRef, listBooksellersRef, getBooksellerByCodeRef, listItemsRef, getItemByCodeRef, listBooksellerSchoolMappingRef, listSharedSchoolGroupsRef, listSharedSchoolGroupLocationsRef, listSharedChristianGroupsRef, listSharedPreBooksellersRef, listSharedVendorsRef, listSharedVendorSchoolsRef, listSharedPtCodeUsageHistoryRef, listSharedExecutivesRef, listSharedSchoolExecutiveDefaultsRef, connectorConfig } = require('../index.cjs.js');
+const { setBooksellerActualDiscountRef, upsertChristianGroupRef, setChristianGroupActiveRef, upsertPreBooksellerRef, upsertSharedSchoolGroupRef, upsertSharedSchoolGroupLocationRef, upsertSharedVendorRef, upsertSharedVendorSchoolRef, upsertSharedPtCodeUsageHistoryRef, upsertSharedExecutiveRef, upsertSharedSchoolExecutiveDefaultRef, upsertSharedOrderSchoolExecutiveRef, upsertSharedBooksellerExecutiveRef, upsertSharedSchoolWiseDiscountRef, listOrganisationsRef, searchOrganisationsRef, getOrganisationByPrCodeRef, listBooksellerDiscountsRef, listBooksellersRef, getBooksellerByCodeRef, listItemsRef, getItemByCodeRef, listBooksellerSchoolMappingRef, listSharedSchoolGroupsRef, listSharedSchoolGroupLocationsRef, listSharedChristianGroupsRef, listSharedPreBooksellersRef, listSharedVendorsRef, listSharedVendorSchoolsRef, listSharedPtCodeUsageHistoryRef, listSharedExecutivesRef, listSharedSchoolExecutiveDefaultsRef, listSharedSchoolWiseDiscountsRef, connectorConfig } = require('../index.cjs.js');
 const { validateArgs, CallerSdkTypeEnum } = require('firebase/data-connect');
 const { useDataConnectQuery, useDataConnectMutation, validateReactArgs } = require('@tanstack-query-firebase/react/data-connect');
 
@@ -102,6 +102,14 @@ exports.useUpsertSharedBooksellerExecutive = function useUpsertSharedBooksellerE
   const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
   function refFactory(vars) {
     return upsertSharedBooksellerExecutiveRef(dcInstance, vars);
+  }
+  return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
+}
+
+exports.useUpsertSharedSchoolWiseDiscount = function useUpsertSharedSchoolWiseDiscount(dcOrOptions, options) {
+  const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
+  function refFactory(vars) {
+    return upsertSharedSchoolWiseDiscountRef(dcInstance, vars);
   }
   return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }
@@ -212,5 +220,11 @@ exports.useListSharedExecutives = function useListSharedExecutives(dcOrVars, var
 exports.useListSharedSchoolExecutiveDefaults = function useListSharedSchoolExecutiveDefaults(dcOrVars, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateReactArgs(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
   const ref = listSharedSchoolExecutiveDefaultsRef(dcInstance, inputVars);
+  return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
+}
+
+exports.useListSharedSchoolWiseDiscounts = function useListSharedSchoolWiseDiscounts(dcOrVars, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateReactArgs(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  const ref = listSharedSchoolWiseDiscountsRef(dcInstance, inputVars);
   return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }

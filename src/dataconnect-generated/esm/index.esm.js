@@ -166,6 +166,18 @@ export function upsertSharedBooksellerExecutive(dcOrVars, vars) {
   return executeMutation(upsertSharedBooksellerExecutiveRef(dcInstance, inputVars));
 }
 
+export const upsertSharedSchoolWiseDiscountRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertSharedSchoolWiseDiscount', inputVars);
+}
+upsertSharedSchoolWiseDiscountRef.operationName = 'UpsertSharedSchoolWiseDiscount';
+
+export function upsertSharedSchoolWiseDiscount(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertSharedSchoolWiseDiscountRef(dcInstance, inputVars));
+}
+
 export const listOrganisationsRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
   dcInstance._useGeneratedSdk();
@@ -398,5 +410,18 @@ export function listSharedSchoolExecutiveDefaults(dcOrVars, varsOrOptions, optio
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
   return executeQuery(listSharedSchoolExecutiveDefaultsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const listSharedSchoolWiseDiscountsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListSharedSchoolWiseDiscounts', inputVars);
+}
+listSharedSchoolWiseDiscountsRef.operationName = 'ListSharedSchoolWiseDiscounts';
+
+export function listSharedSchoolWiseDiscounts(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  return executeQuery(listSharedSchoolWiseDiscountsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 

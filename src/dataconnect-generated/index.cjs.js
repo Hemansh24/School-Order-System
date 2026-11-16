@@ -195,6 +195,20 @@ exports.upsertSharedBooksellerExecutive = function upsertSharedBooksellerExecuti
 }
 ;
 
+const upsertSharedSchoolWiseDiscountRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertSharedSchoolWiseDiscount', inputVars);
+}
+upsertSharedSchoolWiseDiscountRef.operationName = 'UpsertSharedSchoolWiseDiscount';
+exports.upsertSharedSchoolWiseDiscountRef = upsertSharedSchoolWiseDiscountRef;
+
+exports.upsertSharedSchoolWiseDiscount = function upsertSharedSchoolWiseDiscount(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertSharedSchoolWiseDiscountRef(dcInstance, inputVars));
+}
+;
+
 const listOrganisationsRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
   dcInstance._useGeneratedSdk();
@@ -462,5 +476,20 @@ exports.listSharedSchoolExecutiveDefaults = function listSharedSchoolExecutiveDe
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
   return executeQuery(listSharedSchoolExecutiveDefaultsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listSharedSchoolWiseDiscountsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListSharedSchoolWiseDiscounts', inputVars);
+}
+listSharedSchoolWiseDiscountsRef.operationName = 'ListSharedSchoolWiseDiscounts';
+exports.listSharedSchoolWiseDiscountsRef = listSharedSchoolWiseDiscountsRef;
+
+exports.listSharedSchoolWiseDiscounts = function listSharedSchoolWiseDiscounts(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  return executeQuery(listSharedSchoolWiseDiscountsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
