@@ -67,9 +67,9 @@ export function SubmitButton({
 
 export function StatusPill({ value }: { value: string }) {
   const tone =
-    value === "finalized"
+    value === "finalized" || value === "dispatched"
       ? "bg-ok text-green-900"
-      : value === "locked" || value === "pending_confirmation"
+      : value === "pending"
         ? "bg-warn text-yellow-900"
         : value === "cancelled" || value === "on_hold"
           ? "bg-danger text-red-900"
@@ -77,7 +77,7 @@ export function StatusPill({ value }: { value: string }) {
 
   return (
     <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${tone}`}>
-      {value.replaceAll("_", " ")}
+      {value === "finalized" ? "finalised" : value.replaceAll("_", " ")}
     </span>
   );
 }

@@ -10,7 +10,7 @@ async function main() {
   assert.equal(url.port, "55439");
   assert.ok(["/order_revamp_verify", "/school_consolidation_verify"].includes(url.pathname));
   require("next/cache").revalidatePath = () => {};
-  const { createOrder, updateOrder, lockOrder, finalizeOrder, getOrder, listOrders } = await import("../lib/services/orders");
+  const { createOrder, updateOrder, finalizeOrder, getOrder, listOrders } = await import("../lib/services/orders");
   const vendor = await prisma.vendor.findFirstOrThrow();
   const schools = (await prisma.organisation.findMany({ where: { ptCode: { startsWith: "PT" } }, take: 2 })).map(asSchool);
   assert.equal(schools.length, 2);
@@ -57,7 +57,6 @@ async function main() {
       })
     });
     const order = await createOrder(descriptive);
-    await lockOrder(order.orderSheet1Id);
     const finalized = await finalizeOrder(order.orderSheet1Id);
     assert.equal(finalized.commissionPercentage?.toString(), "7.5");
     assert.equal(finalized.commissionPartyCode, vendor.vendorCode);

@@ -307,7 +307,7 @@ async function main() {
         .filter(Boolean)
         .join(", "),
       orderType: "ambiguous",
-      orderStatus: "locked",
+      orderStatus: "pending",
       booksellerType: northBooks.vendorType,
       booksellerRating: northBooks.vendorRating,
       pendingPayment: true,

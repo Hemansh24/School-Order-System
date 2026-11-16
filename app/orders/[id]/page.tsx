@@ -290,10 +290,10 @@ function Sheet3Table({
 }) {
   return (
     <Card>
-      <TableTitle title="Order Sheet 3" subtitle="Finalized fulfillment rows with independent primary keys" />
+      <TableTitle title="Order Sheet 3" subtitle="Finalised fulfillment rows with independent primary keys" />
       {rows.length === 0 ? (
         <div className="p-4">
-          <EmptyState>Lock and finalize this order to generate Order Sheet 3 rows.</EmptyState>
+          <EmptyState>Lock and finalise this order to generate Order Sheet 3 rows.</EmptyState>
         </div>
       ) : (
         <SimpleTable

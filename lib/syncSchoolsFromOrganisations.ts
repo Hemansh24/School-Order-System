@@ -90,7 +90,8 @@ function toPrismaOrganisationData(
   organisation: OrganisationSource
 ): Prisma.OrganisationCreateManyInput {
   return {
-    groupCode: normalizeText(organisation.groupCode),
+    // Group membership is refreshed directly from Organisation A:C; shared school refreshes preserve it.
+    groupCode: undefined,
     ptCode: normalizeText(organisation.ptCode),
     prCode: organisation.prCode.trim(),
     organisationName: organisation.organisationName.trim(),

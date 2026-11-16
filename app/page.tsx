@@ -8,10 +8,9 @@ export const dynamic = "force-dynamic";
 
 const statLabels: Record<string, string> = {
   totalOrders: "Total orders",
-  draftOrders: "Draft orders",
-  pendingConfirmation: "Pending confirmation",
-  lockedOrders: "Locked orders",
-  finalizedOrders: "Finalized orders",
+  pendingOrders: "Pending orders",
+  dispatchedOrders: "Dispatched orders",
+  finalizedOrders: "Finalised orders",
   cancelledOrders: "Cancelled orders",
   descriptiveOrders: "Descriptive orders",
   ambiguousOrders: "Ambiguous orders",

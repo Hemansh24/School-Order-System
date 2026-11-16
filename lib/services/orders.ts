@@ -160,9 +160,8 @@ export function applyPtCodesToOrder(
 export async function getDashboardData() {
   const [
     totalOrders,
-    draftOrders,
-    pendingConfirmation,
-    lockedOrders,
+    pendingOrders,
+    dispatchedOrders,
     finalizedOrders,
     cancelledOrders,
     descriptiveOrders,
@@ -172,11 +171,8 @@ export async function getDashboardData() {
     recentOrders
   ] = await Promise.all([
     prisma.orderSheet1.count(),
-    prisma.orderSheet1.count({ where: { orderStatus: "draft" } }),
-    prisma.orderSheet1.count({
-      where: { orderStatus: "pending_confirmation" }
-    }),
-    prisma.orderSheet1.count({ where: { orderStatus: "locked" } }),
+    prisma.orderSheet1.count({ where: { orderStatus: "pending" } }),
+    prisma.orderSheet1.count({ where: { orderStatus: "dispatched" } }),
     prisma.orderSheet1.count({ where: { orderStatus: "finalized" } }),
     prisma.orderSheet1.count({ where: { orderStatus: "cancelled" } }),
     prisma.orderSheet1.count({ where: { orderType: "descriptive" } }),
@@ -195,9 +191,8 @@ export async function getDashboardData() {
   return {
     stats: {
       totalOrders,
-      draftOrders,
-      pendingConfirmation,
-      lockedOrders,
+      pendingOrders,
+      dispatchedOrders,
       finalizedOrders,
       cancelledOrders,
       descriptiveOrders,
@@ -264,7 +259,7 @@ export async function createOrder(input: CreateOrderInput) {
         orderType: orderInput.sheet1.orderType as OrderType,
         descriptiveMode: orderInput.sheet1.orderType === "descriptive" ? orderInput.sheet1.descriptiveMode ?? "individual" : null,
         endUserGroupCode: isGroupOrder(orderInput.sheet1) ? orderInput.sheet1.endUserGroupCode : null,
-        orderStatus: "draft",
+        orderStatus: "pending",
         booksellerType: orderInput.sheet1.booksellerType || null,
         booksellerRating: orderInput.sheet1.booksellerRating || null,
         pendingPayment: orderInput.sheet1.pendingPayment,
@@ -344,7 +339,7 @@ export async function createReorder(sourceOrderId: number, input: ReorderInput) 
     await assertShippingDestinationExists(tx, values);
     const orderNo = await nextParentOrderNo(tx);
     const order = await tx.orderSheet1.create({ data: {
-      orderNo, reorderOfOrderId: sourceOrderId, orderStatus: "draft",
+      orderNo, reorderOfOrderId: sourceOrderId, orderStatus: "pending",
       sessionYear: values.sheet1.sessionYear,
       orderPlacedDate: toDate(values.sheet1.orderPlacedDate),
       orderReceivedDate: toDate(values.sheet1.orderReceivedDate),
@@ -387,7 +382,7 @@ export async function updateOrder(orderSheet1Id: number, input: CreateOrderInput
     const current = await tx.orderSheet1.findUnique({ where: { orderSheet1Id }, include: orderInclude });
     if (!current) throw new Error("Order not found.");
     if (current.classification !== "normal") throw new Error("Reporting containers and legacy direct group orders cannot be edited as normal orders.");
-    if (current.orderStatus === "finalized" || current.orderStatus === "cancelled") throw new Error("Finalized and cancelled orders cannot be edited.");
+    if (current.orderStatus !== "pending") throw new Error("Only pending orders can be edited.");
     const prepared = await prepareGsOrder(tx, parsed, current);
     await assertShippingDestinationExists(tx, prepared);
     const ptCodeByOriginalCode = await ensurePtCodesForSchoolCodesTx(
@@ -514,55 +509,6 @@ function assertDescriptiveShape(order: { orderType: string; descriptiveMode: str
   }
 }
 
-export async function lockOrder(orderSheet1Id: number) {
-  const result = await prisma.$transaction(async tx => {
-    await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(741024)`;
-    const order = await tx.orderSheet1.findUnique({
-      where: { orderSheet1Id },
-      include: orderInclude
-    });
-
-    if (!order) {
-      throw new Error("Order not found.");
-    }
-    if (order.orderStatus === "finalized" || order.orderStatus === "cancelled") {
-      throw new Error("Finalized or cancelled orders cannot be locked again.");
-    }
-    if (order.classification === "group_parent") {
-      return tx.orderSheet1.update({ where: { orderSheet1Id }, data: { orderStatus: "locked" } });
-    }
-    assertDescriptiveShape(order);
-    if (order.orderType === "descriptive" && !isPooledOrder(order) && order.descriptiveRows.length === 0) {
-      throw new Error("Descriptive orders need Order Sheet 2A rows before locking.");
-    }
-    if (
-      order.orderType === "ambiguous" &&
-      order.ambiguousItems.length === 0
-    ) {
-      throw new Error("Ambiguous orders need grouped items before locking.");
-    }
-    if (
-      order.classification !== "direct_group" &&
-      isPooledOrder(order) &&
-      (order.combinedSchools.length === 0 || order.combinedItems.length === 0)
-    ) {
-      throw new Error("Multiple descriptive orders need participating schools and pooled items before locking.");
-    }
-    if (order.classification === "direct_group" && (order.groupParticipants.length === 0 || order.groupItems.length === 0)) {
-      throw new Error("Direct group orders need participating schools and pooled items before locking.");
-    }
-
-    return tx.orderSheet1.update({
-      where: { orderSheet1Id },
-      data: { orderStatus: "locked" }
-    });
-  }, { timeout: 120000 });
-
-  revalidatePath(`/orders/${orderSheet1Id}`);
-  revalidatePath("/orders");
-  return result;
-}
-
 export async function finalizeOrder(orderSheet1Id: number) {
   const finalized = await prisma.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(741024)`;
@@ -574,11 +520,11 @@ export async function finalizeOrder(orderSheet1Id: number) {
     if (!order) {
       throw new Error("Order not found.");
     }
-    if (order.orderStatus !== "locked") {
-      throw new Error("Only locked orders can be finalized.");
+    if (order.orderStatus !== "pending") {
+      throw new Error("Only pending orders can be finalised.");
     }
     if (order.classification === "group_parent") {
-      throw new Error("Parent group orders are tracking containers and cannot be finalized.");
+      throw new Error("Parent group orders are tracking containers and cannot be finalised.");
     }
 
     if (order.classification === "direct_group") {
@@ -598,7 +544,7 @@ export async function finalizeOrder(orderSheet1Id: number) {
     assertDescriptiveShape(order);
     if (order.orderType === "descriptive" && !isPooledOrder(order)) {
       if (order.ambiguousItems.length > 0 || order.combinedSchools.length > 0 || order.combinedItems.length > 0) {
-        throw new Error("Descriptive orders cannot finalize with ambiguous or combined rows.");
+        throw new Error("Descriptive orders cannot finalise with ambiguous or combined rows.");
       }
       if (order.descriptiveRows.length === 0) {
         throw new Error("Descriptive orders require Order Sheet 2A rows.");
@@ -629,7 +575,7 @@ export async function finalizeOrder(orderSheet1Id: number) {
 
     if (order.orderType === "ambiguous") {
       if (order.descriptiveRows.length > 0 || order.combinedSchools.length > 0 || order.combinedItems.length > 0) {
-        throw new Error("Ambiguous orders cannot finalize with descriptive or combined rows.");
+        throw new Error("Ambiguous orders cannot finalise with descriptive or combined rows.");
       }
       if (order.ambiguousItems.length === 0) {
         throw new Error("Ambiguous orders require grouped items.");
@@ -660,7 +606,7 @@ export async function finalizeOrder(orderSheet1Id: number) {
 
     if (isPooledOrder(order)) {
       if (order.descriptiveRows.length > 0 || order.ambiguousItems.length > 0) {
-        throw new Error("Multiple descriptive orders cannot finalize with descriptive or ambiguous rows.");
+        throw new Error("Multiple descriptive orders cannot finalise with descriptive or ambiguous rows.");
       }
       if (order.combinedSchools.length === 0 || order.combinedItems.length === 0) {
         throw new Error("Multiple descriptive orders require participating schools and pooled items.");
@@ -704,7 +650,7 @@ export async function finalizeOrder(orderSheet1Id: number) {
 
 export async function updateOrderStatus(
   orderSheet1Id: number,
-  orderStatus: Exclude<OrderStatus, "finalized">
+  orderStatus: "cancelled"
 ) {
   const updated = await prisma.$transaction(async tx => {
     await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(741024)`;
@@ -712,10 +658,8 @@ export async function updateOrderStatus(
       where: { orderSheet1Id }, select: { ...schoolReferenceSelect, orderStatus: true }
     });
     if (!order) throw new Error("Order not found.");
-    if (order.orderStatus === "finalized") throw new Error("Finalized orders cannot be changed.");
-    if (order.orderStatus === "cancelled" && orderStatus !== "cancelled") {
-      throw new Error("Cancelled orders cannot be reopened.");
-    }
+    if (orderStatus !== "cancelled") throw new Error("Only cancellation is supported by this action.");
+    if (order.orderStatus !== "pending" && order.orderStatus !== "cancelled") throw new Error("Finalised and dispatched orders cannot be changed.");
     const result = await tx.orderSheet1.update({ where: { orderSheet1Id }, data: { orderStatus } });
     if (orderStatus === "cancelled" && order.orderStatus !== "cancelled") {
       await reverseUnusedPtCodesTx(tx, orderSchoolCodes(order));
@@ -765,7 +709,7 @@ export async function putOrderOnHold(orderSheet1Id: number) {
     throw new Error("Order not found.");
   }
   if (order.finalRows.length === 0) {
-    throw new Error("Only finalized orders can be put on hold.");
+    throw new Error("Only finalised orders can be put on hold.");
   }
   if (order.finalRows.some((row) => row.cancelOrOnHoldStatus === "cancelled")) {
     throw new Error("Cancelled fulfillment rows cannot be put on hold.");

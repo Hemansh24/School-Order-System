@@ -13,7 +13,7 @@ async function main() {
   assert.equal(url.port, "55439");
   assert.ok(["/order_revamp_verify", "/school_consolidation_verify"].includes(url.pathname));
   require("next/cache").revalidatePath = () => {};
-  const { createOrder, updateOrder, lockOrder, finalizeOrder, searchOrders } = await import("../lib/services/orders");
+  const { createOrder, updateOrder, finalizeOrder, searchOrders } = await import("../lib/services/orders");
   const schools = (await prisma.organisation.findMany({ take: 2 })).map(asSchool);
   assert.equal(schools.length, 2);
   const item = await prisma.item.findFirstOrThrow();
@@ -36,11 +36,9 @@ async function main() {
     ...ambiguousInput, ambiguousItems: [{ ...itemRef, groupedQuantity: 11 }]
   });
   assert.equal(editedAmbiguous.ambiguousItems[0].groupedQuantity, 11);
-  await lockOrder(ambiguous.orderSheet1Id);
   const finalizedAmbiguous = await finalizeOrder(ambiguous.orderSheet1Id);
   assert.deepEqual(finalizedAmbiguous.finalRows.map(row => [row.sourceType, row.quantity]), [["TWO_B2", 11]]);
-  await assert.rejects(() => finalizeOrder(ambiguous.orderSheet1Id), /Only locked/);
-  await assert.rejects(() => lockOrder(ambiguous.orderSheet1Id), /cannot be locked/);
+  await assert.rejects(() => finalizeOrder(ambiguous.orderSheet1Id), /Only pending/);
 
   const changingType = await createOrder(ambiguousInput);
   const changedType = await updateOrder(changingType.orderSheet1Id, createOrderSchema.parse({
@@ -53,7 +51,6 @@ async function main() {
   const schoolInput = createOrderSchema.parse({ sheet1: { ...sheet1, orderType: "descriptive", descriptiveMode: "individual" }, descriptiveRows: schools.slice(0, 1).map((school, index) => ({ schoolCode: school.schoolCode, schoolName: school.schoolName, ...itemRef, quantity: index + 3 })) });
   const schoolOrder = await createOrder(schoolInput);
   assert.equal(schoolOrder.descriptiveRows.length, 1);
-  await lockOrder(schoolOrder.orderSheet1Id);
   const finalizedSchool = await finalizeOrder(schoolOrder.orderSheet1Id);
   assert.equal(finalizedSchool.finalRows.length, 1);
   assert.equal(finalizedSchool.finalRows.reduce((sum, row) => sum + row.quantity, 0), 3);
@@ -66,7 +63,6 @@ async function main() {
   assert.equal(multiple.descriptiveRows.length, 0);
   const editedMultiple = await updateOrder(multiple.orderSheet1Id, { ...multipleInput, sheet1: { ...multipleInput.sheet1, billingToName: "Changed multiple payer" } });
   assert.equal(editedMultiple.combinedItems[0].pooledQuantity, 17);
-  await lockOrder(multiple.orderSheet1Id);
   const finalizedMultiple = await finalizeOrder(multiple.orderSheet1Id);
   assert.deepEqual(finalizedMultiple.finalRows.map(row => [row.sourceType, row.quantity]), [["TWO_C2", 17]]);
 
@@ -77,7 +73,6 @@ async function main() {
     descriptiveRows: { create: participants.map((school, index) => ({ ...school, ...itemRef, orderNo: multiple.orderNo + 1, quantity: index + 4 })) }
   }, include: { descriptiveRows: true } });
   const sourceIds = legacy.descriptiveRows.map(row => row.orderSheet2AId);
-  await lockOrder(legacy.orderSheet1Id);
   const legacyFinal = await finalizeOrder(legacy.orderSheet1Id);
   assert.deepEqual(legacyFinal.finalRows.map(row => row.sourceId).sort(), sourceIds.sort());
   assert.ok(legacyFinal.finalRows.every(row => row.sourceType === "TWO_A"));
@@ -90,7 +85,6 @@ async function main() {
   const savedConversion = await updateOrder(editableLegacy.orderSheet1Id, converted);
   assert.equal(savedConversion.descriptiveMode, "multiple_schools");
   assert.equal(savedConversion.combinedItems[0].pooledQuantity, 9);
-  await lockOrder(savedConversion.orderSheet1Id);
   assert.deepEqual((await finalizeOrder(savedConversion.orderSheet1Id)).finalRows.map(row => [row.sourceType, row.quantity]), [["TWO_C2", 9]]);
   // Persisted constraints are checked even if a record bypasses the create API.
   const invalid = await prisma.orderSheet1.create({ data: {
@@ -98,8 +92,7 @@ async function main() {
     billingToType: "individual", billingToName: "Invalid fixture", shippingToType: "individual", shippingToName: "Invalid fixture", shippingToSummary: "Fixture address",
     descriptiveRows: { create: participants.map(school => ({ ...school, ...itemRef, orderNo: editableLegacy.orderNo + 1, quantity: 1 })) }
   } });
-  await assert.rejects(() => lockOrder(invalid.orderSheet1Id), /exactly one school/);
-  await prisma.orderSheet1.update({ where: { orderSheet1Id: invalid.orderSheet1Id }, data: { orderStatus: "locked" } });
+  assert.equal(invalid.orderStatus, "pending");
   await assert.rejects(() => finalizeOrder(invalid.orderSheet1Id), /exactly one school/);
 
   const suffix = Date.now().toString();
@@ -115,7 +108,6 @@ async function main() {
   assert.equal(updated.shippingToSummary, "Changed destination");
   assert.equal(updated.combinedSchools.length, 2);
   assert.equal(updated.combinedItems[0].pooledQuantity, 13);
-  await lockOrder(groupOrder.orderSheet1Id);
   const finalizedGroup = await finalizeOrder(groupOrder.orderSheet1Id);
   assert.deepEqual(finalizedGroup.finalRows.map(row => [row.sourceType, row.quantity]), [["TWO_C2", 13]]);
 
@@ -131,7 +123,6 @@ async function main() {
   const editedGs = await updateOrder(gsOrder.orderSheet1Id, { ...gsInput, combinedSchools: gsOrder.combinedSchools.map(row => ({ ...row, notes: row.notes ?? "" })), sheet1: { ...gsInput.sheet1, shippingToSummary: "New independent GS destination" } });
   assert.deepEqual(editedGs.combinedSchools.map(row => row.schoolCode), gsOrder.combinedSchools.map(row => row.schoolCode));
   assert.equal(editedGs.shippingToSummary, "New independent GS destination");
-  await lockOrder(gsOrder.orderSheet1Id);
   const finalizedGs = await finalizeOrder(gsOrder.orderSheet1Id);
   assert.equal(finalizedGs.finalRows[0].sourceType, "TWO_C2");
   assert.equal(finalizedGs.finalRows[0].quantity, 13);
@@ -139,7 +130,7 @@ async function main() {
   const results = await searchOrders(new URLSearchParams({ order_type: "descriptive" }));
   assert.ok(results.some(order => order.orderSheet1Id === groupOrder.orderSheet1Id));
   assert.ok(results.some(order => order.orderSheet1Id === schoolOrder.orderSheet1Id));
-  console.log("Passed save/edit/lock/finalize, manual parties, nullable metadata, individual and pooled school quantities, legacy conversion/source preservation, Christian/GS groups, GS snapshots, pooled totals, filters, and duplicate-finalization protection on isolated database.");
+  console.log("Passed save/edit/finalise, manual parties, nullable metadata, individual and pooled school quantities, legacy conversion/source preservation, Christian/GS groups, GS snapshots, pooled totals, filters, and duplicate-finalization protection on isolated database.");
 }
 
 main().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => prisma.$disconnect());

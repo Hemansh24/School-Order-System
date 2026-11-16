@@ -5,10 +5,9 @@ export const orderTypeSchema = z.enum(["descriptive", "ambiguous"]);
 export const billingToTypeSchema = z.enum(["school", "vendor", "group", "individual"]);
 export const shippingToTypeSchema = z.enum(["school", "vendor", "group", "individual"]);
 export const orderStatusSchema = z.enum([
-  "draft",
-  "pending_confirmation",
-  "locked",
+  "pending",
   "finalized",
+  "dispatched",
   "cancelled"
 ]);
 

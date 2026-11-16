@@ -3,6 +3,19 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { importGsGroups } from "@/lib/importGsGroups";
 import { syncChristianGroups } from "@/lib/syncGroups";
+import { importOrganisationGroupMappings } from '@/lib/importOrganisationGroupMappings';
+
+export async function syncOrganisationMappingsAction() {
+  let destination: string;
+  try {
+    const summary = await importOrganisationGroupMappings(undefined, true, true);
+    for (const path of ['/groups', '/orders/new', '/orders/a2d', '/organisations']) revalidatePath(path);
+    destination = `/groups?message=${encodeURIComponent(`Organisation mappings: ${summary.added} added, ${summary.changed} changed, ${summary.cleared} cleared, ${summary.unresolved.length} unresolved GS relationships, ${summary.errors.length} exception rows skipped.`)}`;
+  } catch (error) {
+    destination = `/groups?error=${encodeURIComponent(error instanceof Error ? error.message : 'Mapping refresh failed.')}`;
+  }
+  redirect(destination);
+}
 
 export async function syncGsAction() {
   let destination: string;

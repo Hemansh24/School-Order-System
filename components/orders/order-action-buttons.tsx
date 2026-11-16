@@ -4,7 +4,6 @@ import { useActionState } from "react";
 import {
   cancelOrderAction,
   finalizeOrderAction,
-  lockOrderAction,
   markPaymentReceivedAction,
   putOrderOnHoldAction,
   type OrderMutationState
@@ -28,8 +27,8 @@ export function OrderActionButtons({
   hasFinalRows: boolean;
   fulfillmentStatus?: "active" | "on_hold" | "cancelled";
 }) {
-  const canEdit = status !== "finalized" && status !== "cancelled" && classification === "normal";
-  const canChangeStatus = status !== "finalized" && status !== "cancelled";
+  const canEdit = status === "pending" && classification === "normal";
+  const canChangeStatus = status === "pending";
   const isOnHold = fulfillmentStatus === "on_hold";
   const isFulfillmentCancelled = fulfillmentStatus === "cancelled";
 
@@ -39,17 +38,12 @@ export function OrderActionButtons({
         {orderType === "ambiguous" && status !== "cancelled" && classification === "normal" && !isFulfillmentCancelled ? <ButtonLink href={`/orders/${orderSheet1Id}/a2d`} className="border border-line bg-white">A2D — Add end users</ButtonLink> : null}
         {canEdit ? (
           <ButtonLink href={`/orders/${orderSheet1Id}/edit`} className="border border-line bg-white">
-            Edit Draft
+            Edit Order
           </ButtonLink>
         ) : null}
-        {canEdit ? (
-          <OrderActionForm action={lockOrderAction.bind(null, orderSheet1Id)} variant="secondary">
-            Lock Order
-          </OrderActionForm>
-        ) : null}
-        {status === "locked" && classification !== "group_parent" ? (
+        {status === "pending" && classification !== "group_parent" ? (
           <OrderActionForm action={finalizeOrderAction.bind(null, orderSheet1Id)}>
-            Finalize Order
+            Finalise Order
           </OrderActionForm>
         ) : null}
         {canChangeStatus ? (

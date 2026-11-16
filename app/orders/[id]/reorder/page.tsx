@@ -73,7 +73,7 @@ export default async function ReorderPage({
     <>
       <PageHeader
         title={`Reorder of Order ${order.orderNo}`}
-        description="Choose new items and quantities, and update shipping if needed. Billing and end users stay the same. Saving creates a new draft with a new order number."
+        description="Choose new items and quantities, and update shipping if needed. Billing and end users stay the same. Saving creates a new pending order with a new order number."
       />
       <ReorderReminderGate key={order.orderSheet1Id} reminder={reminder}>
       <CreateOrderForm

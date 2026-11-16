@@ -31,7 +31,7 @@ export default async function FinalizationPage({
         </div>
         {order.finalRows.length === 0 ? (
           <div className="p-4">
-            <EmptyState>This order has not been finalized into Order Sheet 3.</EmptyState>
+            <EmptyState>This order has not been finalised into Order Sheet 3.</EmptyState>
           </div>
         ) : (
           <div className="overflow-x-auto">

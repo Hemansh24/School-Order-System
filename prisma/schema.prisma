@@ -36,10 +36,9 @@ enum OrderClassification {
 }
 
 enum OrderStatus {
-  draft
-  pending_confirmation
-  locked
+  pending
   finalized
+  dispatched
   cancelled
 }
 
@@ -105,6 +104,24 @@ model Organisation {
   @@index([prCode], map: "idx_organisations_pr_code")
   @@index([state], map: "idx_organisations_state")
   @@map("organisations")
+}
+
+model GroupReconciliation {
+  id Int @id @default(autoincrement())
+  groupCode String
+  subCode String
+  sourceText String
+  nameKey String
+  prCode String?
+  status String
+  reason String
+  reviewedAt DateTime?
+  active Boolean @default(true)
+  updatedAt DateTime @updatedAt
+
+  @@unique([groupCode, subCode, nameKey])
+  @@index([prCode])
+  @@map("group_reconciliation")
 }
 
 model SchoolGroup {
@@ -295,7 +312,7 @@ model OrderSheet1 {
   classification        OrderClassification @default(normal) @map("classification")
   schoolGroupId         Int?         @map("school_group_id")
   schoolGroupLocationId Int?         @map("school_group_location_id")
-  orderStatus          OrderStatus   @default(draft) @map("order_status")
+  orderStatus          OrderStatus   @default(pending) @map("order_status")
   booksellerType       String?       @map("bookseller_type")
   booksellerRating     String?       @map("bookseller_rating")
   booksellerDiscount   String?       @map("bookseller_discount")

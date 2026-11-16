@@ -142,7 +142,7 @@ test("A2D school-wise reorders preserve each end user's quantities and executive
 });
 
 test("all source statuses are allowed but special classifications are rejected", () => {
-  for (const orderStatus of ["draft", "pending_confirmation", "locked", "finalized", "cancelled"] as const) {
+  for (const orderStatus of ["pending", "finalized", "dispatched", "cancelled"] as const) {
     assert.doesNotThrow(() => buildReorderInput(source({ orderStatus }), request, now));
   }
   for (const classification of ["group_parent", "direct_group"] as const) {

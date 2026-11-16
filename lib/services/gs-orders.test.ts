@@ -24,6 +24,7 @@ function fixture(masterExists = true) {
       findMany: async () => members,
       findUniqueOrThrow: async ({ where }: { where: { id: number } }) => { touched.push(where.id); return members.find(member => member.id === where.id)!; }
     },
+    groupReconciliation: { findMany: async () => [] },
     schoolGroupSchool: { findMany: async () => [] },
     $queryRaw: async () => []
   } as unknown as Prisma.TransactionClient;
@@ -68,6 +69,14 @@ test("GS selections reject unrelated schools", async () => {
   await assert.rejects(() => prepareGsOrder(tx, input(["PT9999"])), /selected GS group/);
 });
 
+test('GS order validation ignores inferred membership when organisation group code is blank', async () => {
+  const { tx } = fixture();
+  tx.organisation.findMany = (async () => members.map(row => ({ ...row, groupCode: null }))) as unknown as typeof tx.organisation.findMany;
+  tx.groupReconciliation.findMany = (async () => [{ groupCode: 'GS1', prCode: 'PR1', status: 'confirmed', active: true }]) as typeof tx.groupReconciliation.findMany;
+  await assert.rejects(() => prepareGsOrder(tx, input(['PR1'])), /no member organisations/);
+  await assert.rejects(() => prepareGsOrder(tx, input(['PR2'])), /no member organisations/);
+});
+
 test("missing GS masters allow deselecting historical participants", async () => {
   const { tx } = fixture(false);
   const result = await prepareGsOrder(tx, input(["PT0001"]), saved);
@@ -95,6 +104,7 @@ function conversionFixture() {
         Object.assign(organisations.find(member => member.id === where.id)!, data);
       }
     },
+    groupReconciliation: { findMany: async () => [] },
     schoolGroupSchool: { findMany: async () => [] },
     $queryRaw: async (query: TemplateStringsArray) => {
       calls.push(query.join("").includes("pg_advisory") ? "lock" : "reserved");

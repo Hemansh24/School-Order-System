@@ -21,7 +21,7 @@ export function ReorderReminderGate({ reminder, children }: {
   }
 
   if (stage === "done" || !reminder) return <>
-    {!reminder ? <p role="status" className="mb-4 rounded-md border border-line bg-canvas p-3 text-sm">No previous matching finalized order found.</p> : null}
+    {!reminder ? <p role="status" className="mb-4 rounded-md border border-line bg-canvas p-3 text-sm">No previous matching finalised order found.</p> : null}
     {children}
   </>;
 
@@ -33,7 +33,7 @@ export function ReorderReminderGate({ reminder, children }: {
     </h2>
     <p id="reorder-reminder-message" className="mt-3 text-sm">
       {stage === "latest"
-        ? `The latest matching finalized order is Order ${reminder.orderNo}, created on ${formatReorderCreatedAt(reminder.createdAt)}. Continue with this reorder?`
+        ? `The latest matching finalised order is Order ${reminder.orderNo}, created on ${formatReorderCreatedAt(reminder.createdAt)}. Continue with this reorder?`
         : "This order was created within the last 24 hours. Are you sure you want to place another order?"}
     </p>
     <div className="mt-6 flex justify-end gap-3">

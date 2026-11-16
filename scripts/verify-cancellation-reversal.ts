@@ -12,7 +12,7 @@ async function main() {
   assert.equal(url.port, "55439");
   assert.ok(["/order_revamp_verify", "/school_consolidation_verify"].includes(url.pathname));
   require("next/cache").revalidatePath = () => {};
-  const { createOrder, updateOrderStatus, lockOrder, finalizeOrder, putOrderOnHold } = await import("../lib/services/orders");
+  const { createOrder, updateOrderStatus, finalizeOrder, putOrderOnHold } = await import("../lib/services/orders");
   const suffix = Date.now().toString();
   const item = await prisma.item.findFirstOrThrow();
   const vendor = await prisma.vendor.findFirstOrThrow({ select: { vendorId: true } });
@@ -51,18 +51,16 @@ async function main() {
   assert.ok(await prisma.schoolGroupSchool.findUnique({ where: { ptCode: first.organisation.prCode } }));
   assert.equal((await prisma.orderSheet2A.findFirstOrThrow({ where: { orderSheet1Id: firstOrder.orderSheet1Id } })).schoolCode, ptCode);
   await updateOrderStatus(firstOrder.orderSheet1Id, "cancelled");
-  await assert.rejects(() => lockOrder(firstOrder.orderSheet1Id), /cancelled/);
   await assert.rejects(() => createOrder(individual(ptCode)), /changed or no longer exists/);
   const nextOrder = await createOrder(individual(first.organisation.prCode));
   assert.notEqual(nextOrder.descriptiveRows[0].schoolCode, ptCode);
   assert.ok(await prisma.schoolGroupSchool.findUnique({ where: { ptCode: nextOrder.descriptiveRows[0].schoolCode } }));
 
   // Finalized orders retain their status and school codes, including while on hold.
-  await lockOrder(nextOrder.orderSheet1Id);
   await finalizeOrder(nextOrder.orderSheet1Id);
-  await assert.rejects(() => updateOrderStatus(nextOrder.orderSheet1Id, "cancelled"), /Finalized orders cannot be changed/);
+  await assert.rejects(() => updateOrderStatus(nextOrder.orderSheet1Id, "cancelled"), /Finalised and dispatched orders cannot be changed/);
   await putOrderOnHold(nextOrder.orderSheet1Id);
-  await assert.rejects(() => updateOrderStatus(nextOrder.orderSheet1Id, "cancelled"), /Finalized orders cannot be changed/);
+  await assert.rejects(() => updateOrderStatus(nextOrder.orderSheet1Id, "cancelled"), /Finalised and dispatched orders cannot be changed/);
   assert.equal((await prisma.orderSheet1.findUniqueOrThrow({ where: { orderSheet1Id: nextOrder.orderSheet1Id } })).orderStatus, "finalized");
   assert.equal((await prisma.orderSheet3.findFirstOrThrow({ where: { orderSheet1Id: nextOrder.orderSheet1Id } })).cancelOrOnHoldStatus, "on_hold");
   assert.equal((await currentOrganisation(first.organisation.prCode)).ptCode, nextOrder.descriptiveRows[0].schoolCode);

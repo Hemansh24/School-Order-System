@@ -19,6 +19,8 @@ import { createOrderSchema, type CreateOrderInput } from "@/lib/validation/order
 import { distinctEndUsers } from "@/lib/end-user-type";
 import { EndUserTypesPreview } from "@/components/orders/end-user-types-preview";
 import { ExecutivePicker, type ExecutiveOption } from "@/components/orders/executive-picker";
+import { BulkExecutiveDialog } from "@/components/orders/bulk-executive-dialog";
+import { applyExecutiveToSelectedSchools } from "@/lib/school-executives";
 import { commissionLabel } from "@/lib/commission-label";
 
 type BooksellerExecutiveOption = { booksellerExecutiveId: number; incumbentCode: string; name: string; pbsCode: string; contact1: string | null; contact2: string | null };
@@ -136,6 +138,10 @@ export function CreateOrderForm({
     ...convertedCodes
   }), [sourceGroups, convertedCodes, isReorder]);
   const schools = useMemo(() => sourceSchools.map(school => ({ ...school, schoolCode: ptCodes[school.schoolCode] ?? school.schoolCode })), [sourceSchools, ptCodes]);
+  const schoolByReferenceCode = useMemo(() => new Map(schools.flatMap(school =>
+    [school.schoolCode, ...(school.referenceCodes ?? [])].map(code => [code, school] as const)
+  )), [schools]);
+  const [schoolSearch, setSchoolSearch] = useState("");
   const groups = useMemo(() => sourceGroups.map(group => ({ ...group, members: group.members?.map(member => ({ ...member, schoolCode: ptCodes[member.prCode] ?? member.schoolCode, ptCode: ptCodes[member.prCode] ?? member.ptCode })) })), [sourceGroups, ptCodes]);
   const groupByOptionKey = useMemo(() => new Map(groups.map(group => [group.optionKey, group])), [groups]);
   const [selectedDescriptiveSchoolKey, setSelectedDescriptiveSchoolKey] = useState(reorderSchool?.schoolCode ?? "");
@@ -458,6 +464,18 @@ export function CreateOrderForm({
     const schoolCode = ptCodes[school.schoolCode] ?? school.schoolCode;
     return [schoolCode, { ...school, schoolCode }] as const;
   })).values()];
+  const matchesSchoolSearch = createPartySearchMatcher(schoolSearch);
+  function matchesParticipatingSchool(school: { schoolCode: string; schoolName: string }) {
+    const reference = schoolByReferenceCode.get(school.schoolCode);
+    return matchesSchoolSearch({
+      code: school.schoolCode,
+      referenceCodes: reference?.referenceCodes,
+      name: school.schoolName,
+      addressSummary: reference?.addressSummary
+    });
+  }
+  const participatingSchools = hasGsParticipants ? gsSchoolOptions : watchedCombinedSchools;
+  const matchingSchoolCount = participatingSchools.filter(matchesParticipatingSchool).length;
   const appliedGs = useRef<string | null>(null);
   useEffect(() => {
     if (!isDraftReady || isReorder || isAllocated) return;
@@ -515,6 +533,7 @@ export function CreateOrderForm({
 
   const activeDescriptiveSchoolKey = selectedDescriptiveSchoolKey || findSchoolOptionByStoredValue(schools, watchedDescriptiveRows[0]?.schoolCode, watchedDescriptiveRows[0]?.schoolName)?.optionKey || "";
   const activeDescriptiveSchool = isReorder && !isAllocated ? reorderSchool : schools.find(school => school.optionKey === activeDescriptiveSchoolKey);
+  const activeDescriptiveSchoolReference = schoolByReferenceCode.get(activeDescriptiveSchool?.schoolCode ?? "");
   const executiveSchools = orderType === "descriptive"
     ? distinctEndUsers(isMultiple ? watchedCombinedSchools : isAllocated ? watchedDescriptiveRows : activeDescriptiveSchool ? [activeDescriptiveSchool] : watchedDescriptiveRows)
     : [];
@@ -749,6 +768,7 @@ export function CreateOrderForm({
     const hasRows = ["descriptiveRows", "ambiguousItems", "combinedSchools", "combinedItems"].some(key => (form.getValues(key as "descriptiveRows") ?? []).length);
     if (hasRows && !window.confirm("Changing the order entry will discard the current schools and item quantities. Continue?")) return;
     setLegacySchoolConversion(false);
+    setSchoolSearch("");
     setSelectedDescriptiveSchoolKey("");
     form.setValue("sheet1.orderType", type);
     form.setValue("sheet1.descriptiveMode", mode);
@@ -841,16 +861,23 @@ export function CreateOrderForm({
       if (!result.ok) { setServerError(result.message); return; }
       if (result.orderId) { router.push(`/orders/${result.orderId}/reorder?matched=1`); return; }
       if (isNewOrder && !isReorder && !shippingManuallyEdited.current) {
-        const endUser = users.length === 1
+        // Only individual orders default to a participating school.
+        const endUser = !isMultiple && !isAllocated && users.length === 1
           ? findSchoolOptionByStoredValue(schools, users[0], activeDescriptiveSchool?.schoolName)
           : undefined;
-        const billingSchool = sheet.billingToType === "school" && selectedBillingOption && !selectedBillingOption.isGroup
+        const endUserGroup = isGroup
+          ? groups.find(group => group.schoolCode === sheet.endUserGroupCode)
+          : undefined;
+        const billingParty = selectedBillingOption && (
+          sheet.billingToType === "vendor" || selectedBillingOption.isGroup === (sheet.billingToType === "group")
+        )
           ? selectedBillingOption
           : undefined;
-        form.setValue("sheet1.shippingToType", "school", { shouldValidate: true });
-        form.setValue("sheet1.shippingToCode", endUser?.schoolCode ?? billingSchool?.code ?? "", { shouldValidate: true });
-        form.setValue("sheet1.shippingToName", endUser?.schoolName ?? billingSchool?.name ?? "", { shouldValidate: true });
-        form.setValue("sheet1.shippingToSummary", endUser?.addressSummary ?? billingSchool?.addressSummary ?? "", { shouldValidate: true });
+        const shippingType = endUserGroup ? "group" : endUser ? "school" : billingParty ? sheet.billingToType : "school";
+        form.setValue("sheet1.shippingToType", shippingType, { shouldValidate: true });
+        form.setValue("sheet1.shippingToCode", endUserGroup?.schoolCode ?? endUser?.schoolCode ?? billingParty?.code ?? "", { shouldValidate: true });
+        form.setValue("sheet1.shippingToName", endUserGroup?.schoolName ?? endUser?.schoolName ?? billingParty?.name ?? "", { shouldValidate: true });
+        form.setValue("sheet1.shippingToSummary", endUserGroup?.addressSummary ?? endUser?.addressSummary ?? billingParty?.addressSummary ?? "", { shouldValidate: true });
       }
       setStep(1);
       setInitialComplete(true);
@@ -858,6 +885,7 @@ export function CreateOrderForm({
   }
 
   function clearOrder() {
+    setSchoolSearch("");
     shippingManuallyEdited.current = false;
     form.reset(newOrderDefaults);
     setIsChoosingExpectedDate(false);
@@ -933,11 +961,98 @@ export function CreateOrderForm({
           <Field label="Billing address"><textarea className={textAreaClass} {...form.register("sheet1.billingAddress")} /></Field>
           <BooksellerDiscount vendor={billingToType === "vendor"} value={booksellerDiscount} onChange={value => form.setValue("sheet1.booksellerDiscount", value, { shouldDirty: true, shouldValidate: true })} />
           {orderType === "descriptive" ? <Field label="Descriptive entry"><select className={inputClass} value={descriptiveMode} onChange={event => changeEntry("descriptive", event.target.value as DescriptiveMode)}><option value="individual">Individual</option><option value="multiple_schools">Multiple schools</option><option value="multiple_group">Group</option>{isAllocated ? <option value={descriptiveMode}>{descriptiveMode === "allocated_group" ? "Group" : "Multiple schools"} — school quantities</option> : null}</select></Field> : null}
-          {orderType === "descriptive" && !isMultiple ? <Field label="End user"><ReferencePicker schools={schools} selectedKey={activeDescriptiveSchoolKey} onChange={setSelectedDescriptiveSchoolKey} /></Field> : null}
-          {isGroup ? <Field label="End-school group"><ReferencePicker kind="group" schools={groups} selectedKey={groups.find(group => group.schoolCode === endUserGroupCode)?.optionKey ?? ""} onChange={key => { form.setValue("combinedSchools", []); form.setValue("sheet1.endUserGroupCode", groups.find(group => group.optionKey === key)?.schoolCode ?? ""); }} /></Field> : null}
+          {orderType === "descriptive" && isAllocated ? <Field label="End user"><ReferencePicker schools={schools} selectedKey={activeDescriptiveSchoolKey} onChange={setSelectedDescriptiveSchoolKey} /></Field> : null}
+          {isGroup ? <Field label="End-school group"><ReferencePicker kind="group" schools={groups} selectedKey={groups.find(group => group.schoolCode === endUserGroupCode)?.optionKey ?? ""} onChange={key => { setSchoolSearch(""); form.setValue("combinedSchools", []); form.setValue("sheet1.endUserGroupCode", groups.find(group => group.optionKey === key)?.schoolCode ?? ""); }} /></Field> : null}
         </div>
-        {isMultiple ? <div className="space-y-2"><p className="font-semibold">Participating schools</p>{hasGsParticipants ? gsSchoolOptions.map(school => <label key={school.schoolCode} className="flex gap-2 text-sm"><input type="checkbox" checked={watchedCombinedSchools.some(row => row.schoolCode === school.schoolCode)} onChange={event => { const rows = form.getValues("combinedSchools"); form.setValue("combinedSchools", event.target.checked ? [...rows, school] : rows.filter(row => row.schoolCode !== school.schoolCode)); }} />{school.schoolCode} — {school.schoolName}</label>) : <><button type="button" onClick={appendCombinedSchool} className="text-brand-dark">Add school</button>{combinedSchools.fields.map((row, index) => <div key={row.id} className="flex gap-2"><ReferencePicker schools={schools.filter(school => school.schoolCode === form.watch(`combinedSchools.${index}.schoolCode`) || !watchedCombinedSchools.some(other => other.schoolCode === school.schoolCode))} selectedKey={findSchoolOptionByStoredValue(schools, form.watch(`combinedSchools.${index}.schoolCode`))?.optionKey ?? ""} onChange={key => setCombinedSchool(index, key)} /><button type="button" onClick={() => combinedSchools.remove(index)}>Remove</button></div>)}</>}</div> : null}
-        {orderType === "descriptive" && executiveSchools.length ? <section className="space-y-3"><h3 className="font-semibold">Executives</h3>{executiveSchools.map(school => <div key={school.schoolCode}><p className="mb-1 text-sm">{school.schoolCode} — {school.schoolName}</p>{renderExecutivePicker(school.schoolCode)}</div>)}</section> : null}
+        {orderType === "descriptive" && !isMultiple && !isAllocated ? <section className="space-y-4">
+          <h3 className="font-semibold">End user</h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="min-w-0 space-y-3 rounded-lg border border-line bg-white p-4">
+              <p className="text-sm font-semibold">School 1</p>
+              <ReferencePicker schools={schools} selectedKey={activeDescriptiveSchoolKey} onChange={setSelectedDescriptiveSchoolKey} />
+              {activeDescriptiveSchool ? <p className="break-words text-sm">
+                <span className="font-semibold">{activeDescriptiveSchool.schoolCode}</span>
+                <span className="mt-1 block text-muted">{activeDescriptiveSchool.schoolName}</span>
+              </p> : null}
+              {activeDescriptiveSchoolReference?.addressSummary ? <p className="break-words text-xs text-muted">{activeDescriptiveSchoolReference.addressSummary}</p> : null}
+              <div className="border-t border-line pt-3">
+                {renderExecutivePicker(activeDescriptiveSchool?.schoolCode)}
+              </div>
+            </div>
+          </div>
+        </section> : null}
+        {isMultiple ? <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="font-semibold">Participating schools</p>
+            <div className="flex flex-wrap gap-2">
+              {!isReorder ? <BulkExecutiveDialog key={`${descriptiveMode}:${endUserGroupCode}`} executives={executives} selectedSchoolCount={executiveSchools.length} disabled={isPending}
+                onApply={executive => {
+                  form.setValue("schoolExecutives", applyExecutiveToSelectedSchools(form.getValues("schoolExecutives") ?? [], form.getValues("combinedSchools"), executive), { shouldDirty: true, shouldValidate: true });
+                }} /> : null}
+              {!hasGsParticipants ? <SubmitButton type="button" onClick={() => { setSchoolSearch(""); appendCombinedSchool(); }}>
+                <Plus className="mr-2 h-4 w-4" aria-hidden="true" />Add school
+              </SubmitButton> : null}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="min-w-0 flex-1 basis-64">
+              <Field label="Search schools">
+                <input type="search" className={inputClass} value={schoolSearch} placeholder="PR/PT code, school name, or address" onChange={event => setSchoolSearch(event.target.value)} onKeyDown={event => { if (event.key === "Enter") event.preventDefault(); }} />
+              </Field>
+            </div>
+            {schoolSearch ? <SubmitButton type="button" variant="secondary" onClick={() => setSchoolSearch("")}>Clear search</SubmitButton> : null}
+          </div>
+          <p role="status" className="text-sm text-muted">Showing {matchingSchoolCount} of {participatingSchools.length} schools. {watchedCombinedSchools.length} selected.</p>
+          {schoolSearch.trim() && !matchingSchoolCount ? <p className="rounded-lg border border-line bg-canvas p-4 text-sm text-muted">No schools match your search. Try another code, name, or address.</p> : null}
+          <div className="grid gap-4 md:grid-cols-2">
+            {hasGsParticipants ? gsSchoolOptions.map((school, index) => {
+              if (!matchesParticipatingSchool(school)) return null;
+              const reference = schoolByReferenceCode.get(school.schoolCode);
+              const isSelected = watchedCombinedSchools.some(row => row.schoolCode === school.schoolCode);
+              return <div key={school.schoolCode} className="min-w-0 space-y-3 rounded-lg border border-line bg-white p-4">
+                <label className="flex items-center gap-2 text-sm font-semibold">
+                  <input type="checkbox" checked={isSelected} aria-label={`Include ${school.schoolCode} ${school.schoolName}`} onChange={event => {
+                    const rows = form.getValues("combinedSchools");
+                    form.setValue("combinedSchools", event.target.checked ? [...rows, school] : rows.filter(row => row.schoolCode !== school.schoolCode));
+                  }} />
+                  School {index + 1}
+                </label>
+                <p className="break-words text-sm">
+                  <span className="font-semibold">{school.schoolCode}</span>
+                  <span className="mt-1 block text-muted">{school.schoolName}</span>
+                </p>
+                {reference?.addressSummary ? <p className="break-words text-xs text-muted">{reference.addressSummary}</p> : null}
+                {isSelected ? <div className="border-t border-line pt-3">
+                  {renderExecutivePicker(school.schoolCode)}
+                </div> : null}
+              </div>;
+            }) : combinedSchools.fields.map((row, index) => {
+              const school = watchedCombinedSchools[index];
+              if (school && !matchesParticipatingSchool(school)) return null;
+              const selectedSchool = findSchoolOptionByStoredValue(schools, school?.schoolCode);
+              return <div key={row.id} className="min-w-0 space-y-3 rounded-lg border border-line bg-white p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold">School {index + 1}</p>
+                  <SubmitButton type="button" variant="secondary" className="h-8 px-3" aria-label={`Remove school ${index + 1}`} onClick={() => combinedSchools.remove(index)}>Remove</SubmitButton>
+                </div>
+                <ReferencePicker
+                  schools={schools.filter(option => option.schoolCode === school?.schoolCode || !watchedCombinedSchools.some(other => other.schoolCode === option.schoolCode))}
+                  selectedKey={selectedSchool?.optionKey ?? ""}
+                  onChange={key => setCombinedSchool(index, key)}
+                />
+                {school?.schoolCode ? <p className="break-words text-sm">
+                  <span className="font-semibold">{school.schoolCode}</span>
+                  <span className="mt-1 block text-muted">{selectedSchool?.schoolName || school.schoolName}</span>
+                </p> : null}
+                {selectedSchool?.addressSummary ? <p className="break-words text-xs text-muted">{selectedSchool.addressSummary}</p> : null}
+                <div className="border-t border-line pt-3">
+                  {renderExecutivePicker(school?.schoolCode)}
+                </div>
+              </div>;
+            })}
+          </div>
+        </div> : null}
+        {orderType === "descriptive" && isAllocated && executiveSchools.length ? <section className="space-y-3"><h3 className="font-semibold">Executives</h3>{executiveSchools.map(school => <div key={school.schoolCode}><p className="mb-1 text-sm">{school.schoolCode} — {school.schoolName}</p>{renderExecutivePicker(school.schoolCode)}</div>)}</section> : null}
         {serverError ? <p role="alert" className="text-red-700">{serverError}</p> : null}
         <div className="flex flex-wrap gap-2">
           <SubmitButton type="button" disabled={isPending} onClick={checkInitialDetails}>Continue</SubmitButton>
@@ -947,7 +1062,7 @@ export function CreateOrderForm({
       {initialComplete ? <>
       {isReorder ? <p className="rounded-md border border-line bg-canvas p-3 text-sm">Reorder of Order {reorderSourceNo}. Billing, end users, and other saved details are fixed. Choose new items and quantities; shipping and expected delivery can change. Placed and received dates are set to today when saved.</p> : null}
       <div className="grid gap-3 sm:grid-cols-4">
-        {["Order Sheet 1", orderType === "ambiguous" ? "Order Sheet 2B2 - Item quantities" : isMultiple ? "Order Sheet 2C1 + 2C2" : "Order Sheet 2A", "Review", "Lock/Finalize"].map(
+        {["Order Sheet 1", orderType === "ambiguous" ? "Order Sheet 2B2 - Item quantities" : isMultiple ? "Order Sheet 2C1 + 2C2" : "Order Sheet 2A", "Review", "Finalise"].map(
           (label, index) => (
             <button
               key={label}
@@ -1353,11 +1468,11 @@ export function CreateOrderForm({
 
       {step === 4 ? (
         <Card className="p-5">
-          <h2 className="text-lg font-semibold text-ink">Lock/Finalize</h2>
+          <h2 className="text-lg font-semibold text-ink">Finalise</h2>
           <p className="mt-2 max-w-3xl text-sm text-muted">
-            Creating this order saves it as a draft with the correct sheet rows. Open the order
-            details page to lock it, then finalize it into Order Sheet 3. You can update the
-            order freely until it is finalized, while keeping the same order number.
+            Creating this order saves it as pending with the correct sheet rows. Open the order
+            details page to finalise it into Order Sheet 3. You can update the
+            order freely until it is finalised, while keeping the same order number.
           </p>
           {!form.formState.isValid ? (
             <div className="mt-4 rounded-md border border-danger bg-red-50 p-3 text-sm text-red-900">
@@ -1480,13 +1595,16 @@ function ReferencePicker({
     }
 
     const matches: SchoolRef[] = [];
+    const matchesSearch = createPartySearchMatcher(normalizedQuery);
     for (const school of schools) {
-      if (!school.schoolCode.toLowerCase().includes(normalizedQuery) && !school.schoolName.toLowerCase().includes(normalizedQuery)) continue;
+      if (kind === "school"
+        ? !matchesSearch({ code: school.schoolCode, name: school.schoolName, referenceCodes: school.referenceCodes, addressSummary: school.addressSummary })
+        : !school.schoolCode.toLowerCase().includes(normalizedQuery) && !school.schoolName.toLowerCase().includes(normalizedQuery)) continue;
       matches.push(school);
       if (matches.length === 50) break;
     }
     return matches;
-  }, [normalizedQuery, schools]);
+  }, [normalizedQuery, schools, kind]);
   const displayValue = isOpen ? query : selectedSchool ? `${selectedSchool.schoolCode} - ${selectedSchool.schoolName}${selectedSchool.groupType ? ` (${selectedSchool.groupType})` : ""}` : "";
 
   return (
@@ -1503,7 +1621,7 @@ function ReferencePicker({
           setIsOpen(true);
         }}
         onBlur={() => window.setTimeout(() => setIsOpen(false), 150)}
-        placeholder={`Search ${kind} code or name`}
+        placeholder={kind === "school" ? "Search PR/PT code, name, or address" : "Search group code or name"}
         role="combobox"
         aria-expanded={isOpen}
         aria-controls={optionsId}
@@ -1534,6 +1652,7 @@ function ReferencePicker({
               >
                 <span className="font-medium text-ink">{school.schoolCode}</span>
                 <span className="ml-2 text-muted">{school.schoolName}</span>
+                {kind === "school" && school.addressSummary ? <span className="mt-1 block break-words text-xs text-muted">{school.addressSummary}</span> : null}
                 {school.groupType ? <span className="ml-2 text-xs text-muted">{school.groupType}</span> : null}
               </button>
             ))

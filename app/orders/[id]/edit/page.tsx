@@ -53,7 +53,7 @@ export default async function EditOrderPage({
   }
 
   if (
-    order.orderStatus === "finalized" || order.orderStatus === "cancelled" || order.classification !== "normal"
+    order.orderStatus !== "pending" || order.classification !== "normal"
   ) {
     redirect(`/orders/${order.orderSheet1Id}`);
   }

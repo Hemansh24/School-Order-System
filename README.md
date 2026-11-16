@@ -131,7 +131,7 @@ Configure `CHRISTIAN_GROUPS_SHEET_ID`, `CHRISTIAN_GROUPS_SHEET_RANGE`, and `GOOG
 
 The `pt_code_usage_history` table stores one unique PT-code/session pair for each year with order usage, not the introduction year. Imports expand multiline PT-code cells, exclude aggregate `Group` labels (reporting their row numbers), validate all remaining rows before writing, preserve existing history, skip duplicate pairs, and verify the imported pairs inside the transaction.
 
-Order creation, editing, and details show **Type of End User** for each selected end school. Classification combines imported history with saved orders except cancelled orders, resolving PR aliases to PT codes. Relative to the order's session, usage in the preceding session means **Old**; earlier usage without preceding-session usage means **Gap**; no earlier usage means **New**. Repeat orders in the same session keep the same type. Editing a session excludes that order's previous saved version from its preview. Missing sessions require a valid session, and history read failures display an unavailable state. Codes in imported history remain reserved and are preserved when the last local order is cancelled.
+Order creation, editing, and details show **Type of End User** for each selected end school. Classification combines imported history with end-school participation in saved orders except cancelled orders, resolving PR and legacy PT aliases to current PT codes. Billing or shipping alone does not count as end-user usage. Relative to the order's session, usage in the preceding session means **Old**; earlier usage without preceding-session usage means **Gap**; no earlier usage means **New**. Repeat orders in the same session keep the same type. Editing a session excludes that order's previous saved version from its preview. Missing sessions require a valid session, and history read failures display an unavailable state. Codes in imported history remain reserved and are preserved when the last local order is cancelled.
 
 ### GS master data and membership
 
@@ -154,7 +154,16 @@ npx tsx scripts/import-gs-groups.ts --file tmp/group-sheet-import.json --apply
 npx tsx scripts/verify-group-logic.ts
 ```
 
-Imports preserve record IDs, retire absent GS masters, and save pre-import JSON snapshots under `tmp/group-backups/` (excluded from Git). Raw source columns are stored in group metadata. The approved local `GSO198` correction is applied when `GS0198` exists; correcting the source organisation record separately prevents an organisation refresh from restoring that typo.
+Imports preserve record IDs, retire absent GS masters, and save pre-import JSON snapshots under `tmp/group-backups/` (excluded from Git). Raw source columns are stored in group metadata. Group master imports never infer memberships or correct organisation codes.
+
+Refresh memberships separately from Organisation columns A-C (Group/NGO Code, PT Code, Pre_code):
+
+```bash
+npx tsx scripts/import-organisation-group-mappings.ts --file tmp/organisation-mappings.json --report tmp/mapping-preview.json
+npx tsx scripts/import-organisation-group-mappings.ts --file tmp/organisation-mappings.json --apply --skip-invalid --report tmp/mapping-result.json
+```
+
+The snapshot must include the headers. Omit `--file` to read the source Google Sheet directly using Sheets read credentials. Without `--skip-invalid`, any validation error blocks application; with it, invalid school rows remain unchanged and the report lists all exceptions. Blank group codes clear membership for source rows; schools absent from the source remain unchanged. PR/PT identities are preserved. The website's **Refresh Organisation mappings** action imports valid rows and reports skipped exceptions. Shared school refreshes preserve existing group assignments; new schools receive membership on the next Organisation mapping refresh. Old name-inferred reconciliation records remain archived for audit and never grant membership.
 
 Order types are **Descriptive** (known end schools) and **Ambiguous** (end schools unknown). Descriptive Sheet 2 offers three direct choices: Individual, Multiple Schools, and Group. Individual selects exactly one school and its item quantities. Multiple Schools selects at least two distinct schools; Group selects one searchable GS or Christian group. Both Multiple Schools and Group record one shared total per item and finalize pooled quantities without multiplying by participant count. GS groups include every member organisation and allocate PT codes to PR-only members when saved; Christian groups use an editable school list. Saved GS participants remain snapshots. Older orders keep their stored modes and fulfillment sources; editing a legacy multi-school allocation sums quantities by item and asks for confirmation before saving the conversion to shared totals. Ambiguous orders accept only items and positive integer quantities. School selectors and school lists are hidden throughout this workflow. Previously saved school links are retained as hidden history when editing an order that remains ambiguous; explicit order-type changes retain the existing discard behavior.
 

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { currentLocations, normalizeGroupCode } from "@/lib/group-membership";
+import { currentLocations, normalizeGroupCode, explicitGroupMembers } from "@/lib/group-membership";
 import { formatSchoolAddress } from "@/lib/shipping";
 import { extractContactNumbers } from "@/lib/contact-numbers";
 
@@ -107,9 +107,9 @@ export async function getGsMasterData(query = "", page = 1) {
   const search = query.trim().toLowerCase();
   const [masters, organisations] = await Promise.all([
     prisma.schoolGroup.findMany({ where: { sourceType: "GS", active: true }, include: { locations: { orderBy: { subCode: "asc" } } }, orderBy: { groupCode: "asc" } }),
-    prisma.organisation.findMany({ where: { groupCode: { not: null } }, orderBy: { prCode: "asc" }, select: { groupCode: true, ptCode: true, prCode: true, organisationName: true, district: true, state: true, pinCode: true } })
+    prisma.organisation.findMany({ orderBy: { prCode: "asc" }, select: { groupCode: true, ptCode: true, prCode: true, organisationName: true, district: true, state: true, pinCode: true } })
   ]);
-  const all = masters.map(group => ({ ...group, locations: currentLocations(group.locations, group.metadata), members: organisations.filter(org => normalizeGroupCode(org.groupCode) === normalizeGroupCode(group.groupCode)) }));
+  const all = masters.map(group => ({ ...group, locations: currentLocations(group.locations, group.metadata), members: explicitGroupMembers(organisations, group.groupCode) }));
   const matching = all.filter(group => !search || [group.groupCode, group.groupName, ...group.members.flatMap(member => [member.prCode, member.ptCode, member.organisationName]), ...group.locations.flatMap(location => [location.district, location.state])].some(value => value?.toLowerCase().includes(search)));
   const known = new Set(masters.map(group => normalizeGroupCode(group.groupCode)));
   const unresolved = organisations.filter(org => /^GS/.test(normalizeGroupCode(org.groupCode)) && !known.has(normalizeGroupCode(org.groupCode)));
@@ -121,10 +121,10 @@ export async function getGsMasterData(query = "", page = 1) {
 export async function getGsOrderOptions() {
   const [groups, organisations] = await Promise.all([
     prisma.schoolGroup.findMany({ where: { sourceType: "GS", active: true }, include: { locations: { orderBy: { subCode: "asc" } } }, orderBy: { groupCode: "asc" } }),
-    prisma.organisation.findMany({ where: { groupCode: { not: null } }, orderBy: { prCode: "asc" }, select: { groupCode: true, ptCode: true, prCode: true, organisationName: true } })
+    prisma.organisation.findMany({ orderBy: { prCode: "asc" }, select: { groupCode: true, ptCode: true, prCode: true, organisationName: true } })
   ]);
   return groups.map(group => {
     const locations = currentLocations(group.locations, group.metadata);
-    return { optionKey: group.groupCode, schoolCode: group.groupCode, schoolName: group.groupName, contactNumbers: extractContactNumbers(group.phoneEmail), groupType: "GS" as const, schoolGroupId: group.schoolGroupId, addressSummary: locations.length === 1 ? formatSchoolAddress(locations[0]) : "", locations: locations.map(location => ({ schoolGroupLocationId: location.schoolGroupLocationId, subCode: location.subCode, addressSummary: formatSchoolAddress(location), usable: !!location.address })), members: organisations.filter(org => normalizeGroupCode(org.groupCode) === normalizeGroupCode(group.groupCode)).map(org => ({ schoolCode: org.ptCode ?? org.prCode, schoolName: org.organisationName, prCode: org.prCode, ptCode: org.ptCode })) };
+    return { optionKey: group.groupCode, schoolCode: group.groupCode, schoolName: group.groupName, contactNumbers: extractContactNumbers(group.phoneEmail), groupType: "GS" as const, schoolGroupId: group.schoolGroupId, addressSummary: locations.length === 1 ? formatSchoolAddress(locations[0]) : "", locations: locations.map(location => ({ schoolGroupLocationId: location.schoolGroupLocationId, subCode: location.subCode, addressSummary: formatSchoolAddress(location), usable: !!location.address })), members: explicitGroupMembers(organisations, group.groupCode).map(org => ({ schoolCode: org.ptCode ?? org.prCode, schoolName: org.organisationName, prCode: org.prCode, ptCode: org.ptCode })) };
   });
 }

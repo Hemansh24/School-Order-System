@@ -6,10 +6,10 @@ import { reverseUnusedPtCodesTx } from "./school-code-reversal";
 
 function fixture() {
   const orders = [
-    { orderSheet1Id: 1, orderStatus: "draft", sessionYear: "2026-2027", codes: ["PR1"] },
+    { orderSheet1Id: 1, orderStatus: "pending", sessionYear: "2026-2027", codes: ["PR1"] },
     { orderSheet1Id: 2, orderStatus: "cancelled", sessionYear: "2026-2027", codes: ["PT2"] },
     { orderSheet1Id: 3, orderStatus: "finalized", sessionYear: "2025-2026", codes: ["PT2"] },
-    { orderSheet1Id: 4, orderStatus: "draft", sessionYear: "2027-2028", codes: ["PT3"] }
+    { orderSheet1Id: 4, orderStatus: "pending", sessionYear: "2027-2028", codes: ["PT3"] }
   ];
   const db = {
     organisation: { findMany: async () => [{ prCode: "PR1", ptCode: "PT1" }] },
@@ -39,6 +39,33 @@ test("combines imported history and local orders, excludes cancelled orders and 
 test("editing to a later session does not count the order being edited as previous usage", async () => {
   const types = await getEndUserTypes(["PT1"], "2027-2028", 1, fixture());
   assert.equal(types.PT1.type, "new");
+});
+
+test("billing and shipping schools without end-user usage do not change New or Gap", async () => {
+  const db = {
+    organisation: { findMany: async () => [] },
+    ptCodeUsageHistory: { findMany: async () => [{ ptCode: "PT2", sessionYear: "2025-2026" }] },
+    orderSheet1: { findMany: async () => [{
+      sessionYear: "2026-2027", billingToType: "school", billingToCode: "PT1",
+      shippingToType: "school", shippingToCode: "PT2",
+      descriptiveRows: [{ schoolCode: "PT3" }], combinedSchools: [], groupParticipants: []
+    }] }
+  } as unknown as Prisma.TransactionClient;
+  const types = await getEndUserTypes(["PT1", "PT2", "PT3"], "2027-2028", undefined, db);
+  assert.equal(types.PT1.type, "new");
+  assert.equal(types.PT2.type, "gap");
+  assert.equal(types.PT3.type, "old");
+});
+
+test("usage under a legacy PT code follows the organisation's current PT code", async () => {
+  const db = {
+    organisation: { findMany: async () => [{ prCode: "PR1", ptCode: "PT1", legacySchoolCodes: ["PT99"] }] },
+    ptCodeUsageHistory: { findMany: async ({ where }: { where: { ptCode: { in: string[] } } }) =>
+      where.ptCode.in.includes("PT99") ? [{ ptCode: "PT99", sessionYear: "2026-2027" }] : [] },
+    orderSheet1: { findMany: async () => [] }
+  } as unknown as Prisma.TransactionClient;
+  const types = await getEndUserTypes(["PT1", "PR1", "PT99"], "2027-2028", undefined, db);
+  for (const code of ["PT1", "PR1", "PT99"]) assert.deepEqual(types[code], { ptCode: "PT1", type: "old" });
 });
 
 test("missing session and empty selections need no history read; database errors propagate", async () => {

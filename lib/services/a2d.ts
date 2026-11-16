@@ -1,11 +1,12 @@
 import { Prisma, SourceType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { a2dSchema, a2dSchoolBelongsToGroup, calculateA2DBalance, type A2DInput } from "@/lib/a2d";
+import { a2dSchema, calculateA2DBalance, type A2DInput } from "@/lib/a2d";
 import { savedOrderToInput } from "@/lib/order-input";
 import { createOrderSchema } from "@/lib/validation/orders";
 import { findSchoolByCode, asSchool } from "@/lib/school-reference";
 import { ensurePtCodesForSchoolCodesTx } from "./organisations";
+import { getGroupMembers } from "@/lib/group-membership";
 import { prepareGsOrder } from "./gs-orders";
 import { saveOrderExecutives } from "./executives";
 import { applyPtCodesToOrder, nextParentOrderNo } from "./orders";
@@ -29,11 +30,12 @@ export async function convertAmbiguousOrder(sourceOrderId: number, raw: A2DInput
     const { balances, full } = calculateA2DBalance(source.ambiguousItems, input.rows);
     const group = input.mode === "multiple_group" ? await tx.schoolGroup.findUnique({ where: { groupCode: input.groupCode.toUpperCase() } }) : null;
     if (input.mode === "multiple_group" && (!group?.active || !["GS", "CHRISTIAN"].includes(group.sourceType))) throw new Error("Choose an active end-school group.");
+    const gsMembers = group?.sourceType === "GS" ? new Set((await getGroupMembers(tx, group.groupCode)).map(org => org.prCode)) : null;
     const schools = new Map<string, { schoolCode: string; schoolName: string }>();
     for (const code of input.schools) {
       const org = await findSchoolByCode(tx, code);
       if (!org) throw new Error(`Unknown end-user school: ${code}`);
-      if (group && !a2dSchoolBelongsToGroup(org.groupCode, group)) throw new Error(`School ${code} does not belong to the selected group.`);
+      if (gsMembers && !gsMembers.has(org.prCode)) throw new Error(`School ${code} does not belong to the selected group.`);
       const school = asSchool(org);
       schools.set(code, { schoolCode: school.schoolCode, schoolName: school.schoolName });
     }

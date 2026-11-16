@@ -9,6 +9,15 @@ const parties = [
   { code: "GS101", name: "Mary Group", addressSummary: "Surat, Gujarat" }
 ];
 
+test("finds the same school by PR or PT reference with name and address terms", () => {
+  const school = { code: "PT101", referenceCodes: ["PR501", "PT101"], name: "St. Mary School", addressSummary: "Church Road, Ahmedabad, Gujarat, 380001" };
+  for (const query of ["pr501", "PT101", "pr50 mary gujarat", "pt10 church 3800"]) {
+    assert.equal(createPartySearchMatcher(query)(school), true, query);
+  }
+  assert.equal(createPartySearchMatcher("PR999 mary")(school), false);
+  assert.equal(createPartySearchMatcher("PR501 mumbai")(school), false);
+});
+
 test("every word narrows results across name and address", () => {
   assert.deepEqual(parties.filter(createPartySearchMatcher("st. mary gujarat")), [parties[0]]);
   assert.deepEqual(parties.filter(createPartySearchMatcher("st. mary")), parties.slice(0, 2));

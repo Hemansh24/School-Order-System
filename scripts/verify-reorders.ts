@@ -12,7 +12,7 @@ async function main() {
   assert.equal(url.port, "55439");
   assert.ok(["/order_revamp_verify", "/school_consolidation_verify"].includes(url.pathname));
   require("next/cache").revalidatePath = () => {};
-  const { createOrder, createReorder, updateOrder, getOrder, lockOrder, finalizeOrder } = await import("../lib/services/orders");
+  const { createOrder, createReorder, updateOrder, getOrder, finalizeOrder } = await import("../lib/services/orders");
   const schools = (await prisma.organisation.findMany({ take: 2 })).map(asSchool);
   assert.equal(schools.length, 2);
   const item = await prisma.item.findFirstOrThrow({ where: { active: true, obsolete: false } });
@@ -44,7 +44,7 @@ async function main() {
   assert.notEqual(first.orderNo, original.orderNo);
   assert.equal(first.reorderOfOrderId, original.orderSheet1Id);
   assert.equal(first.reorderOfOrder?.orderNo, original.orderNo);
-  assert.equal(first.orderStatus, "draft");
+  assert.equal(first.orderStatus, "pending");
   assert.equal(first.orderPlacedDate.toISOString().slice(0, 10), getOrderEnteredDate());
   assert.equal(first.orderReceivedDate?.toISOString().slice(0, 10), getOrderEnteredDate());
   assert.equal(first.expectedDeliveryDate, null);
@@ -63,7 +63,6 @@ async function main() {
   const third = await createReorder(first.orderSheet1Id, input);
   assert.equal(third.reorderOfOrderId, first.orderSheet1Id);
   assert.notEqual(third.orderNo, first.orderNo);
-  await lockOrder(first.orderSheet1Id);
   const final = await finalizeOrder(first.orderSheet1Id);
   assert.equal(final.finalRows[0].quantity, 6);
   assert.equal(final.finalRows[0].paymentReceived, false);
@@ -97,11 +96,10 @@ async function main() {
       ambiguousItems: ambiguous ? [{ ...itemRef, groupedQuantity: 3 }] : [],
       combinedItems: ambiguous ? [] : [{ ...itemRef, pooledQuantity: 5 }]
     });
-    assert.equal(reordered.orderStatus, "draft");
+    assert.equal(reordered.orderStatus, "pending");
     if (mode === "combined") assert.equal(reordered.endUserGroupCode, "GS999999");
     if (!ambiguous) assert.deepEqual(reordered.combinedSchools.map(row => row.schoolCode), schools.map(school => school.schoolCode));
     else assert.equal(reordered.ambiguousItems[0].groupedQuantity, 3);
-    await lockOrder(reordered.orderSheet1Id);
     await finalizeOrder(reordered.orderSheet1Id);
   }
   const special = await prisma.orderSheet1.update({ where: { orderSheet1Id: third.orderSheet1Id }, data: { classification: "group_parent" } });

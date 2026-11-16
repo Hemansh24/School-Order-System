@@ -2,7 +2,6 @@ import { schoolCodeWhere } from "@/lib/school-reference";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { classifyEndUser, sessionStartYear, type EndUserClassification } from "@/lib/end-user-type";
-import { orderSchoolCodes, schoolReferenceSelect } from "./school-code-reversal";
 
 export async function getEndUserTypes(
   codes: string[], sessionYear: string, excludeOrderId?: number,
@@ -25,12 +24,9 @@ export async function getEndUserTypes(
     }
     canonical.set(row.ptCode.trim().toUpperCase(), row.ptCode.trim().toUpperCase());
   }
-  const ptCodes = [...new Set(requested.map(code => canonical.get(code) ?? code).filter(code => /^PT-?\d+$/.test(code)))];
-  const aliases = new Set([...requested, ...ptCodes]);
-  for (const row of organisations) if (row.ptCode) {
-    for (const alias of [row.prCode, ...(row.legacySchoolCodes ?? [])]) aliases.add(alias);
-  }
-  const allCodes = [...aliases];
+  const allCodes = [...new Set([...requested, ...canonical.keys()])];
+  // Historical usage can still be stored under an organisation's former PT code.
+  const ptCodes = allCodes.filter(code => /^PT-?\d+$/.test(code));
   const [history, orders] = await Promise.all([
     db.ptCodeUsageHistory.findMany({ where: { ptCode: { in: ptCodes } } }),
     db.orderSheet1.findMany({
@@ -39,14 +35,17 @@ export async function getEndUserTypes(
         ...(excludeOrderId === undefined ? {} : { orderSheet1Id: { not: excludeOrderId } }),
         sessionYear: { lt: sessionYear.trim() },
         OR: [
-          { billingToType: "school", billingToCode: { in: allCodes } },
-          { shippingToType: "school", shippingToCode: { in: allCodes } },
           { descriptiveRows: { some: { schoolCode: { in: allCodes } } } },
           { combinedSchools: { some: { schoolCode: { in: allCodes } } } },
           { groupParticipants: { some: { ptCode: { in: allCodes } } } }
         ]
       },
-      select: { ...schoolReferenceSelect, sessionYear: true }
+      select: {
+        sessionYear: true,
+        descriptiveRows: { select: { schoolCode: true } },
+        combinedSchools: { select: { schoolCode: true } },
+        groupParticipants: { select: { ptCode: true } }
+      }
     })
   ]);
   const sessions = new Map<string, Set<string>>();
@@ -58,7 +57,12 @@ export async function getEndUserTypes(
   };
   for (const row of history) addUsage(row.ptCode, row.sessionYear);
   for (const order of orders) {
-    if (order.sessionYear) for (const code of orderSchoolCodes(order)) addUsage(code, order.sessionYear);
+    // Billing and shipping are independent of the schools using the books.
+    if (order.sessionYear) for (const code of [
+      ...order.descriptiveRows.map(row => row.schoolCode),
+      ...order.combinedSchools.map(row => row.schoolCode),
+      ...order.groupParticipants.map(row => row.ptCode)
+    ]) addUsage(code, order.sessionYear);
   }
   return Object.fromEntries(requested.map(code => {
     const resolved = canonical.get(code) ?? code;

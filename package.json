@@ -18,6 +18,7 @@
     "prisma:seed": "tsx prisma/seed.ts",
     "postinstall": "prisma generate",
     "organisations:sync": "tsx -e \"import { syncOrganisations } from './lib/syncOrganisations'; syncOrganisations().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",
+    "groups:mappings:import": "tsx scripts/import-organisation-group-mappings.ts",
     "groups:import": "tsx scripts/import-gs-groups.ts",
     "pt-usage:import": "tsx scripts/import-pt-code-usage-history.ts",
     "pt-usage:publish": "tsx -e \"import { publishPtCodeUsageHistory } from './lib/publishPtCodeUsageHistory'; publishPtCodeUsageHistory().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",
@@ -36,7 +37,7 @@
     "organisations:import": "tsx -e \"import { replaceSchoolsWithImportedOrganisations } from './lib/syncSchoolsFromOrganisations'; replaceSchoolsWithImportedOrganisations().then((summary) => { console.log(summary); process.exit(0); }).catch((error) => { console.error(error); process.exit(1); });\"",
     "schools:preflight": "node scripts/check-school-consolidation.cjs",
     "test": "tsx --test lib/*.test.ts lib/services/*.test.ts lib/validation/*.test.ts",
-    "test:migration": "node --test scripts/school-consolidation.test.cjs"
+    "test:migration": "node --test scripts/school-consolidation.test.cjs scripts/order-status-migration.test.cjs"
   },
   "dependencies": {
     "@dataconnect/admin-generated": "file:src/dataconnect-admin-generated",

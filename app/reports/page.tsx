@@ -53,10 +53,9 @@ export default async function ReportsPage({
           </Select>
           <Select name="order_status" label="Order Status" defaultValue={params.get("order_status") ?? ""}>
             <option value="">All</option>
-            <option value="draft">Draft</option>
-            <option value="pending_confirmation">Pending confirmation</option>
-            <option value="locked">Locked</option>
-            <option value="finalized">Finalized</option>
+            <option value="pending">Pending</option>
+            <option value="dispatched">Dispatched</option>
+            <option value="finalized">Finalised</option>
             <option value="cancelled">Cancelled</option>
           </Select>
           <Input name="item" label="Item Code/Name" defaultValue={params.get("item") ?? ""} />
@@ -88,7 +87,7 @@ export default async function ReportsPage({
         <div className="border-b border-line p-4">
           <h2 className="font-semibold text-ink">Results</h2>
           <p className="text-sm text-muted">
-            Results explicitly show descriptive, ambiguous, pending, finalized, cancelled, and on-hold signals.
+            Results explicitly show descriptive, ambiguous, pending, finalised, cancelled, and on-hold signals.
           </p>
         </div>
         <div className="overflow-x-auto">

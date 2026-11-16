@@ -5,7 +5,6 @@ import {
   createOrder,
   createReorder,
   finalizeOrder,
-  lockOrder,
   markPaymentReceived,
   putOrderOnHold,
   updateOrder,
@@ -106,24 +105,6 @@ export async function updateOrderAction(
   }
 }
 
-export async function lockOrderAction(
-  orderSheet1Id: number,
-  _previousState: OrderMutationState,
-  _formData: FormData
-): Promise<OrderMutationState> {
-  try {
-    await lockOrder(orderSheet1Id);
-    return { ok: true, message: "Order locked." };
-  } catch (error) {
-    return {
-      ok: false,
-      message: formatActionError(error, {
-        fallback: "Could not lock this order. Please review the order details and try again."
-      })
-    };
-  }
-}
-
 export async function finalizeOrderAction(
   orderSheet1Id: number,
   _previousState: OrderMutationState,
@@ -131,12 +112,12 @@ export async function finalizeOrderAction(
 ): Promise<OrderMutationState> {
   try {
     await finalizeOrder(orderSheet1Id);
-    return { ok: true, message: "Order finalized." };
+    return { ok: true, message: "Order finalised." };
   } catch (error) {
     return {
       ok: false,
       message: formatActionError(error, {
-        fallback: "Could not finalize this order. Please review the order details and try again."
+        fallback: "Could not finalise this order. Please review the order details and try again."
       })
     };
   }

@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { readGoogleSheetRows } from '@/lib/googleSheets';
 import { normalizeGroupCode, normalizeSheetText } from '@/lib/group-membership';
 
+
 loadEnvConfig(process.cwd());
 export const GROUP_SHEET_ID = '1IVrJWu0wPmvTp-BjCGuWivnm8R3N2VRYEUzouTAgoGs';
 
@@ -31,13 +32,13 @@ export async function importGsGroups(values?: unknown[][], apply = false) {
   const rows = parseGsRows(values ?? (await readGoogleSheetRows({ spreadsheetId: process.env.GROUP_SHEETS_ID ?? process.env.GROUPS_SHEET_ID ?? GROUP_SHEET_ID, range: process.env.GROUP_SHEETS_RANGE ?? process.env.GROUPS_SHEET_RANGE ?? "'Group Sheet'!A1:L1000" })).map(row => row.values));
   const codes = [...new Set(rows.map(row => row.groupCode))];
   const existing = await prisma.schoolGroup.findMany({ where: { sourceType: 'GS' }, include: { locations: true } });
-  const correction = await prisma.organisation.findMany({ where: { groupCode: 'GSO198' } });
-  const summary = { groups: codes.length, locations: rows.length, newGroups: codes.filter(code => !existing.some(group => group.groupCode === code)).length, retiredGroups: existing.filter(group => group.active && !codes.includes(group.groupCode)).map(group => group.groupCode), correctedRelationships: correction.length };
+  const summary = { groups: codes.length, locations: rows.length, newGroups: codes.filter(code => !existing.some(group => group.groupCode === code)).length, retiredGroups: existing.filter(group => group.active && !codes.includes(group.groupCode)).map(group => group.groupCode) };
   if (!apply) return { ...summary, applied: false };
   const backupPath = `tmp/group-backups/${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
   await mkdir('tmp/group-backups', { recursive: true });
-  await writeFile(backupPath, JSON.stringify({ createdAt: new Date(), groups: existing, organisations: correction }, (_, value) => typeof value === 'bigint' ? value.toString() : value, 2), { flag: 'wx' });
+  await writeFile(backupPath, JSON.stringify({ createdAt: new Date(), groups: existing, reconciliation: await prisma.groupReconciliation.findMany() }, (_, value) => typeof value === 'bigint' ? value.toString() : value, 2), { flag: 'wx' });
   await prisma.$transaction(async tx => {
+    await tx.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(741024)`;
     for (const groupCode of codes) {
       const sourceRows = rows.filter(row => row.groupCode === groupCode);
       const primary = [...sourceRows].sort((a, b) => Number(a.subCode) - Number(b.subCode))[0];
@@ -50,7 +51,6 @@ export async function importGsGroups(values?: unknown[][], apply = false) {
       }
     }
     await tx.schoolGroup.updateMany({ where: { sourceType: 'GS', groupCode: { notIn: codes } }, data: { active: false } });
-    if (codes.includes('GS0198')) await tx.organisation.updateMany({ where: { groupCode: 'GSO198' }, data: { groupCode: 'GS0198' } });
   }, { timeout: 120000 });
   return { ...summary, applied: true, backupPath };
 }

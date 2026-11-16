@@ -11,7 +11,7 @@ async function main() {
   assert.equal(url.hostname, "127.0.0.1"); assert.equal(url.port, "55439");
   assert.ok(["/order_revamp_verify", "/school_consolidation_verify"].includes(url.pathname));
   require("next/cache").revalidatePath = () => {};
-  const { createOrder, updateOrder, getOrder, lockOrder, finalizeOrder } = await import("../lib/services/orders");
+  const { createOrder, updateOrder, getOrder, finalizeOrder } = await import("../lib/services/orders");
   const { convertAmbiguousOrder } = await import("../lib/services/a2d");
   const suffix = String(Date.now());
   const group = await prisma.schoolGroup.create({ data: { groupCode: `GS${suffix}`, groupName: "A2D verification group", sourceType: "GS" } });
@@ -19,7 +19,7 @@ async function main() {
   const executive = await prisma.executive.create({ data: { incumbentCode: `A2D-${suffix}`, name: "A2D verification executive" } });
   async function source(finalized = false) {
     const order = await createOrder(createOrderSchema.parse({ sheet1: { orderType: "ambiguous", orderPlacedDate: "2026-11-11", sessionYear: "2026-2027", billingToType: "individual", billingToName: "A2D verification payer", shippingToType: "individual", shippingToName: "A2D verification recipient", shippingToSummary: "Saved shipping address", pendingPayment: true, booksellerDiscount: "Saved discount" }, ambiguousItems: [{ itemCode: "A2D-A", itemName: "Verification A", groupedQuantity: 100 }, { itemCode: "A2D-B", itemName: "Verification B", groupedQuantity: 40 }] }));
-    if (finalized) { await lockOrder(order.orderSheet1Id); await finalizeOrder(order.orderSheet1Id); await prisma.orderSheet3.updateMany({ where: { orderSheet1Id: order.orderSheet1Id }, data: { transitId: "TRACK-A2D", parts: "Saved parts", paymentReceived: true, plNumber: "Saved PL", cancelOrOnHoldStatus: "on_hold" } }); }
+    if (finalized) { await finalizeOrder(order.orderSheet1Id); await prisma.orderSheet3.updateMany({ where: { orderSheet1Id: order.orderSheet1Id }, data: { transitId: "TRACK-A2D", parts: "Saved parts", paymentReceived: true, plNumber: "Saved PL", cancelOrOnHoldStatus: "on_hold" } }); }
     return (await getOrder(order.orderSheet1Id))!;
   }
   function request(order: Awaited<ReturnType<typeof source>>, rows: A2DInput["rows"], mode: A2DInput["mode"] = "multiple_schools"): A2DInput {
@@ -54,10 +54,10 @@ async function main() {
     const order = await source();
     const rows = [{ itemCode: "A2D-A", quantity: 100 }, { itemCode: "A2D-B", quantity: 40 }];
     const result = await convertAmbiguousOrder(order.orderSheet1Id, request(order, rows, mode));
-    assert.equal(result.orderNo, order.orderNo); assert.equal(result.orderStatus, "draft");
+    assert.equal(result.orderNo, order.orderNo); assert.equal(result.orderStatus, "pending");
     const input = normalizeOrderEntry(savedOrderToInput((await getOrder(result.orderSheet1Id))!));
     await updateOrder(result.orderSheet1Id, input);
-    await lockOrder(result.orderSheet1Id); await finalizeOrder(result.orderSheet1Id);
+    await finalizeOrder(result.orderSheet1Id);
     const final = (await getOrder(result.orderSheet1Id))!;
     assert.equal(final.schoolExecutives.length, 2); assert.equal(final.finalRows.reduce((sum, row) => sum + row.quantity, 0), 140);
     assert.equal(final.descriptiveRows.length, 0);

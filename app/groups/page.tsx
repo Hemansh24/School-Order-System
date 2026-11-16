@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Card, PageHeader, SubmitButton } from "@/components/ui";
 import { getChristianGroupData, getGsMasterData } from "@/lib/services/groups";
-import { syncGsAction, syncChristianAction } from "./actions";
+import { syncChristianAction } from "./actions";
 import { formatSchoolAddress } from "@/lib/shipping";
 
 export const dynamic = "force-dynamic";
@@ -17,16 +17,16 @@ export default async function GroupsPage({ searchParams }: { searchParams: Promi
     {params.message ? <Card className="mb-4 p-4 text-sm">{params.message}</Card> : null}
     {params.error ? <Card className="mb-4 p-4 text-sm text-danger">{params.error}</Card> : null}
     <Card className="mb-5 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold">GS Groups · {data.total}</h2><form action={syncGsAction}><SubmitButton>Refresh GS from Google Sheet</SubmitButton></form></div>
+      <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold">GS Groups · {data.total}</h2></div>
       <form className="mt-4 flex flex-wrap gap-2"><input name="q" defaultValue={q} placeholder="GS code, group name, PT/PR code, school, district or state" className="h-10 min-w-64 flex-1 rounded border border-line px-3"/><input type="hidden" name="cq" value={cq}/><SubmitButton type="submit">Search</SubmitButton><Link href="/groups" className="p-2 text-sm text-brand-dark">Clear</Link></form>
-      <p className="mt-3 text-sm text-muted">Membership comes from Organisation.groupCode. Schools without a group remain independent.</p>
+      <p className="mt-3 text-sm text-muted">Membership comes only from the Organisation sheet group codes linked to PR/PT codes. Blank group codes mean independent schools. Declared sheet counts may differ from linked school counts.</p>
     </Card>
     {data.groups.map(group => <Card key={group.schoolGroupId} className="mb-4">
       <div className="border-b border-line p-4"><h3 className="font-semibold">{group.groupCode} — {group.groupName}</h3><p className="text-sm text-muted">{group.members.length} linked organisations · {group.locations.length} group addresses</p></div>
-      <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-sm"><thead className="bg-canvas text-xs uppercase text-muted"><tr>{["Location", "Address", "Runs multiple schools", "Sheet school count", "Implemented", "Centralized decision"].map(label => <th key={label} className={cell}>{label}</th>)}</tr></thead><tbody>{group.locations.map(location => {
+      <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-sm"><thead className="bg-canvas text-xs uppercase text-muted"><tr>{["Location", "Address", "Runs multiple schools", "Sheet school count", "Implemented", "Common school names (reference)", "Centralized decision"].map(label => <th key={label} className={cell}>{label}</th>)}</tr></thead><tbody>{group.locations.map(location => {
         const sourceRows = (group.metadata as { sourceRows?: { subCode: string; rawValues: string[] }[] } | null)?.sourceRows;
         const raw = sourceRows?.find(row => row.subCode === location.subCode)?.rawValues;
-        return <tr key={location.schoolGroupLocationId} className="border-t border-line"><td className={cell}>{location.subCode}<div>{location.name}</div></td><td className={cell}><div className="max-w-md whitespace-pre-line">{formatSchoolAddress(location) || "Address unavailable"}</div></td><td className={cell}>{text(raw?.[3])}</td><td className={cell}>{text(raw?.[5])}</td><td className={cell}>{text(raw?.[6])}</td><td className={cell}>{text(location.centralizedDecision)}</td></tr>;
+        return <tr key={location.schoolGroupLocationId} className="border-t border-line"><td className={cell}>{location.subCode}<div>{location.name}</div></td><td className={cell}><div className="max-w-md whitespace-pre-line">{formatSchoolAddress(location) || "Address unavailable"}</div></td><td className={cell}>{text(raw?.[3])}</td><td className={cell}>{text(raw?.[5])}</td><td className={cell}>{text(raw?.[6])}</td><td className={`${cell} whitespace-pre-line`}>{text(raw?.[4])}</td><td className={cell}>{text(location.centralizedDecision)}</td></tr>;
       })}</tbody></table></div>
       <details className="border-t border-line p-4"><summary className="cursor-pointer font-medium">Member organisations ({group.members.length})</summary>{group.members.length ? <div className="mt-3 overflow-x-auto"><table className="w-full min-w-[650px] text-left text-sm"><thead><tr>{["PR code", "PT code", "Organisation", "Location"].map(label => <th key={label} className={cell}>{label}</th>)}</tr></thead><tbody>{group.members.map(member => <tr key={member.prCode} className="border-t border-line"><td className={cell}>{member.prCode}</td><td className={cell}>{member.ptCode ?? "PR only"}</td><td className={cell}>{member.organisationName}</td><td className={cell}>{[member.district, member.state, member.pinCode].filter(Boolean).join(", ") || "—"}</td></tr>)}</tbody></table></div> : <p className="mt-3 text-sm text-muted">No organisations are linked to this GS code.</p>}</details>
     </Card>)}
