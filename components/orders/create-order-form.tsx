@@ -972,7 +972,7 @@ export function CreateOrderForm({
               <input className={inputClass} value={billingToCode} placeholder="Search by code, name, or address" onChange={event => setBillingCode(event.target.value)} onFocus={() => setIsBillingDropdownOpen(true)} onBlur={() => window.setTimeout(() => setIsBillingDropdownOpen(false), 150)} />
               {form.watch("sheet1.billingToName") ? <p className="mt-1 text-sm text-muted">{form.watch("sheet1.billingToName")}</p> : null}
               {isBillingDropdownOpen ? (
-                <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-surface shadow-lg">
+                <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-surface-raised shadow-lg dark:shadow-none">
                   {filteredBillingOptions.length ? filteredBillingOptions.map(option => (
                     <button
                       key={option.value}
@@ -1213,7 +1213,7 @@ export function CreateOrderForm({
                 />
                 {shippingToType !== "individual" && form.watch("sheet1.shippingToName") ? <p className="mt-1 text-sm text-muted">{form.watch("sheet1.shippingToName")}</p> : null}
                 {isShippingDropdownOpen && shippingToType !== "individual" ? (
-                  <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-surface shadow-lg">
+                  <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-surface-raised shadow-lg dark:shadow-none">
                     {filteredShippingOptions.length > 0 ? (
                       filteredShippingOptions.map((option) => (
                         <button
@@ -1319,7 +1319,7 @@ export function CreateOrderForm({
                   {commissionPartyType === "bookseller_executive" && commissionName ? <p className="mt-1 text-sm text-muted">{commissionName} · {commissionPbsCode}</p>
                     : selectedCommissionOption ? <p className="mt-1 text-sm text-muted">{selectedCommissionOption.name}</p> : null}
                   <p className="mt-1 text-xs text-muted">Select an existing party or enter any other commissioned party’s name or code.</p>
-                  {isCommissionDropdownOpen ? <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-surface shadow-lg">
+                  {isCommissionDropdownOpen ? <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-surface-raised shadow-lg dark:shadow-none">
                     {filteredCommissionOptions.length ? filteredCommissionOptions.map(option => <button
                       key={`${option.type}:${option.booksellerExecutiveId ?? option.code}`} type="button" className="block w-full px-3 py-2 text-left text-sm hover:bg-canvas focus:bg-canvas"
                       onClick={() => {
@@ -1678,7 +1678,7 @@ function ReferencePicker({
         <div
           id={optionsId}
           role="listbox"
-          className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-surface shadow-lg"
+          className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-surface-raised shadow-lg dark:shadow-none"
         >
           {matches.length > 0 ? (
             matches.map((school) => (

@@ -11,6 +11,8 @@
   --muted: 111 97 117;
   --canvas: 250 247 251;
   --surface: 255 255 255;
+  --surface-raised: 255 255 255;
+  --surface-overlay: 255 255 255;
   --line: 232 221 236;
   --ok: 221 244 228;
   --ok-strong: 22 101 52;
@@ -26,24 +28,26 @@
 
 :root.dark {
   color-scheme: dark;
-  --brand: 126 78 142;
-  --brand-soft: 52 35 63;
-  --brand-dark: 219 177 235;
-  --ink: 243 234 247;
-  --muted: 187 170 197;
-  --canvas: 23 17 29;
-  --surface: 35 27 43;
-  --line: 70 53 80;
-  --ok: 27 62 45;
-  --ok-strong: 159 224 183;
-  --warn: 70 53 27;
-  --warn-strong: 250 218 148;
-  --danger: 75 35 49;
-  --danger-soft: 55 28 40;
-  --danger-strong: 255 181 192;
-  --info: 30 42 71;
-  --info-strong: 180 202 255;
-  --shadow-soft: rgba(0, 0, 0, 0.24);
+  --brand: 36 87 164;
+  --brand-soft: 38 51 69;
+  --brand-dark: 148 184 240;
+  --ink: 215 218 220;
+  --muted: 176 181 188;
+  --canvas: 18 18 18;
+  --surface: 30 32 36;
+  --surface-raised: 42 45 50;
+  --surface-overlay: 54 58 64;
+  --line: 93 99 108;
+  --ok: 38 55 46;
+  --ok-strong: 162 201 176;
+  --warn: 61 53 38;
+  --warn-strong: 218 196 148;
+  --danger: 61 41 46;
+  --danger-soft: 48 35 39;
+  --danger-strong: 219 166 175;
+  --info: 37 48 63;
+  --info-strong: 164 190 224;
+  --shadow-soft: transparent;
 }
 
 * {
@@ -77,5 +81,5 @@ body {
 }
 
 .focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 focus:ring-offset-canvas;
+  @apply focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 focus:ring-offset-canvas dark:focus:ring-brand-dark;
 }

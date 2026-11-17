@@ -30,7 +30,7 @@ export function ExecutivePicker({ value, options, onChange }: {
         onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); finishTyping(); } if (event.key === "Escape") setOpen(false); }} />
       <button type="button" className="focus-ring rounded border border-line px-2 text-sm" onClick={() => { onChange({ name: "", incumbentCode: null }); setOpen(false); }}>Clear</button>
     </div>
-    {open ? <div id={`${id}-options`} className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-md border border-line bg-surface p-1 shadow-lg">
+    {open ? <div id={`${id}-options`} className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-md border border-line bg-surface-raised p-1 shadow-lg dark:shadow-none">
       {matches.map(option => <button key={option.incumbentCode} type="button" className="focus-ring block w-full rounded px-3 py-2 text-left text-sm hover:bg-brand-soft"
         onClick={() => { onChange(option); setOpen(false); }}>{option.name} — {option.incumbentCode}</button>)}
       {!value.incumbentCode && value.name.trim() ? <button type="button" className="focus-ring block w-full border-t border-line px-3 py-2 text-left text-sm font-semibold"

@@ -456,7 +456,7 @@ function SchoolCheckboxes({
         {isOpen ? (
           <div
             id="linked-school-options"
-            className="absolute z-20 mt-1 w-full rounded-md border border-line bg-surface p-3 shadow-lg"
+            className="absolute z-20 mt-1 w-full rounded-md border border-line bg-surface-raised p-3 shadow-lg dark:shadow-none"
           >
           <input
             type="search"

@@ -18,7 +18,11 @@ const config: Config = {
         ink: "rgb(var(--ink) / <alpha-value>)",
         muted: "rgb(var(--muted) / <alpha-value>)",
         canvas: "rgb(var(--canvas) / <alpha-value>)",
-        surface: "rgb(var(--surface) / <alpha-value>)",
+        surface: {
+          DEFAULT: "rgb(var(--surface) / <alpha-value>)",
+          raised: "rgb(var(--surface-raised) / <alpha-value>)",
+          overlay: "rgb(var(--surface-overlay) / <alpha-value>)"
+        },
         line: "rgb(var(--line) / <alpha-value>)",
         ok: {
           DEFAULT: "rgb(var(--ok) / <alpha-value>)",

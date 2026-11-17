@@ -27,7 +27,7 @@ export function ReorderReminderGate({ reminder, children }: {
 
   return <dialog ref={dialog} aria-labelledby="reorder-reminder-title" aria-describedby="reorder-reminder-message"
     onCancel={event => { event.preventDefault(); cancel(); }}
-    className="w-[calc(100%-2rem)] max-w-lg rounded-lg border border-line bg-surface p-6 text-ink shadow-lg backdrop:bg-black/40">
+    className="w-[calc(100%-2rem)] max-w-lg rounded-lg border border-line bg-surface-overlay p-6 text-ink shadow-lg dark:shadow-none backdrop:bg-black/40 dark:backdrop:bg-canvas/70">
     <h2 id="reorder-reminder-title" className="text-lg font-semibold">
       {stage === "latest" ? "Latest order reminder" : "Order within the last 24 hours"}
     </h2>
